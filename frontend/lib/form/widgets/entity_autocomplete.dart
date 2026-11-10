@@ -131,6 +131,43 @@ class _EntityAutocompleteFieldState
   Widget _buildSearch(BuildContext context) {
     final t = Translations.of(context);
     final results = _results;
+    final tiles = <Widget>[
+      if (widget.item.def.childFields.isNotEmpty)
+        AppListTile(
+          leading: const Icon(CupertinoIcons.add_circled),
+          title: TileText(t.ui.form.createNewEntity),
+          onTap: () => showNestedDialog(context, widget.item),
+        ),
+      if (results != null && results.isEmpty)
+        CupertinoListTile(
+          leading: Icon(
+            CupertinoIcons.search,
+            color: AppColors.of(context).secondaryText,
+          ),
+          title: TileText(t.ui.form.noMatchingEntities),
+        ),
+      for (final result in results ?? const <SearchResult>[])
+        AppListTile(
+          title: TileText(result.label),
+          onTap: () => _select(result),
+        ),
+      if (_loading)
+        const Padding(
+          padding: EdgeInsets.all(appInputSpacing),
+          child: Center(child: CupertinoActivityIndicator()),
+        )
+      else if (_failure case (:final error, :final offset))
+        Padding(
+          padding: const EdgeInsets.all(appInputSpacing),
+          child: ErrorView(error: error, onRetry: () => _search(offset)),
+        )
+      else if (_hasMore)
+        AppListTile(
+          leading: const Icon(CupertinoIcons.refresh),
+          title: TileText(t.ui.form.moreResults),
+          onTap: () => _search(_offset + _pageSize),
+        ),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -141,45 +178,10 @@ class _EntityAutocompleteFieldState
           errorText: itemErrorText(context, widget.item),
           onChanged: _onChanged,
         ),
-        const SizedBox(height: appInputSpacing / 2),
-        AppSection(
-          children: [
-            AppListTile(
-              leading: const Icon(CupertinoIcons.add_circled),
-              title: TileText(t.ui.form.createNewEntity),
-              onTap: () => showNestedDialog(context, widget.item),
-            ),
-            if (results != null && results.isEmpty)
-              CupertinoListTile(
-                leading: Icon(
-                  CupertinoIcons.search,
-                  color: AppColors.of(context).secondaryText,
-                ),
-                title: TileText(t.ui.form.noMatchingEntities),
-              ),
-            for (final result in results ?? const <SearchResult>[])
-              AppListTile(
-                title: TileText(result.label),
-                onTap: () => _select(result),
-              ),
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.all(appInputSpacing),
-                child: Center(child: CupertinoActivityIndicator()),
-              )
-            else if (_failure case (:final error, :final offset))
-              Padding(
-                padding: const EdgeInsets.all(appInputSpacing),
-                child: ErrorView(error: error, onRetry: () => _search(offset)),
-              )
-            else if (_hasMore)
-              AppListTile(
-                leading: const Icon(CupertinoIcons.refresh),
-                title: TileText(t.ui.form.moreResults),
-                onTap: () => _search(_offset + _pageSize),
-              ),
-          ],
-        ),
+        if (tiles.isNotEmpty) ...[
+          const SizedBox(height: appInputSpacing / 2),
+          AppSection(children: tiles),
+        ],
       ],
     );
   }

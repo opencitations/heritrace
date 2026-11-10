@@ -13,6 +13,8 @@ import '../field_def.dart';
 import '../form_model.dart';
 import '../form_scope.dart';
 import 'entity_autocomplete.dart';
+import 'entity_form.dart';
+import 'field_group_widget.dart';
 import 'nested_dialog.dart';
 
 class ItemWidget extends StatelessWidget {
@@ -27,6 +29,9 @@ class ItemWidget extends StatelessWidget {
       DateItem() => DateField(item: item as DateItem),
       SelectItem() => SelectField(item: item as SelectItem),
       MandatoryItem() => MandatoryValueField(item: item as MandatoryItem),
+      NestedItem(:final def) when def.detailsEditor => NestedFields(
+        item: item as NestedItem,
+      ),
       NestedItem(:final def) when def.autocomplete => EntityAutocompleteField(
         item: item as NestedItem,
       ),
@@ -436,5 +441,23 @@ class DateTypeMenu extends StatelessWidget {
       ],
       onChanged: onChanged,
     );
+  }
+}
+
+/// The fields of a nested entity edited in place (`shui:DetailsEditor`). A
+/// single field reads as the value itself, without a heading.
+class NestedFields extends StatelessWidget {
+  const NestedFields({required this.item, super.key});
+
+  final NestedItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final paths = item.def.detailPaths;
+    final shown = item.child.shownGroups(paths).toList();
+    if (shown.length == 1) {
+      return FieldGroupWidget(group: shown.single);
+    }
+    return EntityForm(node: item.child, paths: paths);
   }
 }

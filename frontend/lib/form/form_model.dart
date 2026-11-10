@@ -47,6 +47,12 @@ class EntityNode extends ChangeNotifier {
   final List<FieldGroup> groups;
   NestedItem? parentItem;
 
+  /// The groups a form shows, limited to [paths] when given.
+  Iterable<FieldGroup> shownGroups(List<String>? paths) => groups.where(
+    (group) =>
+        !group.def.hidden && (paths == null || paths.contains(group.def.uri)),
+  );
+
   @override
   void dispose() {
     for (final group in groups) {

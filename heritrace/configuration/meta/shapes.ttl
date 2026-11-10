@@ -1,3 +1,4 @@
+@prefix dash: <http://datashapes.org/dash#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix meta: <https://w3id.org/heritrace/meta/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
@@ -21,6 +22,7 @@ meta:ShapesGraphShape
   sh:property [
     sh:path rdf:type ;
     sh:hasValue sh:ShapesGraph ;
+    dash:hidden true ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -38,6 +40,7 @@ meta:NodeShapeShape
   sh:property [
     sh:path rdf:type ;
     sh:hasValue sh:NodeShape ;
+    dash:hidden true ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -131,6 +134,7 @@ meta:PropertyShapeShape
   sh:property [
     sh:path rdf:type ;
     sh:hasValue sh:PropertyShape ;
+    dash:hidden true ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -223,6 +227,51 @@ meta:PropertyShapeShape
     sh:path shui:editor ;
     sh:name "Editor"@en, "Editor"@it ;
     sh:order 9 ;
-    sh:in ( shui:TextFieldEditor shui:TextAreaEditor shui:AutoCompleteEditor ) ;
+    sh:in ( shui:TextFieldEditor shui:TextAreaEditor shui:AutoCompleteEditor shui:DetailsEditor ) ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path shui:viewer ;
+    sh:name "Viewer"@en, "Visualizzatore"@it ;
+    sh:order 10 ;
+    sh:in ( shui:DetailsViewer ) ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dash:composite ;
+    sh:name "Depends on this entity"@en, "Dipende da questa entità"@it ;
+    sh:order 11 ;
+    sh:datatype xsd:boolean ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dash:hidden ;
+    sh:name "Hidden"@en, "Nascosto"@it ;
+    sh:order 12 ;
+    sh:datatype xsd:boolean ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:property ;
+    sh:name "Fields shown in place"@en, "Campi mostrati sul posto"@it ;
+    sh:order 13 ;
+    sh:node meta:DetailFieldShape ;
+  ] .
+
+meta:DetailFieldShape
+  a sh:NodeShape ;
+  sh:name "Field shown in place"@en, "Campo mostrato sul posto"@it ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue sh:PropertyShape ;
+    dash:hidden true ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:path ;
+    sh:name "Property"@en, "Proprietà"@it ;
+    sh:nodeKind sh:IRI ;
+    sh:minCount 1 ;
     sh:maxCount 1 ;
   ] .

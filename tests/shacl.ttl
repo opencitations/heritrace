@@ -1,3 +1,4 @@
+@prefix dash: <http://datashapes.org/dash#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -625,6 +626,7 @@ schema:AgentRoleShape
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    dash:hidden true ;
     sh:name "Has Next" ;
     sh:order 3 ;
     sh:node schema:AgentRoleShape ;
@@ -686,6 +688,20 @@ schema:ExpressionShape
   sh:name "Bibliographic Resource" ;
   sh:targetClass fabio:Expression ;
   sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath cito:hasCitedEntity ] ;
+    sh:name "Is Cited By" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
     sh:order 1 ;
@@ -717,6 +733,7 @@ schema:ExpressionShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:IdentifierShape ;
@@ -769,6 +786,7 @@ schema:ExpressionShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    dash:composite true ;
     sh:name "Page" ;
     sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
@@ -777,6 +795,10 @@ schema:ExpressionShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:withRole ] , [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:order 11 ;
     sh:node schema:AgentRoleShape ;
     sh:minCount 0 ;
@@ -954,6 +976,20 @@ schema:ArticleShape
   sh:name "Article" ;
   sh:targetClass fabio:Article ;
   sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath cito:hasCitedEntity ] ;
+    sh:name "Is Cited By" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
     sh:order 1 ;
@@ -1016,6 +1052,7 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    dash:composite true ;
     sh:name "Page" ;
     sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
@@ -1024,6 +1061,10 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Author" ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
@@ -1031,6 +1072,10 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Editor" ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
@@ -1038,6 +1083,10 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Collaborator" ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
@@ -1045,6 +1094,10 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Publisher" ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
@@ -1052,6 +1105,10 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Translator" ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
@@ -1059,6 +1116,7 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
@@ -1176,7 +1234,22 @@ schema:JournalArticleShape
   sh:name "Journal Article" ;
   sh:targetClass fabio:JournalArticle ;
   sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath cito:hasCitedEntity ] ;
+    sh:name "Is Cited By" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
@@ -1258,6 +1331,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    dash:composite true ;
     sh:name "Page" ;
     sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
@@ -1266,6 +1340,10 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Author" ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
@@ -1273,6 +1351,10 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Editor" ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
@@ -1280,6 +1362,10 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Collaborator" ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
@@ -1287,6 +1373,10 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Translator" ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
@@ -1294,6 +1384,10 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Publisher" ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
@@ -1400,7 +1494,22 @@ schema:BookShape
   sh:name "Monograph" ;
   sh:targetClass fabio:Book ;
   sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath cito:hasCitedEntity ] ;
+    sh:name "Is Cited By" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:BookIdentifierShape ;
@@ -1468,6 +1577,10 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Author" ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
@@ -1475,6 +1588,10 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Editor" ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
@@ -1482,6 +1599,10 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Collaborator" ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
@@ -1489,6 +1610,10 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Translator" ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
@@ -1496,6 +1621,10 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Publisher" ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
@@ -1628,6 +1757,20 @@ schema:ProceedingsPaperShape
   sh:name "Proceedings Paper" ;
   sh:targetClass fabio:ProceedingsPaper ;
   sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath cito:hasCitedEntity ] ;
+    sh:name "Is Cited By" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
     sh:order 1 ;
@@ -1700,6 +1843,7 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    dash:composite true ;
     sh:name "Page" ;
     sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
@@ -1708,6 +1852,10 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Author" ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
@@ -1715,6 +1863,10 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Editor" ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
@@ -1722,6 +1874,10 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Collaborator" ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
@@ -1729,6 +1885,10 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Publisher" ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
@@ -1736,6 +1896,10 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Translator" ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
@@ -1743,6 +1907,7 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
@@ -1833,6 +1998,20 @@ schema:ProceedingsShape
   sh:name "Proceedings" ;
   sh:targetClass fabio:AcademicProceedings ;
   sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath cito:hasCitedEntity ] ;
+    sh:name "Is Cited By" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
     sh:order 1 ;
@@ -1895,6 +2074,10 @@ schema:ProceedingsShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Editor" ;
     sh:order 7 ;
     sh:node schema:EditorShape ;
@@ -1902,6 +2085,10 @@ schema:ProceedingsShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Publisher" ;
     sh:order 8 ;
     sh:node schema:PublisherShape ;
@@ -1909,6 +2096,10 @@ schema:ProceedingsShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Collaborator" ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
@@ -1916,6 +2107,7 @@ schema:ProceedingsShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:SeriesAndProceedingsIdentifierShape ;
@@ -2038,6 +2230,7 @@ schema:JournalShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:JournalIdentifierShape ;
@@ -2284,6 +2477,20 @@ schema:SpecialIssueShape
   sh:name "Special Issue" ;
   sh:targetClass fabio:JournalIssue ;
   sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath cito:hasCitedEntity ] ;
+    sh:name "Is Cited By" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
     sh:order 1 ;
@@ -2366,6 +2573,7 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    dash:composite true ;
     sh:name "Page" ;
     sh:order 14 ;
     sh:node schema:ResourceEmbodimentShape ;
@@ -2374,6 +2582,10 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Author" ;
     sh:order 8 ;
     sh:node schema:AuthorShape ;
@@ -2381,6 +2593,10 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Editor" ;
     sh:order 9 ;
     sh:node schema:EditorShape ;
@@ -2388,6 +2604,10 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Collaborator" ;
     sh:order 10 ;
     sh:node schema:CollaboratorShape ;
@@ -2395,6 +2615,10 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Publisher" ;
     sh:order 12 ;
     sh:node schema:PublisherShape ;
@@ -2402,6 +2626,10 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Translator" ;
     sh:order 11 ;
     sh:node schema:TranslatorShape ;
@@ -2409,6 +2637,7 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
@@ -2468,6 +2697,20 @@ schema:ReferenceBookShape
   sh:name "Dictionary" ;
   sh:targetClass fabio:ReferenceBook ;
   sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath cito:hasCitedEntity ] ;
+    sh:name "Is Cited By" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
     sh:order 1 ;
@@ -2514,6 +2757,10 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Author" ;
     sh:order 5 ;
     sh:node schema:AuthorShape ;
@@ -2521,6 +2768,10 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Editor" ;
     sh:order 6 ;
     sh:node schema:EditorShape ;
@@ -2528,6 +2779,10 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Collaborator" ;
     sh:order 7 ;
     sh:node schema:CollaboratorShape ;
@@ -2535,6 +2790,10 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Translator" ;
     sh:order 8 ;
     sh:node schema:TranslatorShape ;
@@ -2542,6 +2801,10 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Publisher" ;
     sh:order 9 ;
     sh:node schema:PublisherShape ;
@@ -2549,6 +2812,7 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:BookIdentifierShape ;
@@ -2673,6 +2937,20 @@ schema:ReviewShape
   sh:name "Review" ;
   sh:targetClass fabio:Review ;
   sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath cito:hasCitedEntity ] ;
+    sh:name "Is Cited By" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
     sh:order 1 ;
@@ -2735,6 +3013,10 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Author" ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
@@ -2742,6 +3024,10 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Editor" ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
@@ -2749,6 +3035,10 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Collaborator" ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
@@ -2756,6 +3046,10 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Translator" ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
@@ -2763,6 +3057,10 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Publisher" ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
@@ -2770,6 +3068,7 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:JournalIdentifierShape ;
@@ -2777,6 +3076,7 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    dash:composite true ;
     sh:name "Page" ;
     sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
@@ -2914,6 +3214,20 @@ schema:ReviewArticleShape
   sh:name "Review Article" ;
   sh:targetClass fabio:ReviewArticle ;
   sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath cito:hasCitedEntity ] ;
+    sh:name "Is Cited By" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
     sh:order 1 ;
@@ -2990,6 +3304,7 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    dash:composite true ;
     sh:name "Page" ;
     sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
@@ -2998,6 +3313,10 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Author" ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
@@ -3005,6 +3324,10 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Editor" ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
@@ -3012,6 +3335,10 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Collaborator" ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
@@ -3019,6 +3346,10 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Translator" ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
@@ -3026,6 +3357,10 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Publisher" ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
@@ -3033,6 +3368,7 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
@@ -3148,6 +3484,20 @@ schema:ThesisShape
   sh:name "Thesis" ;
   sh:targetClass fabio:Thesis ;
   sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath cito:hasCitedEntity ] ;
+    sh:name "Is Cited By" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
     sh:order 1 ;
@@ -3210,6 +3560,10 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Author" ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
@@ -3218,6 +3572,10 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Editor" ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
@@ -3225,6 +3583,10 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Collaborator" ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
@@ -3232,6 +3594,10 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Translator" ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
@@ -3239,6 +3605,10 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Publisher" ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
@@ -3246,6 +3616,7 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:BookIdentifierShape ;
@@ -3354,6 +3725,20 @@ schema:SeriesShape
   sh:name "Miscellany" ;
   sh:targetClass fabio:Series ;
   sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath cito:hasCitedEntity ] ;
+    sh:name "Is Cited By" ;
+    sh:node schema:CitationShape ;
+    dash:composite true ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
     sh:order 1 ;
@@ -3416,6 +3801,10 @@ schema:SeriesShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Editor" ;
     sh:order 7 ;
     sh:node schema:EditorShape ;
@@ -3423,6 +3812,10 @@ schema:SeriesShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Publisher" ;
     sh:order 8 ;
     sh:node schema:PublisherShape ;
@@ -3430,6 +3823,10 @@ schema:SeriesShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Collaborator" ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
@@ -3437,6 +3834,7 @@ schema:SeriesShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:SeriesAndProceedingsIdentifierShape ;
@@ -3619,6 +4017,7 @@ schema:ResponsibleAgentShape
   sh:targetClass foaf:Agent ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:AgentIdentifierShape ;
@@ -3735,6 +4134,7 @@ schema:AuthorShape
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    dash:hidden true ;
     sh:name "Has Next" ;
     sh:order 3 ;
     sh:node schema:AuthorShape ;
@@ -3821,6 +4221,7 @@ schema:EditorShape
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    dash:hidden true ;
     sh:name "Has Next" ;
     sh:order 3 ;
     sh:node schema:EditorShape ;
@@ -3907,6 +4308,7 @@ schema:PublisherShape
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    dash:hidden true ;
     sh:name "Has Next" ;
     sh:order 3 ;
     sh:node schema:PublisherShape ;
@@ -3993,6 +4395,7 @@ schema:TranslatorShape
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    dash:hidden true ;
     sh:name "Has Next" ;
     sh:order 3 ;
     sh:node schema:TranslatorShape ;
@@ -4079,6 +4482,7 @@ schema:CollaboratorShape
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    dash:hidden true ;
     sh:name "Has Next" ;
     sh:order 3 ;
     sh:node schema:CollaboratorShape ;
@@ -4147,42 +4551,42 @@ schema:CitationShape
   ] ;
   sh:property [
     sh:path cito:hasCitingEntity ;
-    sh:name "Citing Entity" ;
+    sh:name "Citing Resource" ;
     sh:order 2 ;
     shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:ArticleShape ; sh:class fabio:Article ]
-      [ sh:node schema:JournalArticleShape ; sh:class fabio:JournalArticle ]
-      [ sh:node schema:BookShape ; sh:class fabio:Book ]
-      [ sh:node schema:ProceedingsPaperShape ; sh:class fabio:ProceedingsPaper ]
-      [ sh:node schema:ProceedingsShape ; sh:class fabio:AcademicProceedings ]
-      [ sh:node schema:SpecialIssueShape ; sh:class fabio:JournalIssue ]
-      [ sh:node schema:ReferenceBookShape ; sh:class fabio:ReferenceBook ]
-      [ sh:node schema:ReviewShape ; sh:class fabio:Review ]
-      [ sh:node schema:ReviewArticleShape ; sh:class fabio:ReviewArticle ]
-      [ sh:node schema:ThesisShape ; sh:class fabio:Thesis ]
-      [ sh:node schema:SeriesShape ; sh:class fabio:Series ]
+      [ sh:class fabio:Article ]
+      [ sh:class fabio:JournalArticle ]
+      [ sh:class fabio:Book ]
+      [ sh:class fabio:ProceedingsPaper ]
+      [ sh:class fabio:AcademicProceedings ]
+      [ sh:class fabio:JournalIssue ]
+      [ sh:class fabio:ReferenceBook ]
+      [ sh:class fabio:Review ]
+      [ sh:class fabio:ReviewArticle ]
+      [ sh:class fabio:Thesis ]
+      [ sh:class fabio:Series ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path cito:hasCitedEntity ;
-    sh:name "Cited Entity" ;
+    sh:name "Cited Resource" ;
     sh:order 3 ;
     shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:ArticleShape ; sh:class fabio:Article ]
-      [ sh:node schema:JournalArticleShape ; sh:class fabio:JournalArticle ]
-      [ sh:node schema:BookShape ; sh:class fabio:Book ]
-      [ sh:node schema:ProceedingsPaperShape ; sh:class fabio:ProceedingsPaper ]
-      [ sh:node schema:ProceedingsShape ; sh:class fabio:AcademicProceedings ]
-      [ sh:node schema:SpecialIssueShape ; sh:class fabio:JournalIssue ]
-      [ sh:node schema:ReferenceBookShape ; sh:class fabio:ReferenceBook ]
-      [ sh:node schema:ReviewShape ; sh:class fabio:Review ]
-      [ sh:node schema:ReviewArticleShape ; sh:class fabio:ReviewArticle ]
-      [ sh:node schema:ThesisShape ; sh:class fabio:Thesis ]
-      [ sh:node schema:SeriesShape ; sh:class fabio:Series ]
+      [ sh:class fabio:Article ]
+      [ sh:class fabio:JournalArticle ]
+      [ sh:class fabio:Book ]
+      [ sh:class fabio:ProceedingsPaper ]
+      [ sh:class fabio:AcademicProceedings ]
+      [ sh:class fabio:JournalIssue ]
+      [ sh:class fabio:ReferenceBook ]
+      [ sh:class fabio:Review ]
+      [ sh:class fabio:ReviewArticle ]
+      [ sh:class fabio:Thesis ]
+      [ sh:class fabio:Series ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -4196,98 +4600,6 @@ schema:CitationShape
       [ sh:hasValue cito:citesAsRelated ]
       [ sh:hasValue cito:repliesTo ]
       [ sh:hasValue cito:updates ]
-    ) ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path rdfs:label ;
-    shui:propertyRole shui:LabelRole ;
-    sh:values [
-      sh:select """
-        SELECT ?display
-        WHERE {
-          $this cito:hasCitingEntity ?citing ;
-                  cito:hasCitedEntity ?cited .
-
-          OPTIONAL { ?citing dcterms:title ?citingTitle . }
-          OPTIONAL { ?cited dcterms:title ?citedTitle . }
-
-          BIND(CONCAT(
-            "Citation from \\"",
-            COALESCE(?citingTitle, STR(?citing)),
-            "\\" to \\"",
-            COALESCE(?citedTitle, STR(?cited)),
-            "\\""
-          ) AS ?display)
-        }
-      """ ;
-    ] ;
-  ] .
-
-schema:ReverseCitationShape
-  a sh:NodeShape ;
-  sh:name "Reverse Citation" ;
-  sh:targetClass cito:Citation ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:name "Type" ;
-    sh:order 1 ;
-    sh:hasValue cito:Citation ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path cito:hasCitedEntity ;
-    sh:name "Cited Entity" ;
-    sh:order 2 ;
-    shui:editor shui:AutoCompleteEditor ;
-    sh:or (
-      [ sh:node schema:ArticleShape ; sh:class fabio:Article ]
-      [ sh:node schema:JournalArticleShape ; sh:class fabio:JournalArticle ]
-      [ sh:node schema:BookShape ; sh:class fabio:Book ]
-      [ sh:node schema:ProceedingsPaperShape ; sh:class fabio:ProceedingsPaper ]
-      [ sh:node schema:ProceedingsShape ; sh:class fabio:AcademicProceedings ]
-      [ sh:node schema:SpecialIssueShape ; sh:class fabio:JournalIssue ]
-      [ sh:node schema:ReferenceBookShape ; sh:class fabio:ReferenceBook ]
-      [ sh:node schema:ReviewShape ; sh:class fabio:Review ]
-      [ sh:node schema:ReviewArticleShape ; sh:class fabio:ReviewArticle ]
-      [ sh:node schema:ThesisShape ; sh:class fabio:Thesis ]
-      [ sh:node schema:SeriesShape ; sh:class fabio:Series ]
-    ) ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path cito:hasCitingEntity ;
-    sh:name "Citing Entity" ;
-    sh:order 3 ;
-    shui:editor shui:AutoCompleteEditor ;
-    sh:or (
-      [ sh:node schema:ArticleShape ; sh:class fabio:Article ]
-      [ sh:node schema:JournalArticleShape ; sh:class fabio:JournalArticle ]
-      [ sh:node schema:BookShape ; sh:class fabio:Book ]
-      [ sh:node schema:ProceedingsPaperShape ; sh:class fabio:ProceedingsPaper ]
-      [ sh:node schema:ProceedingsShape ; sh:class fabio:AcademicProceedings ]
-      [ sh:node schema:SpecialIssueShape ; sh:class fabio:JournalIssue ]
-      [ sh:node schema:ReferenceBookShape ; sh:class fabio:ReferenceBook ]
-      [ sh:node schema:ReviewShape ; sh:class fabio:Review ]
-      [ sh:node schema:ReviewArticleShape ; sh:class fabio:ReviewArticle ]
-      [ sh:node schema:ThesisShape ; sh:class fabio:Thesis ]
-      [ sh:node schema:SeriesShape ; sh:class fabio:Series ]
-    ) ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path cito:hasCitationCharacterization ;
-    sh:name "Citation Type" ;
-    sh:order 4 ;
-    sh:or (
-      [ sh:hasValue cito:isReviewedBy ]
-      [ sh:hasValue cito:isCitedAsRelatedBy ]
-      [ sh:hasValue cito:hasReplyFrom ]
-      [ sh:hasValue cito:isUpdatedBy ]
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;

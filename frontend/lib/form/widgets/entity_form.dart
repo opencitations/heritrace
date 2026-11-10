@@ -11,9 +11,12 @@ import '../form_model.dart';
 import 'field_group_widget.dart';
 
 class EntityForm extends StatelessWidget {
-  const EntityForm({required this.node, super.key});
+  const EntityForm({required this.node, this.paths, super.key});
 
   final EntityNode node;
+
+  /// The properties to show, when only some of the node's fields appear.
+  final List<String>? paths;
 
   @override
   Widget build(BuildContext context) {
@@ -21,9 +24,7 @@ class EntityForm extends StatelessWidget {
       listenable: node,
       builder: (context, _) {
         // Fixed values, such as the type of the record, come first.
-        final displayed = node.groups.where(
-          (group) => group.def.shouldBeDisplayed,
-        );
+        final displayed = node.shownGroups(paths);
         final groups = [
           ...displayed.where((group) => group.def.hasValue != null),
           ...displayed.where((group) => group.def.hasValue == null),

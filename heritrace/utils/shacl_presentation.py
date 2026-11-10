@@ -16,10 +16,25 @@ from rdflib.term import Node
 
 SH = Namespace("http://www.w3.org/ns/shacl#")
 SHUI = Namespace("http://www.w3.org/ns/shacl-ui/")
+DASH = Namespace("http://datashapes.org/dash#")
 
 _THIS_VARIABLE = re.compile(r"[?$]this\b")
 
 _INVERSE_PROBE = URIRef("urn:heritrace:inverse-probe")
+
+_INVERSE_PATH_MARK = "^"
+
+
+def inverse_path_key(predicate: str) -> str:
+    return f"{_INVERSE_PATH_MARK}{predicate}"
+
+
+def inverse_predicate(path: str) -> str | None:
+    return path.removeprefix(_INVERSE_PATH_MARK) if is_inverse_path(path) else None
+
+
+def is_inverse_path(path: str) -> bool:
+    return path.startswith(_INVERSE_PATH_MARK)
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,13 +141,13 @@ def _label_query(graph: Graph, property_shape: Node, path: URIRef) -> str:
 
 
 def _property_presentation(
-    graph: Graph, property_shape: Node, path: URIRef
+    graph: Graph, property_shape: Node, path: str
 ) -> PropertyPresentation:
     order = graph.value(property_shape, SH.order)
     node = graph.value(property_shape, SH.node)
     editor = graph.value(property_shape, SHUI.editor)
     return PropertyPresentation(
-        path=str(path),
+        path=path,
         node=str(node) if isinstance(node, URIRef) else None,
         name=_literal_text(graph, property_shape, SH.name),
         order=Decimal(str(order)) if isinstance(order, Literal) else None,
@@ -180,6 +195,14 @@ def read_presentation(graph: Graph) -> ShapesPresentation:
         fixed_types: set[Node] = set()
         for property_shape in graph.objects(shape, SH.property):
             path = graph.value(property_shape, SH.path)
+            inverse_of = graph.value(path, SH.inversePath)
+            if inverse_of is not None:
+                shape_properties.append(
+                    _property_presentation(
+                        graph, property_shape, inverse_path_key(str(inverse_of))
+                    )
+                )
+                continue
             if not isinstance(path, URIRef):
                 continue
             if path == RDF.type:
@@ -188,7 +211,9 @@ def read_presentation(graph: Graph) -> ShapesPresentation:
                 label_queries[str(shape)] = _label_query(graph, property_shape, path)
             if is_computed_property(graph, property_shape):
                 continue
-            shape_properties.append(_property_presentation(graph, property_shape, path))
+            shape_properties.append(
+                _property_presentation(graph, property_shape, str(path))
+            )
         properties[str(shape)] = sorted(shape_properties, key=_presentation_sort_key)
         fixed_type_counts[str(shape)] = len(fixed_types)
     return ShapesPresentation(

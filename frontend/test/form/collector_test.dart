@@ -26,6 +26,11 @@ void main() {
   FieldGroup group(EntityNode node, String uri) =>
       node.groups.firstWhere((g) => g.def.uri == uri);
 
+  NestedItem addAuthor() {
+    final role = group(root, documentContext).addItem() as NestedItem;
+    return heldByItem(role);
+  }
+
   test('required groups start with their minimum number of items', () {
     expect(group(root, rdfType).items, hasLength(1));
     expect(group(root, title).items, hasLength(1));
@@ -45,8 +50,9 @@ void main() {
     date.setValue('2023-05-01');
     date.setDateType(DateType.year);
 
-    final authorItem = group(root, documentContext).addItem() as NestedItem;
-    expect(authorItem.tempId, 'temp-1');
+    final role = group(root, documentContext).addItem() as NestedItem;
+    expect(role.tempId, 'temp-1');
+    final authorItem = heldByItem(role);
     final nameGroup = group(authorItem.child, name);
     (nameGroup.addItem() as LiteralItem).setValue('Jane Doe');
     final identifierItem =
@@ -63,26 +69,26 @@ void main() {
           'entity_type': roleInTime,
           'entity_shape': authorShape,
           'properties': {
-            heldBy: {
-              'entity_type': agent,
-              'entity_shape': agentShape,
-              'properties': {
-                name: ['Jane Doe'],
-                identifier: [
-                  {
-                    'entity_type': identifierClass,
-                    'entity_shape': identifierShape,
-                    'properties': {
-                      literalValue: ['0000-0001-2345-6789'],
+            withRole: [author],
+            heldBy: [
+              {
+                'entity_type': agent,
+                'entity_shape': agentShape,
+                'properties': {
+                  name: ['Jane Doe'],
+                  identifier: [
+                    {
+                      'entity_type': identifierClass,
+                      'entity_shape': identifierShape,
+                      'properties': {
+                        literalValue: ['0000-0001-2345-6789'],
+                      },
                     },
-                  },
-                ],
+                  ],
+                },
               },
-            },
-            withRole: author,
+            ],
           },
-          'targetEntityType': agent,
-          'targetShape': agentShape,
           'orderedBy': hasNext,
           'tempId': 'temp-1',
         },
@@ -120,31 +126,30 @@ void main() {
   });
 
   test('an existing entity replaces the nested form', () {
-    final authorItem = group(root, documentContext).addItem() as NestedItem;
+    final authorItem = addAuthor();
     authorItem.selectExisting('https://w3id.org/oc/meta/ra/1', 'Jane Doe');
 
+    final role = group(root, documentContext).items.single;
     final collected = collectProperties(root)[documentContext]!.single;
     expect(collected, {
       'entity_type': roleInTime,
       'entity_shape': authorShape,
       'properties': {
+        withRole: [author],
         heldBy: [
           {
             'is_existing_entity': true,
             'entity_uri': 'https://w3id.org/oc/meta/ra/1',
           },
         ],
-        withRole: author,
       },
-      'targetEntityType': agent,
-      'targetShape': agentShape,
       'orderedBy': hasNext,
-      'tempId': authorItem.tempId,
+      'tempId': role.tempId,
     });
   });
 
   test('editing the nested form discards the selected entity', () {
-    final authorItem = group(root, documentContext).addItem() as NestedItem;
+    final authorItem = addAuthor();
     final nameItem = group(authorItem.child, name).addItem() as LiteralItem;
     nameItem.setValue('Jane');
     authorItem.selectExisting('https://w3id.org/oc/meta/ra/1', 'Jane Doe');
@@ -155,17 +160,19 @@ void main() {
     final collected =
         collectProperties(root)[documentContext]!.single
             as Map<String, Object?>;
-    expect((collected['properties']! as Map)[heldBy], {
-      'entity_type': agent,
-      'entity_shape': agentShape,
-      'properties': {
-        name: ['Jane Roe'],
+    expect((collected['properties']! as Map)[heldBy], [
+      {
+        'entity_type': agent,
+        'entity_shape': agentShape,
+        'properties': {
+          name: ['Jane Roe'],
+        },
       },
-    });
+    ]);
   });
 
   test('a draft label inside the nested form keeps the selected entity', () {
-    final authorItem = group(root, documentContext).addItem() as NestedItem;
+    final authorItem = addAuthor();
     final identifierItem =
         group(authorItem.child, identifier).addItem() as NestedItem;
     authorItem.selectExisting('https://w3id.org/oc/meta/ra/1', 'Jane Doe');
@@ -176,11 +183,11 @@ void main() {
   });
 
   test('the draft entity mirrors the collected nested value', () {
-    final authorItem = group(root, documentContext).addItem() as NestedItem;
+    final authorItem = addAuthor();
     (group(authorItem.child, name).addItem() as LiteralItem).setValue('Jane');
 
     expect(
-      draftEntity(authorItem),
+      draftEntity(group(root, documentContext).items.single as NestedItem),
       collectProperties(root)[documentContext]!.single,
     );
   });

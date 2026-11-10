@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
+@prefix dash: <http://datashapes.org/dash#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix schema: <http://schema.org/> .
@@ -53,6 +54,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
@@ -81,6 +83,10 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Author" ;
     sh:order 4 ;
     sh:node schema:AuthorShape ;
@@ -101,6 +107,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    dash:composite true ;
     sh:name "Pages" ;
     sh:order 7 ;
     sh:node schema:ResourceEmbodimentShape ;

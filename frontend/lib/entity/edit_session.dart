@@ -272,7 +272,6 @@ class EditSession extends ChangeNotifier {
             ...base('delete', group),
             'object': value.triple.object,
             'newObject': null,
-            if (group.group.isVirtual) 'is_virtual': true,
           });
         } else if (value.isModified) {
           changes.add({

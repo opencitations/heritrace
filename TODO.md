@@ -25,9 +25,7 @@ The configuration pages do not offer to delete the configuration, an entity type
 
 Keep the whole configuration in RDF, in the same document as the shapes. These settings still live in the YAML file, and each one needs a decision:
 
-- Virtual properties: express them with `sh:inversePath`, or drop them. Only the paratext configuration uses them.
-- `intermediateRelation`: derive it from the nested shape, whose only field left to fill is a link.
-- `shouldBeDisplayed`, `orderedBy` and `sortableBy`: choose the term that expresses each one.
+- `orderedBy` and `sortableBy`: choose the term that expresses each one.
 - `similarity_properties`: a small extension, or a `sh:sparql` constraint with `sh:severity sh:Warning`.
 
 ## Narrow the link search by container

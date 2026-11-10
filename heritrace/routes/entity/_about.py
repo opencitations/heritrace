@@ -12,6 +12,7 @@ from heritrace.extensions import (
     get_custom_filter,
     get_dataset_is_quadstore,
     get_form_fields,
+    get_presentation,
     get_shacl_graph,
 )
 from heritrace.routes.entity._blueprint import entity_bp
@@ -20,6 +21,7 @@ from heritrace.utils.display_rules_utils import (
     get_highest_priority_class,
 )
 from heritrace.utils.filters import field_with_labels
+from heritrace.utils.shacl_presentation import is_inverse_path
 from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
@@ -27,7 +29,6 @@ from heritrace.utils.sparql_utils import (
     fetch_data_graph_for_subject,
     get_triples_from_graph,
 )
-from heritrace.utils.virtual_properties import get_virtual_properties_for_entity
 
 RDF_TYPE = str(RDF.type)
 
@@ -122,19 +123,18 @@ def _build_live_entity_context(
         entity_key=(highest_priority_class, entity_shape),
     )
 
-    if entity_shape:
-        virtual_properties = get_virtual_properties_for_entity(
-            highest_priority_class, entity_shape
-        )
-    else:
-        virtual_properties = []
+    inverse_paths = [
+        prop.path
+        for prop in get_presentation().shape_properties(entity_shape)
+        if is_inverse_path(prop.path)
+    ]
 
-    can_be_added = [uri for uri in can_be_added if uri in relevant_properties] + [
-        vp[0] for vp in virtual_properties
-    ]
-    can_be_deleted = [uri for uri in can_be_deleted if uri in relevant_properties] + [
-        vp[0] for vp in virtual_properties
-    ]
+    can_be_added = [
+        uri for uri in can_be_added if uri in relevant_properties
+    ] + inverse_paths
+    can_be_deleted = [
+        uri for uri in can_be_deleted if uri in relevant_properties
+    ] + inverse_paths
 
     return (
         grouped_triples,
@@ -191,6 +191,7 @@ def _serialize_group(
             "value": str(triple_data["triple"][2]),
             "object": str(triple_data["object"]),
             "external_entity": triple_data.get("external_entity"),
+            "details": triple_data.get("details"),
             "is_mandatory": str(triple_data["object"]) in predicate_mandatory,
             "label": _value_label(
                 predicate, str(triple_data["object"]), subject_class, subject_shape
@@ -204,10 +205,8 @@ def _serialize_group(
         "display_name": display_name,
         "property": predicate,
         "object_shape": object_shape,
-        "is_virtual": data.get("is_virtual", False),
         "is_draggable": data.get("is_draggable", False),
         "ordered_by": data.get("ordered_by"),
-        "intermediate_relation": data.get("intermediateRelation"),
         "field": _field_for_group(predicate, entity_type, subject_shape, object_shape),
         "triples": triples,
     }

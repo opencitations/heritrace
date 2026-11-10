@@ -131,7 +131,7 @@ lock:
 orphans:
   title: Warning
   orphansIntro: "The following resources will become orphaned (they will no longer be connected to any other resource in the dataset):"
-  proxiesIntro: "These resources only link the one you are deleting to others:"
+  compositesIntro: "These resources depend on what you are deleting:"
   question: Would you like to delete all these resources now?
   delete: Yes, delete affected resources
   keep: No, keep affected resources
@@ -210,9 +210,8 @@ settings:
     deletion: Cleanup after a deletion
     orphans: Resources left isolated
     orphansHint: When you delete a resource or a link, the resources it pointed to may no longer be linked to anything.
-    proxies: Linking resources
-    proxiesHint: Some resources only link two others. When you delete one of the two or remove the link, they are no longer needed.
-    proxiesHowTo: How to define them
+    composites: Dependent resources
+    compositesHint: Some resources exist only in relation to another. When either of them, or the link between them, is deleted, they lose their meaning.
     strategyAsk: Ask each time whether to delete them
     strategyDelete: Always delete them
     strategyKeep: Always keep them

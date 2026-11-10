@@ -239,9 +239,9 @@ def test_draft_rules_use_field_datatypes(logged_in_client):
 
 @pytest.mark.parametrize(
     ("predicate", "shape"),
-    [("Citations", "CitationShape"), ("Is Cited By", "ReverseCitationShape")],
+    [("^http://purl.org/spar/cito/hasCitingEntity", "CitationShape")],
 )
-def test_virtual_property_uses_entity_label(logged_in_client, predicate, shape):
+def test_inverse_path_uses_entity_label(logged_in_client, predicate, shape):
     entry = {
         "parent_class": "http://purl.org/spar/fabio/JournalArticle",
         "parent_shape": "http://schema.org/JournalArticleShape",

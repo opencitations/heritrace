@@ -67,6 +67,7 @@ def mock_custom_filter():
         # Configure the mock to return readable labels
         mock_filter.human_readable_predicate.return_value = "Human Readable Class"
         mock_filter.human_readable_entity.return_value = "Human Readable Entity"
+        mock_filter.catalogue_label.return_value = "Human Readable Entity"
         mock_filter.human_readable_class.return_value = "Human Readable Class"
         mock_filter.format_agent_reference.return_value = "Test Agent"
 
@@ -93,9 +94,6 @@ def mock_display_rules():
                     {
                         "displayName": "Knows",
                         "property": "http://example.org/knows",
-                        "intermediateRelation": {
-                            "class": "http://example.org/Relationship"
-                        },
                     },
                 ],
                 "sortableBy": [
@@ -238,10 +236,6 @@ class TestGetAvailableClasses:
             # Configure visibility check to allow all classes
             with (
                 patch(
-                    "heritrace.utils.sparql_utils.is_entity_type_visible",
-                    return_value=True,
-                ),
-                patch(
                     "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
                     return_value=set(),
                 ),
@@ -324,10 +318,6 @@ class TestGetAvailableClasses:
                 return_value=None,
             ),
             patch(
-                "heritrace.utils.sparql_utils.is_entity_type_visible",
-                return_value=True,
-            ),
-            patch(
                 "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
                 return_value=set(),
             ),
@@ -387,10 +377,6 @@ class TestGetAvailableClasses:
             # Configure is_virtuoso to return False
             with (
                 patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False),
-                patch(
-                    "heritrace.utils.sparql_utils.is_entity_type_visible",
-                    return_value=True,
-                ),
                 patch(
                     "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
                     return_value=set(),
@@ -636,8 +622,8 @@ class TestGetEntitiesForClass:
         entities_query = mock_sparql_wrapper.setQuery.call_args.args[0]
         assert f"LIMIT {per_page}" in entities_query
         assert f"OFFSET {per_page}" in entities_query
-        assert mock_custom_filter.human_readable_entity.call_args_list == [
-            call(uri, (selected_class, selected_shape), None) for uri in uris
+        assert mock_custom_filter.catalogue_label.call_args_list == [
+            call(uri, (selected_class, selected_shape)) for uri in uris
         ]
 
     def test_get_entities_for_empty_class_skips_label_query(
@@ -676,7 +662,7 @@ class TestGetEntitiesForClass:
         assert entities == []
         assert total_count == 0
         mock_sparql_wrapper.setQuery.assert_called_once()
-        mock_custom_filter.human_readable_entity.assert_not_called()
+        mock_custom_filter.catalogue_label.assert_not_called()
 
 
 class TestGetCatalogData:
@@ -955,8 +941,14 @@ class TestFindOrphanedEntities:
 
         with (
             patch(
-                "heritrace.utils.sparql_utils.get_display_rules",
-                return_value=mock_display_rules,
+                "heritrace.utils.sparql_utils.get_form_fields",
+                return_value={
+                    ("http://example.org/Person", "urn:shape"): {
+                        "http://example.org/knows": [
+                            {"uri": "http://example.org/knows", "composite": True}
+                        ]
+                    }
+                },
             ),
             patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=True),
         ):
@@ -1190,9 +1182,6 @@ class TestGetEntitiesWithEnhancedShapeDetection:
             patch(
                 "heritrace.utils.sparql_utils.determine_shape_for_entity_triples"
             ) as mock_determine_shape,
-            patch(
-                "heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True
-            ),
         ):
             mock_sparql = mock_get_sparql.return_value
             # Return different results for the two queries
@@ -1282,9 +1271,6 @@ class TestGetEntitiesWithEnhancedShapeDetection:
                 "heritrace.utils.sparql_utils.determine_shape_for_entity_triples",
                 return_value="http://example.org/DocumentShape",
             ),
-            patch(
-                "heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True
-            ),
         ):
             mock_sparql = mock_get_sparql.return_value
             # Return different results for the two queries
@@ -1318,48 +1304,6 @@ class TestGetEntitiesWithEnhancedShapeDetection:
                 result["http://example.org/DocumentShape"][0]["uri"]
                 == "http://example.org/doc1"
             )
-
-    def test_get_entities_with_enhanced_shape_detection_invisible_entities(
-        self,
-    ) -> None:
-        """Test that invisible entities are filtered out."""
-        class_uri = "http://example.org/Person"
-        classes_with_multiple_shapes = {"http://example.org/Person"}
-
-        mock_sparql_results = {
-            "results": {
-                "bindings": [
-                    {
-                        "subject": {"value": "http://example.org/person1"},
-                        "p": {
-                            "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-                        },
-                        "o": {"value": "http://example.org/Person"},
-                    }
-                ]
-            }
-        }
-
-        with (
-            patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql,
-            patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False),
-            patch(
-                "heritrace.utils.sparql_utils.determine_shape_for_entity_triples",
-                return_value="http://example.org/PersonShape",
-            ),
-            patch(
-                "heritrace.utils.sparql_utils.is_entity_type_visible",
-                return_value=False,
-            ),
-        ):
-            mock_sparql = mock_get_sparql.return_value
-            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
-
-            result = _get_entities_with_enhanced_shape_detection(
-                class_uri, classes_with_multiple_shapes, COUNT_LIMIT
-            )
-
-            assert len(result) == 0
 
 
 @pytest.mark.usefixtures("app")
@@ -1428,9 +1372,6 @@ class TestGetAvailableClassesMultipleShapes:
             patch(
                 "heritrace.utils.sparql_utils.determine_shape_for_classes",
                 return_value="http://example.org/DocumentShape",
-            ),
-            patch(
-                "heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True
             ),
             patch(
                 "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
@@ -1610,8 +1551,8 @@ class TestGetEntitiesForClassShapeFiltering:
             ]
 
             mock_filter = mock_get_filter.return_value
-            mock_filter.human_readable_entity.side_effect = (
-                lambda uri, _entity_key, _graph: f"Entity {uri.split('/')[-1]}"
+            mock_filter.catalogue_label.side_effect = lambda uri, _entity_key: (
+                f"Entity {uri.split('/')[-1]}"
             )
 
             mock_determine_shape.side_effect = lambda triples: (
@@ -1706,7 +1647,7 @@ class TestGetEntitiesForClassShapeFiltering:
             ]
 
             mock_filter = mock_get_filter.return_value
-            mock_filter.human_readable_entity.return_value = "Test Document"
+            mock_filter.catalogue_label.return_value = "Test Document"
 
             entities, total_count = get_entities_for_class(
                 CatalogQuery(
@@ -1777,8 +1718,8 @@ class TestGetEntitiesForClassShapeFiltering:
             mock_sparql.query.return_value.convert.return_value = mock_sparql_results
 
             mock_filter = mock_get_filter.return_value
-            mock_filter.human_readable_entity.side_effect = (
-                lambda uri, _entity_key, _graph: uri.split("/")[-1]
+            mock_filter.catalogue_label.side_effect = lambda uri, _entity_key: (
+                uri.split("/")[-1]
             )
 
             entities_asc, total_count_asc = get_entities_for_class(
@@ -1890,8 +1831,8 @@ class TestGetEntitiesForClassShapeFiltering:
         ):
             mock_sparql = mock_get_sparql.return_value
             mock_filter = mock_get_filter.return_value
-            mock_filter.human_readable_entity.side_effect = (
-                lambda uri, _entity_key, _graph: f"Entity {uri.split('/')[-1]}"
+            mock_filter.catalogue_label.side_effect = lambda uri, _entity_key: (
+                f"Entity {uri.split('/')[-1]}"
             )
 
             # Page 1: return first set of subjects and triples
@@ -1998,18 +1939,16 @@ def mock_configured_classes():
 
 
 @pytest.fixture
-def mock_shapes_and_visibility():
+def mock_shapes():
     with (
         patch("heritrace.utils.sparql_utils.determine_shape_for_classes") as mock_shape,
-        patch("heritrace.utils.sparql_utils.is_entity_type_visible") as mock_visible,
         patch(
             "heritrace.utils.sparql_utils.get_highest_priority_class"
         ) as mock_priority,
     ):
         mock_shape.side_effect = lambda classes: f"{classes[0]}Shape"
-        mock_visible.return_value = True
         mock_priority.side_effect = lambda types: types[0] if types else None
-        yield mock_shape, mock_visible, mock_priority
+        yield mock_shape, mock_priority
 
 
 class TestDeletedEntityTypes:
@@ -2050,7 +1989,7 @@ class TestGetDeletedAvailableClasses:
         self,
         mock_provenance_sparql,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_configured_classes,
     ) -> None:
         mock_provenance_sparql.query.return_value.convert.side_effect = [
@@ -2068,7 +2007,7 @@ class TestGetDeletedAvailableClasses:
         self,
         mock_provenance_sparql,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_configured_classes,
     ) -> None:
         mock_provenance_sparql.query.return_value.convert.return_value = (
@@ -2085,7 +2024,7 @@ class TestGetDeletedAvailableClasses:
         self,
         mock_provenance_sparql,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_configured_classes,
     ) -> None:
         mock_provenance_sparql.query.return_value.convert.return_value = (
@@ -2097,15 +2036,13 @@ class TestGetDeletedAvailableClasses:
         assert deleted_classes[0]["count"] == f"{COUNT_LIMIT}+"
         assert deleted_classes[0]["count_numeric"] == COUNT_LIMIT
 
-    def test_skips_classes_that_are_not_visible_or_never_deleted(
+    def test_skips_classes_that_were_never_deleted(
         self,
         mock_provenance_sparql,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_configured_classes,
     ) -> None:
-        _, mock_visible, _ = mock_shapes_and_visibility
-        mock_visible.side_effect = lambda entity_key: entity_key[0] != DOCUMENT
         mock_provenance_sparql.query.return_value.convert.return_value = (
             self.count_result(0)
         )
@@ -2116,7 +2053,7 @@ class TestGetDeletedAvailableClasses:
         self,
         mock_provenance_sparql,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_configured_classes,
     ) -> None:
         mock_provenance_sparql.query.return_value.convert.return_value = (
@@ -2133,7 +2070,7 @@ class TestGetDeletedAvailableClasses:
         dataset_version,
         mock_provenance_sparql,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_configured_classes,
     ) -> None:
         mock_provenance_sparql.query.return_value.convert.side_effect = [
@@ -2157,7 +2094,7 @@ class TestProcessDeletedEntities:
         self,
         mock_sparql_wrapper,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_virtuoso,
     ) -> None:
         bindings = [deletion_binding("http://example.org/person1", PERSON)]
@@ -2186,7 +2123,7 @@ class TestProcessDeletedEntities:
         self,
         mock_sparql_wrapper,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_virtuoso,
     ) -> None:
         bindings = [deletion_binding("http://example.org/person1", PERSON, agent=None)]
@@ -2200,10 +2137,10 @@ class TestProcessDeletedEntities:
         self,
         mock_sparql_wrapper,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_virtuoso,
     ) -> None:
-        _, _, mock_priority = mock_shapes_and_visibility
+        _, mock_priority = mock_shapes
         mock_priority.side_effect = lambda types: None  # noqa: ARG005
 
         entities = process_deleted_entities(
@@ -2216,7 +2153,7 @@ class TestProcessDeletedEntities:
         self,
         mock_sparql_wrapper,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_virtuoso,
     ) -> None:
         binding = deletion_binding(
@@ -2256,7 +2193,7 @@ class TestProcessDeletedEntities:
         mock_sparql_wrapper,
         mock_provenance_sparql,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_virtuoso,
     ) -> None:
         binding = deletion_binding(
@@ -2304,7 +2241,7 @@ class TestGetDeletedEntitiesWithFiltering:
         self,
         mock_provenance_sparql,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_configured_classes,
     ) -> None:
         mock_provenance_sparql.query.return_value.convert.return_value = (
@@ -2332,7 +2269,7 @@ class TestGetDeletedEntitiesWithFiltering:
         mock_provenance_sparql,
         mock_sparql_wrapper,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_configured_classes,
         mock_virtuoso,
     ) -> None:
@@ -2366,7 +2303,7 @@ class TestGetDeletedEntitiesWithFiltering:
         mock_provenance_sparql,
         mock_sparql_wrapper,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_configured_classes,
         mock_virtuoso,
     ) -> None:
@@ -2390,7 +2327,7 @@ class TestGetDeletedEntitiesWithFiltering:
         mock_provenance_sparql,
         mock_sparql_wrapper,
         mock_custom_filter,
-        mock_shapes_and_visibility,
+        mock_shapes,
         mock_configured_classes,
         mock_virtuoso,
     ) -> None:

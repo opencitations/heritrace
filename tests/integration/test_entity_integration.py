@@ -1025,12 +1025,14 @@ def test_create_nested_entity(logged_in_client: FlaskClient, app: Flask) -> None
     assert author_group["is_draggable"] is True
     assert author_group["object_shape"] == "http://schema.org/AuthorShape"
     assert author_group["field"]["displayName"] == "Author"
+    held_by = next(
+        field
+        for field in author_group["field"]["nestedShape"]
+        if field["uri"] == "http://purl.org/spar/pro/isHeldBy"
+    )
     agent_type = next(
         field
-        for fields in author_group["field"]["intermediateRelation"][
-            "properties"
-        ].values()
-        for field in fields
+        for field in held_by["nestedShape"]
         if field["uri"] == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     )
     assert agent_type["hasValueLabel"] == "Responsible Agent"

@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS settings (
     dataset_generation_time TEXT,
     primary_source TEXT NOT NULL,
     orphan_handling TEXT NOT NULL,
-    proxy_handling TEXT NOT NULL,
+    composite_handling TEXT NOT NULL,
     revision TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS allowed_orcids (
@@ -40,7 +40,7 @@ class Settings:
     catalogue_default_per_page: int = 50
     orcid_safelist: list[str] = field(default_factory=list)
     orphan_handling: str = "ASK"
-    proxy_handling: str = "ASK"
+    composite_handling: str = "ASK"
 
 
 @dataclass(frozen=True)
@@ -57,7 +57,7 @@ def read_settings(path: Path) -> StoredSettings | None:
         row = connection.execute(
             "SELECT app_title, app_subtitle, count_limit, catalogue_default_per_page,"
             " dataset_generation_time, primary_source, orphan_handling,"
-            " proxy_handling, revision FROM settings"
+            " composite_handling, revision FROM settings"
         ).fetchone()
         if row is None:
             return None
@@ -75,7 +75,7 @@ def read_settings(path: Path) -> StoredSettings | None:
         generation_time,
         primary_source,
         orphan_handling,
-        proxy_handling,
+        composite_handling,
         revision,
     ) = row
     return StoredSettings(
@@ -90,7 +90,7 @@ def read_settings(path: Path) -> StoredSettings | None:
             primary_source=primary_source,
             orcid_safelist=orcids,
             orphan_handling=orphan_handling,
-            proxy_handling=proxy_handling,
+            composite_handling=composite_handling,
         ),
         revision,
     )
@@ -112,7 +112,7 @@ def write_settings(path: Path, settings: Settings, revision: str) -> None:
                     else None,
                     settings.primary_source,
                     settings.orphan_handling,
-                    settings.proxy_handling,
+                    settings.composite_handling,
                     revision,
                 ),
             )

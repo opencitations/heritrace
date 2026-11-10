@@ -9,11 +9,12 @@ from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.extensions import (
     get_custom_filter,
-    get_display_rules,
+    get_form_fields,
     get_sparql,
     get_sparql_bindings,
 )
 from heritrace.utils.display_rules_utils import get_highest_priority_class
+from heritrace.utils.shacl_presentation import is_inverse_path
 from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.sparql_utils import get_entity_types
 from heritrace.utils.virtuoso_utils import VIRTUOSO_EXCLUDED_GRAPHS, is_virtuoso
@@ -23,96 +24,26 @@ linked_resources_bp = Blueprint(
 )
 
 
-def _is_virtual_property_intermediate_entity(entity_types: list) -> bool:
-    """
-    Check if an entity is an intermediate entity created for virtual properties.
-
-    An intermediate entity for virtual properties is identified by:
-    1. Its type matches a virtual property target class
-
-    Args:
-        entity_types: List of entity types for the referencing entity
-
-    Returns:
-        True if this is a virtual property intermediate entity, False otherwise
-    """
-    if not entity_types:
-        return False
-
-    # Get all display rules to check for virtual properties
-    display_rules = get_display_rules()
-    if not display_rules:
-        return False
-
-    # Check if any of the entity types matches a virtual property target class
-    for entity_type in entity_types:
-        for rule in display_rules:
-            for prop_config in rule.get("displayProperties", []):
-                if prop_config.get("isVirtual"):
-                    implementation = prop_config.get("implementedVia", {})
-                    target_config = implementation.get("target", {})
-
-                    if target_config.get("class") == entity_type:
-                        current_app.logger.debug(
-                            "Found virtual property target entity type: %s", entity_type
-                        )
-                        return True
-
-    return False
+def _composite_parent_paths() -> dict[str, str]:
+    return {
+        field["nodeShape"]: field["uri"]
+        for fields in get_form_fields().values()
+        for definitions in fields.values()
+        for field in definitions
+        if field["composite"] and field["nodeShape"]
+    }
 
 
-def _is_proxy_entity(entity_types: list) -> tuple[bool, str]:
-    """
-    Check if an entity is a proxy (intermediate relation) entity based on display rules.
-
-    Args:
-        entity_types: List of entity types
-
-    Returns:
-        Tuple of (is_proxy, connecting_predicate)
-    """
-    if not entity_types:
-        return False, ""
-
-    display_rules = get_display_rules()
-    if not display_rules:
-        return False, ""
-
-    for entity_type in entity_types:
-        for rule in display_rules:
-            for prop in rule.get("displayProperties", []):
-                intermediate_config = prop.get("intermediateRelation")
-                if (
-                    intermediate_config
-                    and intermediate_config.get("class") == entity_type
-                ):
-                    return True, prop["property"]
-
-    return False, ""
-
-
-def _resolve_proxy_entity(
+def _resolve_parent_entity(
     subject_uri: str, predicate: str, connecting_predicate: str
 ) -> tuple[str, str]:
-    """
-    Resolve proxy entities to their source entities.
-
-    Args:
-        subject_uri: URI of the proxy entity
-        predicate: Original predicate
-        connecting_predicate: The predicate that connects source to proxy
-
-    Returns:
-        Tuple of (final_subject_uri, final_predicate)
-    """
-    # Query to find the source entity that points to this proxy
     sparql = get_sparql()
-    proxy_query_parts = [
+    parent_query_parts = [
         "SELECT DISTINCT ?source WHERE {",
     ]
 
     if is_virtuoso():
-        proxy_query_parts.extend(
+        parent_query_parts.extend(
             [
                 "    GRAPH ?g {",
                 f"        ?source <{connecting_predicate}> <{subject_uri}> .",
@@ -121,20 +52,20 @@ def _resolve_proxy_entity(
             ]
         )
     else:
-        proxy_query_parts.extend(
+        parent_query_parts.extend(
             [f"    ?source <{connecting_predicate}> <{subject_uri}> ."]
         )
 
-    proxy_query_parts.append("} LIMIT 1")
-    proxy_query = "\n".join(proxy_query_parts)
+    parent_query_parts.append("} LIMIT 1")
+    parent_query = "\n".join(parent_query_parts)
 
-    sparql.setQuery(proxy_query)
+    sparql.setQuery(parent_query)
     sparql.setReturnFormat(JSON)
-    proxy_results = sparql.query().convert()
+    parent_results = sparql.query().convert()
 
-    proxy_bindings = get_sparql_bindings(proxy_results)
-    if proxy_bindings:
-        source_uri = proxy_bindings[0]["source"]["value"]
+    parent_bindings = get_sparql_bindings(parent_results)
+    if parent_bindings:
+        source_uri = parent_bindings[0]["source"]["value"]
 
         return source_uri, connecting_predicate
 
@@ -161,6 +92,7 @@ def get_paginated_inverse_references(
     custom_filter = get_custom_filter()
     references = []
     query_limit = limit + 1
+    composite_parent_paths = _composite_parent_paths()
 
     query_parts = [
         "SELECT DISTINCT ?s ?p WHERE {",
@@ -200,16 +132,16 @@ def get_paginated_inverse_references(
 
         types = get_entity_types(subject)
 
-        if _is_virtual_property_intermediate_entity(types):
-            continue
-
         highest_priority_type = get_highest_priority_class(types)
         shape = determine_shape_for_classes(types)
+        parent_path = composite_parent_paths.get(str(shape))
 
-        is_proxy, connecting_predicate = _is_proxy_entity(types)
-        if is_proxy:
-            final_subject, final_predicate = _resolve_proxy_entity(
-                subject, predicate, connecting_predicate
+        if parent_path is not None and is_inverse_path(parent_path):
+            continue
+
+        if parent_path is not None:
+            final_subject, final_predicate = _resolve_parent_entity(
+                subject, predicate, parent_path
             )
         else:
             final_subject, final_predicate = subject, predicate

@@ -12,7 +12,7 @@ from rdflib.collection import Collection
 from rdflib.compare import isomorphic
 from rdflib.term import Node
 
-from heritrace.configuration.vocabulary import SH, SHUI
+from heritrace.configuration.vocabulary import DASH, SH, SHUI
 
 ValueKind = TypingLiteral["any", "datatype", "node", "value", "options", "class"]
 
@@ -28,7 +28,9 @@ EDITORS = (
     str(SHUI.TextFieldEditor),
     str(SHUI.TextAreaEditor),
     str(SHUI.AutoCompleteEditor),
+    str(SHUI.DetailsEditor),
 )
+VIEWERS = (str(SHUI.DetailsViewer),)
 
 _SINGLE_VALUE_PREDICATES: dict[ValueKind, URIRef] = {
     "datatype": SH.datatype,
@@ -36,23 +38,29 @@ _SINGLE_VALUE_PREDICATES: dict[ValueKind, URIRef] = {
     "value": SH.hasValue,
     "class": SH["class"],
 }
-_ALTERNATIVE_KINDS: tuple[ValueKind, ...] = ("datatype", "node", "value")
+_ALTERNATIVE_KINDS: tuple[ValueKind, ...] = ("datatype", "node", "value", "class")
+_TRUE = Literal("true", datatype=XSD.boolean)
 
 
 @dataclass
 class PropertyShape:
     path: str
+    inverse: bool = False
     name: str | None = None
     order: int | None = None
     min_count: int | None = None
     max_count: int | None = None
     editor: str | None = None
+    viewer: str | None = None
+    composite: bool = False
+    hidden: bool = False
     kind: ValueKind = "any"
     values: list[str] = field(default_factory=list)
     node_classes: dict[str, str] = field(default_factory=dict)
     qualified: bool = False
     label: bool = False
     label_query: str | None = None
+    details: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -143,15 +151,20 @@ def _node_classes(graph: Graph, target: Node) -> dict[str, str]:
 
 
 def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
-    path = _iri(graph, property_shape, SH.path)
-    if path is None:
+    path = graph.value(property_shape, SH.path)
+    inverse_of = graph.value(path, SH.inversePath)
+    if not isinstance(inverse_of or path, URIRef):
         return None
     qualified_shape = graph.value(property_shape, SH.qualifiedValueShape)
     prop = PropertyShape(
-        path=path,
+        path=str(inverse_of or path),
+        inverse=inverse_of is not None,
         name=_text(graph, property_shape, SH.name),
         order=_integer(graph, property_shape, SH.order),
         editor=_iri(graph, property_shape, SHUI.editor),
+        viewer=_iri(graph, property_shape, SHUI.viewer),
+        composite=(property_shape, DASH.composite, _TRUE) in graph,
+        hidden=(property_shape, DASH.hidden, _TRUE) in graph,
         label=(property_shape, SHUI.propertyRole, SHUI.LabelRole) in graph,
     )
     if qualified_shape is not None:
@@ -168,6 +181,11 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
     computed = graph.value(property_shape, SH.values)
     if computed is not None:
         prop.label_query = _text(graph, computed, SH.select)
+    prop.details = sorted(
+        str(detail_path)
+        for detail in graph.objects(property_shape, SH.property)
+        if isinstance(detail_path := graph.value(detail, SH.path), URIRef)
+    )
     return prop
 
 
@@ -276,16 +294,39 @@ def _add_value_constraint(graph: Graph, target: Node, prop: PropertyShape) -> No
     graph.add((target, SH["or"], _add_list(graph, members)))
 
 
+def _add_path(graph: Graph, node: Node, prop: PropertyShape) -> None:
+    if prop.inverse:
+        path = BNode()
+        graph.add((path, SH.inversePath, URIRef(prop.path)))
+        graph.add((node, SH.path, path))
+    else:
+        graph.add((node, SH.path, URIRef(prop.path)))
+
+
+def _add_widgets(graph: Graph, node: Node, prop: PropertyShape) -> None:
+    if prop.editor is not None:
+        graph.add((node, SHUI.editor, URIRef(prop.editor)))
+    if prop.viewer is not None:
+        graph.add((node, SHUI.viewer, URIRef(prop.viewer)))
+    if prop.composite:
+        graph.add((node, DASH.composite, _TRUE))
+    if prop.hidden:
+        graph.add((node, DASH.hidden, _TRUE))
+    for detail_path in prop.details:
+        detail = BNode()
+        graph.add((node, SH.property, detail))
+        graph.add((detail, SH.path, URIRef(detail_path)))
+
+
 def _add_property(graph: Graph, shape: URIRef, prop: PropertyShape) -> None:
     node = BNode()
     graph.add((shape, SH.property, node))
-    graph.add((node, SH.path, URIRef(prop.path)))
+    _add_path(graph, node, prop)
+    _add_widgets(graph, node, prop)
     if prop.name is not None:
         graph.add((node, SH.name, Literal(prop.name)))
     if prop.order is not None:
         graph.add((node, SH.order, Literal(prop.order)))
-    if prop.editor is not None:
-        graph.add((node, SHUI.editor, URIRef(prop.editor)))
     if prop.label:
         graph.add((node, SHUI.propertyRole, SHUI.LabelRole))
     if prop.label_query is not None:

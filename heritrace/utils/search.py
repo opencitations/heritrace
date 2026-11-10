@@ -7,6 +7,8 @@ from dataclasses import dataclass
 
 from rdflib import XSD, Literal, URIRef
 
+from heritrace.utils.shacl_presentation import is_inverse_path
+
 QLEVER_HAS_WORD = "<http://qlever.cs.uni-freiburg.de/builtin-functions/has-word>"
 WORD_PATTERN = re.compile(r"[^\W_]+", re.UNICODE)
 
@@ -32,9 +34,9 @@ def _is_text_field(field: dict) -> bool:
 def text_paths(fields: dict[str, list[dict]]) -> list[tuple[str, ...]]:
     paths: dict[tuple[str, ...], None] = {}
     for predicate, definitions in fields.items():
+        if is_inverse_path(predicate):
+            continue
         for definition in definitions:
-            if "is_virtual" in definition:
-                continue
             if _is_text_field(definition):
                 paths[(predicate,)] = None
             if "nestedShape" in definition:

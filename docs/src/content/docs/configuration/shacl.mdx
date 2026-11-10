@@ -23,7 +23,7 @@ The chips below list the terms that a shapes graph can use in the SHACL 1.2 draf
 
 HERITRACE reads some supported terms only in part. Each item below says which part it reads and which part it ignores.
 
--   `sh:path` takes a single predicate. SHACL also allows property paths that combine several steps, such as an inverse path, a sequence of predicates or a repeated predicate. HERITRACE does not follow these paths.
+-   `sh:path` takes a single predicate or an inverse path. SHACL also allows paths that combine several steps, such as a sequence of predicates or a repeated predicate. HERITRACE does not follow those paths.
 -   `sh:values` says that the values of a property are computed instead of being stored in the data. SHACL offers several ways to describe the computation: a fixed value, the values found by following a path, or a SPARQL query written with `sh:select`. HERITRACE computes a single case: the entity label, written as a SPARQL query on the property shape that carries `shui:LabelRole`. Any other property shape with `sh:values` is left out of forms.
 -   `sh:class` takes a single class. SHACL also accepts a list of classes, meaning that a value may belong to any of them, but HERITRACE does not read that form.
 -   `sh:pattern` and `sh:message` are read only inside the alternatives of a node shape's `sh:or`, as described in [Pattern matching](#pattern-matching-shpattern-and-shmessage).
@@ -208,6 +208,33 @@ sh:property [
 ] .
 ```
 
+<Aside type="caution" title="Avoid recursive shapes">
+A shape is recursive when following `sh:node` leads back to it, for example when an article lists its citations and each citation points back to the article through `sh:node`. To avoid infinite loops, HERITRACE stops nesting at the first repeated shape, but nested forms can still slow down the start of the application. To break a loop, declare the link with `sh:class` and `shui:AutoCompleteEditor`, without `sh:node`.
+</Aside>
+
+### Inverse paths (`sh:inversePath`)
+A field normally shows the triples that start from the current entity. Sometimes the triples to show end at the current entity instead. `sh:inversePath` reads them backwards: the field shows the entities they start from.
+
+For example, a citation can be stored as a separate entity that states which article cites and which one is cited:
+
+```ttl
+:citation1 a cito:Citation ;
+    cito:hasCitingEntity :article1 ;
+    cito:hasCitedEntity :article2 .
+```
+
+Here the triple starts from the citation and ends at `:article1`. To list the citations of an article, add a field with an inverse path to the shape of the article:
+
+```ttl
+sh:property [
+    sh:path [ sh:inversePath cito:hasCitingEntity ] ;
+    sh:name "Citations" ;
+    sh:node schema:CitationShape ;
+] .
+```
+
+When a user adds a citation from this field, the form does not ask for the citing article, because it is the article being edited. HERITRACE writes that triple on saving.
+
 ### Pattern matching (`sh:pattern` and `sh:message`)
 Use a regular expression to check the format of a string value, and `sh:message` to tell users what went wrong.
 ```ttl
@@ -248,12 +275,20 @@ schema:JournalArticleIdentifierShape
   ) .
 ```
 
+### Values that depend on their entity (`dash:composite`)
+Add `dash:composite true` to a property shape when its values have a meaning only in relation to the entity that holds them. When such a value is removed, or the entity that holds it is deleted, the value becomes useless. The **Dependent resources** option in the [system settings](../editor/) chooses what HERITRACE does with it: delete it, ask each time, or keep it. A value that another entity also reaches through the same property stays in any case.
+
+Without `dash:composite`, removing a value removes only the link, and the linked entity stays.
+
+The term comes from [DASH](https://datashapes.org/dash.ttl).
+
 ## Presentation
 
-HERITRACE takes from the shapes graph the names of entity types and fields, their order, the widget of each field and the label of each entity. Declare the `shui:` prefix to use the SHACL UI terms:
+HERITRACE takes from the shapes graph the names of entity types and fields, their order, the widget of each field and the label of each entity. Declare the `shui:` prefix to use the SHACL UI terms, and the `dash:` prefix for `dash:hidden`, which comes from [DASH](https://datashapes.org/dash.ttl) because SHACL UI has no equivalent term:
 
 ```ttl
 @prefix shui: <http://www.w3.org/ns/shacl-ui/> .
+@prefix dash: <http://datashapes.org/dash#> .
 ```
 
 ### Names (`sh:name`)
@@ -313,7 +348,7 @@ sh:property [
 ] .
 ```
 
-A link to another entity can reuse the entities that already exist. Give the property shape `shui:AutoCompleteEditor` and declare the class of the linked entity with `sh:class`. The form shows a search field and offers to create a new entity through the `sh:node` shape. When the property has alternatives in `sh:or`, the user first picks the type, so each alternative declares its own `sh:class` and the editor stays on the property.
+A link to another entity can reuse the entities that already exist. Give the property shape `shui:AutoCompleteEditor` and declare the class of the linked entity with `sh:class`. The form shows a search field and offers to create a new entity through the `sh:node` shape. Without `sh:node`, the form shows only the search field. When the property has alternatives in `sh:or`, the user first picks the type, so each alternative declares its own `sh:class` and the editor stays on the property.
 
 ```ttl
 sh:property [
@@ -324,7 +359,29 @@ sh:property [
 ] .
 ```
 
-The search looks in the text fields of the linked shape and of the shapes nested directly inside it, so a person can be found by name or by ORCID.
+The search looks in the text fields of the linked shape and of the shapes nested directly inside it, so a person can be found by name or by ORCID. Without `sh:node`, the linked shape is the one whose `sh:targetClass` is the declared class.
+
+### Nested entities in place (`shui:DetailsEditor`, `shui:DetailsViewer`)
+
+By default, HERITRACE shows a linked entity as a link. On the entity page, the link shows its label. In the form, the linked entity opens in a dialog of its own.
+
+`shui:DetailsEditor` shows the fields of the linked entity inside the form, next to the fields of the entity being edited. `shui:DetailsViewer` does the same on the entity page, where the fields of the linked entity take the place of the link. These widgets suit entities that act as proxies, such as blank nodes or entities that only bridge two others and add properties to the link between them.
+
+The fields come from the `sh:node` shape. To show only some of them, list them with `sh:property` on the property shape: HERITRACE takes their definition from the `sh:node` shape, and the other fields keep their values and constraints. Here an author role shows only the person who holds it:
+
+```ttl
+sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AuthorShape ;
+    shui:editor shui:DetailsEditor ;
+    shui:viewer shui:DetailsViewer ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+] .
+```
+
+### Hidden fields (`dash:hidden`)
+
+`dash:hidden true` removes a field from forms and entity pages. HERITRACE still validates it.
 
 ### Entity labels (`shui:LabelRole`)
 

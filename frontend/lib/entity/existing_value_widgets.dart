@@ -16,6 +16,29 @@ import '../navigation/entity_store.dart';
 import 'edit_session.dart';
 import 'entity_models.dart';
 
+final _valueRowConstraints = BoxConstraints(
+  minHeight: kCupertinoButtonMinSize[CupertinoButtonSize.medium]!,
+);
+
+/// Opens the page of an entity when its row is tapped.
+class _EntityLink extends StatelessWidget {
+  const _EntityLink({required this.uri, required this.child});
+
+  final String uri;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SelectionContainer.disabled(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => context.go(context.entityStore.entityPath(uri)),
+        child: MouseRegion(cursor: SystemMouseCursors.click, child: child),
+      ),
+    );
+  }
+}
+
 class EditableGroupWidget extends StatelessWidget {
   const EditableGroupWidget({
     required this.group,
@@ -106,15 +129,14 @@ class ExistingValueWidget extends StatelessWidget {
         view.shacl &&
         view.canBeDeleted.contains(triple.predicate) &&
         !triple.isMandatory;
-    final linked = !editing && triple.externalEntity != null;
+    final linked =
+        !editing && triple.externalEntity != null && triple.details == null;
     return ListenableBuilder(
       listenable: value,
       builder: (context, _) {
         final deleted = value.markedForDeletion;
         final row = ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: kCupertinoButtonMinSize[CupertinoButtonSize.medium]!,
-          ),
+          constraints: _valueRowConstraints,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -152,15 +174,7 @@ class ExistingValueWidget extends StatelessWidget {
         if (!linked) {
           return row;
         }
-        return SelectionContainer.disabled(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => context.go(
-              context.entityStore.entityPath(triple.externalEntity!),
-            ),
-            child: MouseRegion(cursor: SystemMouseCursors.click, child: row),
-          ),
-        );
+        return _EntityLink(uri: triple.externalEntity!, child: row);
       },
     );
   }
@@ -180,6 +194,9 @@ class _ValueBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final triple = value.triple;
+    if (triple.details case final details?) {
+      return _Details(details: details, linked: !editable);
+    }
     if (triple.externalEntity != null) {
       return Text(triple.value);
     }
@@ -230,6 +247,48 @@ class _ValueBody extends StatelessWidget {
     return _TextValueField(
       value: value,
       multiline: field?.inputType == 'textarea',
+    );
+  }
+}
+
+/// The fields of a linked entity, shown in place of the link.
+class _Details extends StatelessWidget {
+  const _Details({required this.details, required this.linked});
+
+  final List<EntityDetail> details;
+  final bool linked;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: appCaptionSpacing,
+      children: [
+        for (final detail in details)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (details.length > 1)
+                Text(detail.name, style: AppTextStyles.of(context).caption),
+              for (final value in detail.values)
+                if (linked && value.uri != null)
+                  _EntityLink(
+                    uri: value.uri!,
+                    child: ConstrainedBox(
+                      constraints: _valueRowConstraints,
+                      child: Row(
+                        children: [
+                          Expanded(child: Text(value.label)),
+                          const CupertinoListTileChevron(),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Text(value.label),
+            ],
+          ),
+      ],
     );
   }
 }

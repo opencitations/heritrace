@@ -33,6 +33,7 @@ from heritrace.services.resource_lock_manager import LockInfo, LockStatus
 from heritrace.utils.datatypes import DATATYPE_MAPPING, get_datatype_options
 from heritrace.utils.draft_labels import draft_label
 from heritrace.utils.filters import field_with_labels
+from heritrace.utils.inverse_paths import expand_inverse_changes
 from heritrace.utils.primary_source_utils import (
     get_user_default_primary_source,
     save_user_default_primary_source,
@@ -51,9 +52,8 @@ from heritrace.utils.sparql_utils import (
     import_entity_graph,
     import_referenced_entities,
 )
-from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
+from heritrace.utils.strategies import CompositeHandlingStrategy, OrphanHandlingStrategy
 from heritrace.utils.uri_utils import generate_unique_uri, is_valid_url
-from heritrace.utils.virtual_properties import transform_changes_with_virtual_properties
 
 
 @dataclass(frozen=True, slots=True)
@@ -374,13 +374,13 @@ def _collect_affected_entities(
     entity_type: str,
     *,
     check_for_orphans: bool,
-    check_for_proxies: bool,
+    check_for_composites: bool,
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     orphans: list[dict[str, str]] = []
-    intermediate_orphans: list[dict[str, str]] = []
+    composite_children: list[dict[str, str]] = []
     for change in changes:
         if change["action"] == "delete":
-            found_orphans, found_intermediates = find_orphaned_entities(
+            found_orphans, found_children = find_orphaned_entities(
                 URIRef(change["subject"]),
                 entity_type,
                 URIRef(change["predicate"]) if change.get("predicate") else None,
@@ -388,21 +388,21 @@ def _collect_affected_entities(
             )
             if check_for_orphans:
                 orphans.extend(found_orphans)
-            if check_for_proxies:
-                intermediate_orphans.extend(found_intermediates)
-    return orphans, intermediate_orphans
+            if check_for_composites:
+                composite_children.extend(found_children)
+    return orphans, composite_children
 
 
 def _format_orphan_response(
     orphans: list[dict[str, str]],
-    intermediate_orphans: list[dict[str, str]],
+    composite_children: list[dict[str, str]],
     orphan_strategy: OrphanHandlingStrategy,
-    proxy_strategy: ProxyHandlingStrategy,
+    composite_strategy: CompositeHandlingStrategy,
 ) -> Response:
     custom_filter = get_custom_filter()
 
     def format_entity(
-        entity: dict[str, str], *, is_intermediate: bool
+        entity: dict[str, str], *, is_composite: bool
     ) -> dict[str, str | bool]:
         uri = URIRef(entity["uri"])
         shape = determine_shape_for_entity_triples(
@@ -417,16 +417,16 @@ def _format_orphan_response(
             "uri": entity["uri"],
             "label": custom_filter.human_readable_entity(uri, entity_key),
             "type": custom_filter.human_readable_class(entity_key),
-            "is_intermediate": is_intermediate,
+            "is_composite": is_composite,
         }
 
     affected_entities = [
-        format_entity(entity, is_intermediate=False) for entity in orphans
-    ] + [format_entity(entity, is_intermediate=True) for entity in intermediate_orphans]
+        format_entity(entity, is_composite=False) for entity in orphans
+    ] + [format_entity(entity, is_composite=True) for entity in composite_children]
 
     should_delete = (
         orphan_strategy == OrphanHandlingStrategy.DELETE
-        and proxy_strategy == ProxyHandlingStrategy.DELETE
+        and composite_strategy == CompositeHandlingStrategy.DELETE
     )
 
     return jsonify(
@@ -435,7 +435,7 @@ def _format_orphan_response(
             "affected_entities": affected_entities,
             "should_delete": should_delete,
             "orphan_strategy": orphan_strategy.value,
-            "proxy_strategy": proxy_strategy.value,
+            "composite_strategy": composite_strategy.value,
         }
     )
 
@@ -445,7 +445,7 @@ def _format_orphan_response(
 def check_orphans() -> Response | tuple[Response, int]:
     try:
         orphan_strategy = current_app.config["ORPHAN_HANDLING_STRATEGY"]
-        proxy_strategy = current_app.config["PROXY_HANDLING_STRATEGY"]
+        composite_strategy = current_app.config["COMPOSITE_HANDLING_STRATEGY"]
 
         data = request.json
         if not data or "changes" not in data or "entity_type" not in data:
@@ -468,31 +468,32 @@ def check_orphans() -> Response | tuple[Response, int]:
             OrphanHandlingStrategy.DELETE,
             OrphanHandlingStrategy.ASK,
         )
-        check_for_proxies = proxy_strategy in (
-            ProxyHandlingStrategy.DELETE,
-            ProxyHandlingStrategy.ASK,
+        check_for_composites = composite_strategy in (
+            CompositeHandlingStrategy.DELETE,
+            CompositeHandlingStrategy.ASK,
         )
 
         orphans: list[dict[str, str]] = []
-        intermediate_orphans: list[dict[str, str]] = []
-        if check_for_orphans or check_for_proxies:
-            orphans, intermediate_orphans = _collect_affected_entities(
+        composite_children: list[dict[str, str]] = []
+        if check_for_orphans or check_for_composites:
+            orphans, composite_children = _collect_affected_entities(
                 changes,
                 entity_type,
                 check_for_orphans=check_for_orphans,
-                check_for_proxies=check_for_proxies,
+                check_for_composites=check_for_composites,
             )
 
         if (orphan_strategy == OrphanHandlingStrategy.KEEP or not orphans) and (
-            proxy_strategy == ProxyHandlingStrategy.KEEP or not intermediate_orphans
+            composite_strategy == CompositeHandlingStrategy.KEEP
+            or not composite_children
         ):
             return jsonify({"status": "success", "affected_entities": []})
 
         return _format_orphan_response(
             orphans,
-            intermediate_orphans,
+            composite_children,
             orphan_strategy,
-            proxy_strategy,
+            composite_strategy,
         )
     except ValueError as e:
         error_message = str(e)
@@ -544,12 +545,12 @@ def _parse_change_request(
 
 def _affected_entity_will_be_deleted(entity: dict, *, delete_affected: bool) -> bool:
     orphan_strategy = current_app.config["ORPHAN_HANDLING_STRATEGY"]
-    proxy_strategy = current_app.config["PROXY_HANDLING_STRATEGY"]
+    composite_strategy = current_app.config["COMPOSITE_HANDLING_STRATEGY"]
 
-    if entity["is_intermediate"]:
-        return delete_affected and proxy_strategy in (
-            ProxyHandlingStrategy.DELETE,
-            ProxyHandlingStrategy.ASK,
+    if entity["is_composite"]:
+        return delete_affected and composite_strategy in (
+            CompositeHandlingStrategy.DELETE,
+            CompositeHandlingStrategy.ASK,
         )
     return delete_affected and orphan_strategy in (
         OrphanHandlingStrategy.DELETE,
@@ -606,6 +607,11 @@ def _setup_editor(
             data = change.get("data")
             if data:
                 import_referenced_entities(editor, data)
+        elif URIRef(change["subject"]) != subject and (
+            change["action"] == "add_link"
+            or (change["action"] == "delete" and change.get("predicate"))
+        ):
+            editor = import_entity_graph(editor, URIRef(change["subject"]))
 
     editor.preexisting_finished()
     editor.set_primary_source(URIRef(primary_source) if primary_source else None)
@@ -656,7 +662,7 @@ def _handle_affected_entities(
     deleted_entities: set[URIRef],
 ) -> None:
     orphan_strategy = current_app.config["ORPHAN_HANDLING_STRATEGY"]
-    proxy_strategy = current_app.config["PROXY_HANDLING_STRATEGY"]
+    composite_strategy = current_app.config["COMPOSITE_HANDLING_STRATEGY"]
     # Separiamo le operazioni di delete in due fasi:
     # 1. Prima eliminiamo tutte le entità orfane/intermedie
     # 2. Poi eliminiamo le triple specifiche
@@ -665,11 +671,8 @@ def _handle_affected_entities(
     if not (affected_entities and delete_affected):
         return
 
-    # Separa gli orfani dalle entità proxy
-    orphans = [
-        entity for entity in affected_entities if not entity.get("is_intermediate")
-    ]
-    proxies = [entity for entity in affected_entities if entity.get("is_intermediate")]
+    orphans = [entity for entity in affected_entities if not entity.get("is_composite")]
+    composites = [entity for entity in affected_entities if entity.get("is_composite")]
 
     # Gestione degli orfani secondo la strategia per gli orfani
     should_delete_orphans = orphan_strategy == OrphanHandlingStrategy.DELETE or (
@@ -687,21 +690,23 @@ def _handle_affected_entities(
             )
             deleted_entities.add(orphan_uri)
 
-    # Gestione delle entità proxy secondo la strategia per i proxy
-    should_delete_proxies = proxy_strategy == ProxyHandlingStrategy.DELETE or (
-        proxy_strategy == ProxyHandlingStrategy.ASK and delete_affected
+    should_delete_composites = (
+        composite_strategy == CompositeHandlingStrategy.DELETE
+        or (composite_strategy == CompositeHandlingStrategy.ASK and delete_affected)
     )
 
-    if should_delete_proxies and proxies:
-        for proxy in proxies:
-            proxy_uri = URIRef(proxy["uri"])
-            if proxy_uri in deleted_entities:
+    if should_delete_composites and composites:
+        for composite in composites:
+            composite_uri = URIRef(composite["uri"])
+            if composite_uri in deleted_entities:
                 continue
 
             delete_logic(
-                ChangeOperation(editor=editor, subject=proxy_uri, graph_uri=graph_uri)
+                ChangeOperation(
+                    editor=editor, subject=composite_uri, graph_uri=graph_uri
+                )
             )
-            deleted_entities.add(proxy_uri)
+            deleted_entities.add(composite_uri)
 
 
 def _process_remaining_changes(
@@ -714,6 +719,13 @@ def _process_remaining_changes(
     for change in changes:
         if change["action"] == "delete":
             _process_delete_change(editor, change, graph_uri, deleted_entities)
+        elif change["action"] == "add_link":
+            editor.create(
+                URIRef(change["subject"]),
+                URIRef(change["predicate"]),
+                URIRef(change["object"]),
+                graph_uri,
+            )
         elif change["action"] == "update":
             op = ChangeOperation(
                 editor=editor,
@@ -769,7 +781,9 @@ def _process_delete_change(
         delete_logic(op)
         deleted_entities.add(change_subject)
     elif object_value is not None:
-        if is_valid_url(object_value) and URIRef(object_value) in deleted_entities:
+        if change_subject in deleted_entities or (
+            is_valid_url(object_value) and URIRef(object_value) in deleted_entities
+        ):
             return
 
         delete_logic(op, change_predicate, object_value)
@@ -843,7 +857,7 @@ def apply_changes() -> tuple[Response, int]:
         if save_default_source and primary_source and is_valid_url(primary_source):
             save_user_default_primary_source(current_user.orcid, primary_source)
 
-        changes = transform_changes_with_virtual_properties(changes)
+        changes = expand_inverse_changes(changes)
 
         editor, graph_uri = _setup_editor(
             primary_source,

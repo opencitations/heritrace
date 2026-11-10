@@ -8,7 +8,7 @@ description: Configure the behaviour of the HERITRACE interface that SHACL does 
 ---
 import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
 
-Unfortunately, SHACL ([SHACL Core](https://w3c.github.io/data-shapes/shacl12-core/), including its extended features for [SPARQL](https://w3c.github.io/data-shapes/shacl12-sparql/) and [node expressions](https://w3c.github.io/data-shapes/shacl12-node-expr/), and [SHACL UI](https://w3c.github.io/data-shapes/shacl12-ui/)) cannot express every aspect of the editor that we consider important. The aspects it leaves out are configured in the YAML file described here: which entity types and fields are visible, how values are ordered, how proxy relationships work, how the catalogue sorts entities and how duplicates are found.
+Unfortunately, SHACL ([SHACL Core](https://w3c.github.io/data-shapes/shacl12-core/), including its extended features for [SPARQL](https://w3c.github.io/data-shapes/shacl12-sparql/) and [node expressions](https://w3c.github.io/data-shapes/shacl12-node-expr/), and [SHACL UI](https://w3c.github.io/data-shapes/shacl12-ui/)) cannot express every aspect of the editor that we consider important. The aspects it leaves out are configured in the YAML file described here: how values are ordered, how the catalogue sorts entities and how duplicates are found.
 
 ## File location
 
@@ -62,7 +62,6 @@ For maximum precision, you can target entities that belong to a specific class A
 
 Here are the top-level settings for each rule, listed in order of how they are presented in this documentation:
 
--   `shouldBeDisplayed`: A boolean that defaults to `true`. If `false`, this entity type does not appear in the catalogue or on the "Add" page.
 -   `displayProperties`: A list defining how each property of the entity should be displayed and behave. See the [Configuring properties](#configuring-properties-displayproperties) section for details.
 -   `sortableBy`: A list of properties that users can use to sort items in the catalogue view. See the [Sorting catalogue items](#sorting-catalogue-items-sortableby) section for details.
 -   `similarity_properties`: A configuration that defines which properties are used to identify potential duplicate entities. HERITRACE uses these to warn about duplicates while an entity is being created and to display "Similar Resources" on entity pages, enabling users to merge duplicates. See the [Similarity properties for duplicate detection](#similarity-properties-for-duplicate-detection) section for details.
@@ -70,14 +69,6 @@ Here are the top-level settings for each rule, listed in order of how they are p
 ## Configuring properties (`displayProperties`)
 
 This is where you define the behaviour of each field of an entity. Each entry names a property with `property` and lists only the settings that differ from the defaults.
-### Visibility
-
-```yaml
-- property: "http://purl.org/spar/datacite/hasIdentifier"
-  shouldBeDisplayed: false
-```
-
--   `shouldBeDisplayed`: Defaults to `true`. If `false`, the field is hidden in forms.
 
 ### Ordering items (`orderedBy`)
 
@@ -93,7 +84,7 @@ When the order of multiple values for a property is significant (e.g., the seque
 
 #### How it works: RDF representation
 
-When a user arranges items, HERITRACE uses the specified `orderedBy` property to create a linked list that connects the items sequentially. This approach is model-agnostic; it can order any set of related resources, whether they are direct properties or linked through an intermediate proxy entity.
+When a user arranges items, HERITRACE uses the specified `orderedBy` property to create a linked list that connects the items sequentially. This approach is model-agnostic; it can order any set of related resources, whether they are direct properties or linked through another entity.
 
 For instance, if a resource has multiple related items and their order matters, the RDF structure would look like this:
 
@@ -115,36 +106,6 @@ For instance, if a resource has multiple related items and their order matters, 
 <Aside type="note" title="Work in Progress">
 Currently, HERITRACE supports modeling order using a sequential property to form a linked list. We plan to support other ordering patterns, such as using an index property, in future releases.
 </Aside>
-
-### Relationship properties (proxy pattern)
-
-Sometimes a simple link between two entities isn't enough. You might need to describe the relationship itself. For example, a person can be an author of an article, but they could also be an editor. How do you capture this specific role?
-
-This is solved with a **Proxy Pattern**, which uses an intermediate entity to hold the properties of the relationship.
-
-**The data model looks like this:**
-`Journal Article` → `isDocumentContextFor` → `Role In Time` → `isHeldBy` → `Person`
-
-The `Role In Time` entity is the "proxy." It holds the details, like the specific role (`pro:author` or `pro:editor`).
-
-Here is how you configure this complex relationship in `display_rules.yaml`:
-
-```yaml
-- property: "http://purl.org/spar/pro/isDocumentContextFor"
-  orderedBy: "https://w3id.org/oc/ontology/hasNext" # Optional: property to sort items
-  intermediateRelation:
-    class: "http://purl.org/spar/pro/RoleInTime"
-    targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
-```
-
-**Breaking down the configuration:**
-
--   `property`: The property on the source entity (`Journal Article`) that points to the proxy entities.
--   `orderedBy`: (Optional) Specifies a property used to create an ordered sequence between the proxy entities, ensuring they are displayed in the correct order (e.g., for a list of authors). When `orderedBy` is used, HERITRACE displays drag-and-drop handles next to each item, allowing users to reorder them manually.
--   `intermediateRelation`: This is the core of the proxy configuration.
-    -   `class`: The `rdf:type` of the proxy entity (`pro:RoleInTime`).
-    -   `targetEntityType`: The `rdf:type` of the final entity you want to link to (`foaf:Agent`). HERITRACE uses this to know what kind of entity to create or search for.
-Authors and editors are both `pro:RoleInTime` entities, but they conform to different shapes (`AuthorShape`, `EditorShape`). The SHACL shape of the article declares one property shape for each role, with its own [`sh:name`](/heritrace/configuration/shacl/#names-shname), so HERITRACE shows them as separate groups. Each role is shown with the label of its shape, and the link opens the agent reached through the proxy.
 
 ## Sorting catalogue items (`sortableBy`)
 
@@ -251,34 +212,3 @@ rules:
     displayProperties:
       - *authors_property
 ```
-
-## Virtual properties: Bridging user mental models and data models
-
-Sometimes, the way data is structured in your RDF ontology doesn't align with how users naturally think about it. **Virtual properties** are HERITRACE's solution to this mismatch, allowing you to present data in a way that matches users' mental models while maintaining the integrity of your underlying data model.
-
-### The problem: Ontological vs. intuitive representation
-
-Consider citations. In the CITO ontology, a citation is modeled as a **first-class entity** (a `cito:Citation` class) that links two bibliographic resources:
-
-```turtle
-:citation1 a cito:Citation ;
-    cito:hasCitingEntity :articleA ;
-    cito:hasCitedEntity :articleB .
-```
-
-This is ontologically sound and enables rich metadata about citations (citation type, semantics, etc.). However, most users think of citations as **relationships**, not entities. When editing an article, users expect to simply "add a citation" to another resource, not "create a Citation entity that links this article to another resource."
-
-### The solution: Virtual properties
-
-Virtual properties let you hide the complexity of the underlying data model and present a simpler, more intuitive interface. When a user adds a value to a virtual property, HERITRACE automatically creates and manages the intermediate entities behind the scenes.
-
-For the citation example, you can configure:
-- A "Citations" virtual property that appears as a simple relationship field
-- When the user adds a citation, HERITRACE creates the `Citation` entity automatically
-- The user never sees or manages the `Citation` entity directly
-
-You can even show both directions of the relationship ("Citations" and "Is Cited By") as separate virtual properties, even though they're backed by the same set of `Citation` entities in the graph.
-
-### Learn more
-
-For detailed configuration instructions, complete examples, and best practices, see the [Virtual properties configuration guide](/heritrace/configuration/virtual-properties/).

@@ -18,7 +18,6 @@ from heritrace.utils.display_rules_utils import (
     get_highest_priority_class,
     get_similarity_properties,
     get_sortable_properties,
-    is_entity_type_visible,
     process_default_property,
     process_ordering,
 )
@@ -32,14 +31,10 @@ def mock_display_rules():
     return [
         {
             "target": {"class": "http://example.org/Person"},
-            "shouldBeDisplayed": True,
             "displayProperties": [
                 {
                     "property": "http://example.org/knows",
                     "orderedBy": "http://example.org/order",
-                    "intermediateRelation": {
-                        "class": "http://example.org/Relationship"
-                    },
                 },
             ],
             "sortableBy": [
@@ -50,7 +45,6 @@ def mock_display_rules():
         },
         {
             "target": {"class": "http://example.org/Document"},
-            "shouldBeDisplayed": False,
             "displayProperties": [
                 {
                     "property": "http://example.org/title",
@@ -187,45 +181,6 @@ def mock_historical_snapshot():
         )
     )
     return graph
-
-
-class TestIsEntityTypeVisible:
-    """Tests for is_entity_type_visible function."""
-
-    def test_entity_type_visible_true(self, mock_display_rules) -> None:
-        """Test when entity type should be displayed."""
-        with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules",
-            return_value=mock_display_rules,
-        ):
-            result = is_entity_type_visible(("http://example.org/Person", None))
-            assert result is True
-
-    def test_entity_type_visible_false(self, mock_display_rules) -> None:
-        """Test when entity type should not be displayed."""
-        with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules",
-            return_value=mock_display_rules,
-        ):
-            assert (
-                is_entity_type_visible(("http://example.org/Document", None)) is False
-            )
-
-    def test_entity_type_not_in_rules(self, mock_display_rules) -> None:
-        """Test when entity type is not in display rules."""
-        with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules",
-            return_value=mock_display_rules,
-        ):
-            assert is_entity_type_visible(("http://example.org/Unknown", None)) is True
-
-    def test_no_display_rules(self) -> None:
-        """Test when there are no display rules."""
-        with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules", return_value=None
-        ):
-            result = is_entity_type_visible("http://example.org/Person")
-            assert result is True
 
 
 class TestGetSortableProperties:
@@ -371,7 +326,6 @@ class TestGetSortableProperties:
                 "target": {"class": "http://example.org/Person"},
                 "sortableBy": [{"property": "http://example.org/name"}],
                 "displayProperties": [{"property": "http://example.org/name"}],
-                "shouldBeDisplayed": True,
             }
         ]
         mock_get_display_rules.return_value = modified_display_rules
@@ -393,7 +347,6 @@ class TestGetSortableProperties:
                 "target": {"class": "http://example.org/Person"},
                 "sortableBy": [{"property": "http://example.org/unknown"}],
                 "displayProperties": [{"property": "http://example.org/unknown"}],
-                "shouldBeDisplayed": True,
             }
         ]
 
@@ -1012,22 +965,34 @@ def test_grouped_triples_follow_the_shapes() -> None:
     ]:
         snapshot.add(triple)
     entity_key = (ex + "Article", ex + "ArticleShape")
-    relation = {"connectingProperty": ex + "heldBy"}
     form_fields = {
         entity_key: {
             ex + "contributor": [
-                {"nodeShape": ex + "AuthorShape", "intermediateRelation": relation}
+                {
+                    "nodeShape": ex + "AuthorShape",
+                    "detailsViewer": True,
+                    "nestedShape": [
+                        {
+                            "uri": ex + "withRole",
+                            "displayName": "Role",
+                            "hidden": False,
+                            "nodeShapes": [],
+                            "entityType": ex + "Role",
+                            "subjectShape": ex + "AuthorShape",
+                        },
+                        {
+                            "uri": ex + "heldBy",
+                            "displayName": "Held By",
+                            "hidden": False,
+                            "nodeShape": ex + "AgentShape",
+                            "nodeShapes": [ex + "AgentShape"],
+                        },
+                    ],
+                }
             ]
         }
     }
-    rules = [
-        {
-            "target": {"class": ex + "Article"},
-            "displayProperties": [
-                {"property": ex + "contributor", "intermediateRelation": relation}
-            ],
-        }
-    ]
+    rules: list[dict] = []
     module = "heritrace.utils.display_rules_utils"
     with (
         patch(f"{module}.get_presentation", return_value=presentation),
@@ -1052,13 +1017,13 @@ def test_grouped_triples_follow_the_shapes() -> None:
 
     assert relevant == {ex + "title", ex + "contributor", ex + "extra"}
     assert [
-        (name, group["objectShape"], group["intermediateRelation"])
+        (name, group["objectShape"])
         for name, group in grouped.items()
         if name != ex + "extra"
     ] == [
-        ("Title", None, None),
-        ("Author", ex + "AuthorShape", relation),
-        ("Editor", ex + "EditorShape", relation),
+        ("Title", None),
+        ("Author", ex + "AuthorShape"),
+        ("Editor", ex + "EditorShape"),
     ]
     assert grouped["Title"]["triples"] == [
         {
@@ -1076,7 +1041,17 @@ def test_grouped_triples_follow_the_shapes() -> None:
             "subjectShape": ex + "ArticleShape",
             "objectShape": ex + "AuthorShape",
             "triple": (str(article), ex + "contributor", "Frank Herbert"),
-            "external_entity": str(agent),
+            "external_entity": str(author),
+            "details": [
+                {
+                    "name": "Role",
+                    "values": [{"label": ex + "author", "uri": None}],
+                },
+                {
+                    "name": "Held By",
+                    "values": [{"label": str(agent), "uri": str(agent)}],
+                },
+            ],
         }
     ]
     assert grouped["Editor"]["triples"] == [

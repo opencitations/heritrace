@@ -14,19 +14,19 @@ import 'entity_models.dart';
 /// Returns null when the user cancels, otherwise whether to delete them.
 Future<bool?> showOrphanDialog(BuildContext context, OrphanCheck check) {
   final t = Translations.of(context);
-  final orphans = check.affectedEntities
-      .where((e) => !e.isIntermediate)
-      .toList();
-  final proxies = check.affectedEntities
-      .where((e) => e.isIntermediate)
+  final orphans = check.affectedEntities.where((e) => !e.isComposite).toList();
+  final composites = check.affectedEntities
+      .where((e) => e.isComposite)
       .toList();
   final showOrphans = orphans.isNotEmpty && check.orphanStrategy != 'delete';
-  final showProxies = proxies.isNotEmpty && check.proxyStrategy != 'delete';
-  if (!showOrphans && !showProxies) {
+  final showComposites =
+      composites.isNotEmpty && check.compositeStrategy != 'delete';
+  if (!showOrphans && !showComposites) {
     final deleteOrphans =
         check.orphanStrategy == 'delete' && orphans.isNotEmpty;
-    final deleteProxies = check.proxyStrategy == 'delete' && proxies.isNotEmpty;
-    return Future.value(deleteOrphans || deleteProxies);
+    final deleteComposites =
+        check.compositeStrategy == 'delete' && composites.isNotEmpty;
+    return Future.value(deleteOrphans || deleteComposites);
   }
   return showCupertinoDialog<bool>(
     context: context,
@@ -47,10 +47,10 @@ Future<bool?> showOrphanDialog(BuildContext context, OrphanCheck check) {
               ),
             const SizedBox(height: appSectionSpacing),
           ],
-          if (showProxies) ...[
-            Text(t.ui.orphans.proxiesIntro),
+          if (showComposites) ...[
+            Text(t.ui.orphans.compositesIntro),
             const SizedBox(height: appInputSpacing),
-            for (final entity in proxies)
+            for (final entity in composites)
               _AffectedRow(
                 entity: entity,
                 icon: CupertinoIcons.link,

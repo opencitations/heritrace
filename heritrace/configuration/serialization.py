@@ -26,7 +26,7 @@ def settings_json(settings: Settings) -> JsonObject:
         "primarySource": settings.primary_source,
         "orcidSafelist": settings.orcid_safelist,
         "orphanHandling": settings.orphan_handling,
-        "proxyHandling": settings.proxy_handling,
+        "compositeHandling": settings.composite_handling,
     }
 
 
@@ -98,5 +98,5 @@ def settings_from_json(json: object) -> Settings:
         primary_source=_text(data, "primarySource"),
         orcid_safelist=_texts(data, "orcidSafelist"),
         orphan_handling=_text(data, "orphanHandling"),
-        proxy_handling=_text(data, "proxyHandling"),
+        composite_handling=_text(data, "compositeHandling"),
     )

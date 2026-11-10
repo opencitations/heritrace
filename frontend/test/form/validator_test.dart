@@ -130,13 +130,20 @@ void main() {
 
   test('nested entities are validated under their own path', () {
     (group(root, title).items.single as LiteralItem).setValue('Ok');
-    final authorItem = group(root, documentContext).addItem() as NestedItem;
+    final role = group(root, documentContext).addItem() as NestedItem;
+    final authorItem = heldByItem(role);
+    (group(authorItem.child, name).addItem() as LiteralItem).setValue('Jane');
     group(authorItem.child, identifier).addItem();
 
     final errors = validateEntity(root, messages, path: ['Journal Article']);
 
     expect(errors.single.fullMessage, 'Value: required');
-    expect(errors.single.path, ['Journal Article', 'Author', 'Identifier']);
+    expect(errors.single.path, [
+      'Journal Article',
+      'Author',
+      'Held By',
+      'Identifier',
+    ]);
   });
 
   test('cardinality counts only user added items against the maximum', () {
@@ -183,6 +190,13 @@ void main() {
     expect(datatypeProblem('anything', ['http://example.org/unknown']), isNull);
   });
 
+  test('an empty inline value leaves an optional nested entity out', () {
+    (group(root, title).items.single as LiteralItem).setValue('Ok');
+    group(root, documentContext).addItem();
+
+    expect(validateEntity(root, messages, path: ['Journal Article']), isEmpty);
+  });
+
   test('hasAnyValue ignores mandatory values', () {
     expect(hasAnyValue(root), isFalse);
     (group(root, title).items.single as LiteralItem).setValue('Ok');
@@ -190,7 +204,8 @@ void main() {
   });
 
   test('hasAnyValue ignores empty nested entities', () {
-    final authorItem = group(root, documentContext).addItem() as NestedItem;
+    final role = group(root, documentContext).addItem() as NestedItem;
+    final authorItem = heldByItem(role);
     expect(hasAnyValue(root), isFalse);
 
     authorItem.selectExisting('https://w3id.org/oc/meta/ar/1', 'An author');

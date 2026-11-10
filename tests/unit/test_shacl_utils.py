@@ -202,11 +202,10 @@ class TestShaclUtils:
         ]
 
     @patch("heritrace.utils.shacl_utils.extract_shacl_form_fields")
-    @patch("heritrace.utils.shacl_utils.process_nested_shapes")
     @patch("heritrace.utils.shacl_utils.apply_display_rules")
     @patch("heritrace.utils.shacl_utils.order_form_fields")
     def test_get_form_fields_from_shacl_early_return(
-        self, mock_order, mock_apply, mock_process, mock_extract
+        self, mock_order, mock_apply, mock_extract
     ) -> None:
         """
         Test that get_form_fields_from_shacl returns early when shacl is None without
@@ -221,7 +220,6 @@ class TestShaclUtils:
         # Assert
         assert result == {}
         mock_extract.assert_not_called()
-        mock_process.assert_not_called()
         mock_apply.assert_not_called()
         mock_order.assert_not_called()
 
@@ -246,7 +244,7 @@ class TestShaclUtils:
         class QueryResult(NamedTuple):
             shape: object
             type: object
-            predicate: object
+            path: object
             node_shape: object
             has_value: object
             object_class: object
@@ -255,15 +253,23 @@ class TestShaclUtils:
             datatype: object
             optional_values: object
             or_nodes: object
+            or_link_shapes: object
+            link_shape: object
+            link_class: object
+            detail_paths: object
             name: object = None
             editor: object = None
+            inverse: object = None
+            viewer: object = None
+            composite: object = None
+            hidden: object = None
 
         # Crea un risultato con orNodes
         results = [
             QueryResult(
                 shape="subjectShape1",
                 type="entity_type1",
-                predicate="predicate1",
+                path="predicate1",
                 node_shape="nodeShape1",
                 has_value=None,
                 object_class="objectClass1",
@@ -272,6 +278,10 @@ class TestShaclUtils:
                 datatype=None,
                 optional_values="",
                 or_nodes="orNode1",  # Questo è importante: specifica un orNode
+                or_link_shapes="",
+                link_shape=None,
+                link_class=None,
+                detail_paths="",
             )
         ]
 
@@ -370,7 +380,7 @@ class TestShaclUtils:
         class QueryResult(NamedTuple):
             shape: object
             type: object
-            predicate: object
+            path: object
             node_shape: object
             has_value: object
             object_class: object
@@ -379,8 +389,16 @@ class TestShaclUtils:
             datatype: object
             optional_values: object
             or_nodes: object
+            or_link_shapes: object
+            link_shape: object
+            link_class: object
+            detail_paths: object
             name: object = None
             editor: object = None
+            inverse: object = None
+            viewer: object = None
+            composite: object = None
+            hidden: object = None
 
         # Crea due risultati con lo stesso campo di base ma con datatype diversi
         # Il primo risultato crea il campo base
@@ -388,7 +406,7 @@ class TestShaclUtils:
             QueryResult(
                 shape="subjectShape1",
                 type="entity_type1",
-                predicate="predicate1",
+                path="predicate1",
                 node_shape="nodeShape1",
                 has_value=None,
                 object_class="objectClass1",
@@ -397,6 +415,10 @@ class TestShaclUtils:
                 datatype="http://www.w3.org/2001/XMLSchema#string",  # Primo datatype
                 optional_values="",
                 or_nodes="",  # Nessun orNode
+                or_link_shapes="",
+                link_shape=None,
+                link_class=None,
+                detail_paths="",
                 name=None,
                 editor=None,
             ),
@@ -404,7 +426,7 @@ class TestShaclUtils:
             QueryResult(
                 shape="subjectShape1",
                 type="entity_type1",
-                predicate="predicate1",
+                path="predicate1",
                 node_shape="nodeShape1",
                 has_value=None,
                 object_class="objectClass1",
@@ -413,6 +435,10 @@ class TestShaclUtils:
                 datatype="http://www.w3.org/2001/XMLSchema#integer",  # Secondo datatype
                 optional_values="",
                 or_nodes="",  # Stesso orNodes (vuoto)
+                or_link_shapes="",
+                link_shape=None,
+                link_class=None,
+                detail_paths="",
             ),
         ]
 

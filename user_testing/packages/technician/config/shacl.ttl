@@ -1,3 +1,4 @@
+@prefix dash: <http://datashapes.org/dash#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -61,6 +62,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:IdentifierShape ;
@@ -80,6 +82,10 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    shui:editor shui:DetailsEditor ;
+    sh:property [ sh:path pro:isHeldBy ] ;
+    shui:viewer shui:DetailsViewer ;
+    dash:composite true ;
     sh:name "Author" ;
     sh:order 4 ;
     sh:node schema:AuthorShape ;
@@ -333,6 +339,7 @@ schema:AuthorShape
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    dash:hidden true ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
@@ -399,6 +406,7 @@ schema:JournalShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    dash:composite true ;
     sh:name "Identifier" ;
     sh:order 2 ;
     sh:node schema:IdentifierShape ;

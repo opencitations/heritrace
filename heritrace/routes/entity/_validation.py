@@ -9,6 +9,7 @@ from rdflib import RDF, URIRef
 from heritrace.extensions import get_custom_filter, get_form_fields
 from heritrace.utils.datatypes import DATATYPE_MAPPING
 from heritrace.utils.filters import Filter
+from heritrace.utils.shacl_presentation import is_inverse_path
 from heritrace.utils.shacl_utils import find_matching_form_field
 
 
@@ -182,7 +183,7 @@ def validate_entity_data(structured_data: dict) -> list[str]:
     properties = structured_data.get("properties", {})
 
     for prop_uri, prop_values in properties.items():
-        if URIRef(prop_uri) == RDF.type:
+        if URIRef(prop_uri) == RDF.type or is_inverse_path(prop_uri):
             continue
 
         field_definitions = entity_fields.get(prop_uri)

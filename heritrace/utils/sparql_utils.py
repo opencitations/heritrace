@@ -30,6 +30,7 @@ from heritrace.extensions import (
     get_dataset_is_quadstore,
     get_dataset_version,
     get_display_rules,
+    get_form_fields,
     get_provenance_sparql,
     get_shacl_graph,
     get_sparql,
@@ -39,8 +40,8 @@ from heritrace.utils.display_rules_utils import (
     find_matching_rule,
     get_highest_priority_class,
     get_sortable_properties,
-    is_entity_type_visible,
 )
+from heritrace.utils.shacl_presentation import inverse_predicate, is_inverse_path
 from heritrace.utils.shacl_utils import (
     determine_shape_for_classes,
     determine_shape_for_entity_triples,
@@ -261,11 +262,9 @@ def _get_entities_with_enhanced_shape_detection(
     for subject_uri, triples in entities_triples.items():
         shape_uri = determine_shape_for_entity_triples(triples)
         if shape_uri:
-            entity_key = (class_uri, shape_uri)
-            if is_entity_type_visible(entity_key):
-                shape_to_entities[shape_uri].append(
-                    {"uri": subject_uri, "class": class_uri, "shape": shape_uri}
-                )
+            shape_to_entities[shape_uri].append(
+                {"uri": subject_uri, "class": class_uri, "shape": shape_uri}
+            )
 
     return shape_to_entities
 
@@ -389,16 +388,15 @@ def get_available_classes() -> list[dict[str, str | int]]:
             shape_uri = determine_shape_for_classes([class_uri])
             entity_key = (class_uri, shape_uri)
 
-            if is_entity_type_visible(entity_key):
-                available_classes.append(
-                    {
-                        "uri": class_uri,
-                        "label": custom_filter.human_readable_class(entity_key),
-                        "count": class_data["display_count"],
-                        "count_numeric": class_data["numeric_count"],
-                        "shape": shape_uri,
-                    }
-                )
+            available_classes.append(
+                {
+                    "uri": class_uri,
+                    "label": custom_filter.human_readable_class(entity_key),
+                    "count": class_data["display_count"],
+                    "count_numeric": class_data["numeric_count"],
+                    "shape": shape_uri,
+                }
+            )
 
     available_classes.sort(key=lambda x: x["label"].lower())
     get_app_state().class_counts["available_classes"] = (
@@ -470,7 +468,7 @@ def _fetch_entity_labels(
 
 
 def _fetch_entity_label(uri: str, entity_key: tuple[str | None, str | None]) -> str:
-    return get_custom_filter().human_readable_entity(uri, entity_key, None)
+    return get_custom_filter().catalogue_label(uri, entity_key)
 
 
 def _get_entities_with_shape_filtering(
@@ -910,8 +908,6 @@ def get_deleted_available_classes() -> list[dict[str, str | int]]:
     for class_uri in _get_classes_from_config():
         shape_uri = determine_shape_for_classes([class_uri])
         entity_key = (class_uri, shape_uri)
-        if not is_entity_type_visible(entity_key):
-            continue
 
         display_count, numeric_count = _count_deleted_class_instances(
             class_uri, current_app.config["COUNT_LIMIT"]
@@ -1134,11 +1130,18 @@ def get_deleted_entities_with_filtering(
     )
 
 
+def _not_composite_filter(composite_predicates: list[str]) -> str:
+    if not composite_predicates:
+        return ""
+    predicates = ", ".join(URIRef(uri).n3() for uri in composite_predicates)
+    return f"FILTER(?p NOT IN ({predicates}))"
+
+
 def _orphan_candidate_restriction(
     subject: URIRef,
     predicate: URIRef | None,
     object_value: str | None,
-    intermediate_classes: set[str],
+    composite_filter: str,
 ) -> str:
     if is_virtuoso():
         return ""
@@ -1151,7 +1154,7 @@ def _orphan_candidate_restriction(
             <{subject}> ?p ?entity .
             FILTER(isIRI(?entity))
             ?entity a ?type .
-            FILTER(?type NOT IN (<{">, <".join(intermediate_classes)}>))
+            {composite_filter}
         }}
     """)
     sparql.setReturnFormat(JSON)
@@ -1160,39 +1163,60 @@ def _orphan_candidate_restriction(
     return f"VALUES ?entity {{ {candidates} }}"
 
 
-def find_orphaned_entities(
+def _composite_fields(entity_type: str) -> dict[str, dict]:
+    return {
+        field["uri"]: field
+        for (field_class, _), fields in get_form_fields().items()
+        if field_class == entity_type
+        for definitions in fields.values()
+        for field in definitions
+        if field["composite"]
+    }
+
+
+def _composite_child_pattern(subject: URIRef, field: dict) -> str:
+    inverse_of = inverse_predicate(field["uri"])
+    if inverse_of is None:
+        predicate = URIRef(field["uri"]).n3()
+        return f"""{{
+            <{subject}> {predicate} ?entity .
+            ?entity a ?type .
+            FILTER NOT EXISTS {{
+                ?other {predicate} ?entity .
+                FILTER(?other != <{subject}>)
+            }}
+        }}"""
+    predicate = URIRef(inverse_of).n3()
+    return f"""{{
+        ?entity {predicate} <{subject}> ;
+                a <{field["objectClass"]}> , ?type .
+        FILTER NOT EXISTS {{
+            ?entity {predicate} ?other .
+            FILTER(?other != <{subject}>)
+        }}
+    }}"""
+
+
+def _composite_children_query(
+    subject: URIRef, fields: list[dict], object_value: str | None
+) -> str:
+    patterns = " UNION ".join(
+        _composite_child_pattern(subject, field) for field in fields
+    )
+    value_filter = f"FILTER(?entity = <{object_value}>)" if object_value else ""
+    return f"SELECT DISTINCT ?entity ?type WHERE {{ {patterns} {value_filter} }}"
+
+
+def _orphans_query(
     subject: URIRef,
-    entity_type: str,
-    predicate: URIRef | None = None,
-    object_value: str | None = None,
-) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-    sparql = get_sparql()
-    display_rules = get_display_rules()
-
-    intermediate_classes = set()
-
-    for rule in display_rules:
-        if (
-            "target" in rule
-            and "class" in rule["target"]
-            and rule["target"]["class"] == entity_type
-        ):
-            for prop in rule.get("displayProperties", []):
-                if "intermediateRelation" in prop:
-                    intermediate_classes.add(prop["intermediateRelation"]["class"])
-
+    predicate: URIRef | None,
+    object_value: str | None,
+    composite_filter: str,
+) -> str:
     candidate_restriction = _orphan_candidate_restriction(
-        subject, predicate, object_value, intermediate_classes
+        subject, predicate, object_value, composite_filter
     )
-    intermediate_type_restriction = (
-        f"FILTER(?type IN (<{'>, <'.join(intermediate_classes)}>))"
-        if is_virtuoso()
-        else "VALUES ?type { "
-        + " ".join(URIRef(class_uri).n3() for class_uri in intermediate_classes)
-        + " }"
-    )
-
-    orphan_query = f"""
+    return f"""
     SELECT DISTINCT ?entity ?type
     WHERE {{
         {f"<{subject}> <{predicate}> ?entity ." if predicate and object_value else ""}
@@ -1200,6 +1224,7 @@ def find_orphaned_entities(
 
         # If no specific predicate, get all connected entities
         {f"<{subject}> ?p ?entity ." if not predicate else ""}
+        {composite_filter if not predicate else ""}
 
         FILTER(isIRI(?entity))
         ?entity a ?type .
@@ -1218,59 +1243,57 @@ def find_orphaned_entities(
             ?connectedEntity ?furtherPredicate ?furtherObject .
             {f"FILTER(?connectedEntity != <{subject}>)" if not predicate else ""}
         }}
-
-        # Exclude intermediate relation entities
-        FILTER(?type NOT IN (<{">, <".join(intermediate_classes)}>))
     }}
     """
 
-    # Query to find orphaned intermediate relations
-    if predicate and object_value:
-        intermediate_query = f"""
-        SELECT DISTINCT ?entity ?type
-        WHERE {{
-            <{object_value}> a ?type .
-            {intermediate_type_restriction}
-            BIND(<{object_value}> AS ?entity)
-        }}
-        """
-    else:
-        # Se stiamo cancellando l'intera entità, trova tutte le entità intermedie
-        # collegate
-        intermediate_query = f"""
-        SELECT DISTINCT ?entity ?type
-        WHERE {{
-            # Find intermediate relations connected to the entity being deleted
-            {{
-                <{subject}> ?p ?entity .
-                ?entity a ?type .
-                {intermediate_type_restriction}
-            }} UNION {{
-                ?entity ?p <{subject}> .
-                ?entity a ?type .
-                {intermediate_type_restriction}
-            }}
-        }}
-        """
 
-    orphaned = []
-    intermediate_orphans = []
+def find_orphaned_entities(
+    subject: URIRef,
+    entity_type: str,
+    predicate: URIRef | None = None,
+    object_value: str | None = None,
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    sparql = get_sparql()
+    composite_fields = _composite_fields(entity_type)
+    composite_filter = _not_composite_filter(
+        [uri for uri in composite_fields if not is_inverse_path(uri)]
+    )
+    is_composite_value = predicate is not None and str(predicate) in composite_fields
+    if predicate is not None and is_inverse_path(predicate) and not is_composite_value:
+        return [], []
+    children_fields = (
+        [composite_fields[str(predicate)]]
+        if is_composite_value
+        else ([] if predicate else list(composite_fields.values()))
+    )
 
-    # Execute queries and process results
-    for query, result_list in [
-        (orphan_query, orphaned),
-        (intermediate_query, intermediate_orphans),
-    ]:
+    orphaned: list[dict[str, str]] = []
+    children: list[dict[str, str]] = []
+    queries: list[tuple[str, list[dict[str, str]]]] = []
+    if not is_composite_value:
+        queries.append(
+            (
+                _orphans_query(subject, predicate, object_value, composite_filter),
+                orphaned,
+            )
+        )
+    if children_fields:
+        queries.append(
+            (
+                _composite_children_query(subject, children_fields, object_value),
+                children,
+            )
+        )
+
+    for query, result_list in queries:
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
-        query_bindings = get_sparql_bindings(sparql.query().convert())
-
-        for result in query_bindings:
+        for result in get_sparql_bindings(sparql.query().convert()):
             result_list.append(
                 {"uri": result["entity"]["value"], "type": result["type"]["value"]}
             )
 
-    return orphaned, intermediate_orphans
+    return orphaned, children
 
 
 def import_entity_graph(

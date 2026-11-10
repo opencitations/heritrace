@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: ISC
 
 from pathlib import Path
-from unittest.mock import patch
 
 import yaml
 from flask import Flask
@@ -19,6 +18,7 @@ SHAPES = "http://schema.org/"
 ARTICLE = "http://purl.org/spar/fabio/JournalArticle"
 PART_OF = "http://purl.org/vocab/frbr/core#partOf"
 ROLE = "http://purl.org/spar/pro/isDocumentContextFor"
+HELD_BY = "http://purl.org/spar/pro/isHeldBy"
 _SH_CLASS = SH["class"]
 
 
@@ -26,10 +26,7 @@ def _form_fields() -> dict:
     shapes = Graph().parse(CONFIGURATION / "shacl.ttl", format="turtle")
     with (CONFIGURATION / "display_rules.yaml").open() as rules_file:
         rules = yaml.safe_load(rules_file)["rules"]
-    with patch(
-        "heritrace.utils.virtual_properties.get_display_rules", return_value=rules
-    ):
-        return get_form_fields_from_shacl(shapes, rules, Flask(__name__))
+    return get_form_fields_from_shacl(shapes, rules, Flask(__name__))
 
 
 def _article_field(predicate: str) -> dict:
@@ -43,8 +40,12 @@ def test_every_alternative_of_a_link_uses_the_autocomplete() -> None:
     assert all(alternative["autocomplete"] for alternative in alternatives)
 
 
-def test_a_proxy_uses_the_autocomplete_of_its_final_entity() -> None:
-    assert _article_field(ROLE)["autocomplete"] is True
+def test_a_role_shows_its_fields_in_place() -> None:
+    role = _article_field(ROLE)
+
+    assert role["detailsEditor"] is True
+    assert role["detailsViewer"] is True
+    assert HELD_BY in {nested["uri"] for nested in role["nestedShape"]}
 
 
 def test_the_classes_of_a_link_survive_the_shape_model() -> None:

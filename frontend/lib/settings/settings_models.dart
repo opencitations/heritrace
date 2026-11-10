@@ -17,7 +17,7 @@ class SystemSettings {
     required this.primarySource,
     required this.orcidSafelist,
     required this.orphanHandling,
-    required this.proxyHandling,
+    required this.compositeHandling,
   });
 
   factory SystemSettings.fromJson(Json json) => SystemSettings(
@@ -29,7 +29,7 @@ class SystemSettings {
     primarySource: json['primarySource'] as String,
     orcidSafelist: _strings(json['orcidSafelist']),
     orphanHandling: json['orphanHandling'] as String,
-    proxyHandling: json['proxyHandling'] as String,
+    compositeHandling: json['compositeHandling'] as String,
   );
 
   String appTitle;
@@ -40,7 +40,7 @@ class SystemSettings {
   String primarySource;
   List<String> orcidSafelist;
   String orphanHandling;
-  String proxyHandling;
+  String compositeHandling;
 
   Json toJson() => {
     'appTitle': appTitle,
@@ -51,7 +51,7 @@ class SystemSettings {
     'primarySource': primarySource,
     'orcidSafelist': orcidSafelist,
     'orphanHandling': orphanHandling,
-    'proxyHandling': proxyHandling,
+    'compositeHandling': compositeHandling,
   };
 }
 

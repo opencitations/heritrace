@@ -8,6 +8,7 @@ from rdflib import RDF, Graph, Literal, URIRef
 
 from heritrace.extensions import get_custom_filter, get_form_fields
 from heritrace.utils.datatypes import determine_datatype
+from heritrace.utils.shacl_presentation import inverse_predicate
 from heritrace.utils.shacl_utils import find_matching_form_field
 from heritrace.utils.uri_utils import is_valid_url
 
@@ -50,7 +51,11 @@ def draft_label(entry: dict) -> str | None:
     uri = add_draft_entity(graph, entity)
     parent = URIRef(f"urn:heritrace:draft:{uuid4()}")
     graph.add((parent, RDF.type, URIRef(entry["parent_class"])))
-    graph.add((parent, URIRef(entry["predicate"]), uri))
+    inverse_of = inverse_predicate(entry["predicate"])
+    if inverse_of is None:
+        graph.add((parent, URIRef(entry["predicate"]), uri))
+    else:
+        graph.add((uri, URIRef(inverse_of), parent))
     custom_filter = get_custom_filter()
     if not custom_filter.has_label(entity["entity_shape"]):
         return None

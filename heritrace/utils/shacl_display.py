@@ -21,7 +21,13 @@ from heritrace.utils.shacl_patterns import (
     PatternAlternative,
     read_pattern_alternatives,
 )
-from heritrace.utils.shacl_presentation import SHUI, ShapesPresentation
+from heritrace.utils.shacl_presentation import (
+    DASH,
+    SHUI,
+    ShapesPresentation,
+    inverse_path_key,
+    inverse_predicate,
+)
 
 
 @dataclass(slots=True)
@@ -47,29 +53,44 @@ class _ParsedRow:
     datatype: str | None
     optional_values: list[str]
     or_nodes: list[str]
+    or_link_shapes: list[str]
+    detail_paths: list[str]
+    link_only: bool
     entity_key: tuple[str, str]
     node_shapes: list[str]
     name: str | None
     editor: str | None
+    viewer: str | None
+    composite: bool
+    hidden: bool
 
 
 COMMON_SPARQL_QUERY = prepareQuery(
     """
-    SELECT ?shape ?type ?predicate ?node_shape ?datatype
+    SELECT ?shape ?type ?path ?inverse ?node_shape ?link_shape ?link_class ?datatype
            ?max_count ?min_count ?has_value ?object_class
-           ?name ?editor
+           ?name ?editor ?viewer ?composite ?hidden
            (GROUP_CONCAT(?optional_value; separator=",")
             AS ?optional_values)
            (GROUP_CONCAT(?or_node; separator=",") AS ?or_nodes)
+           (GROUP_CONCAT(?or_link_shape; separator=",") AS ?or_link_shapes)
+           (GROUP_CONCAT(?detail_path; separator=",") AS ?detail_paths)
     WHERE {
         ?shape sh:targetClass ?type ;
                sh:property ?property .
-        ?property sh:path ?predicate .
+        ?property sh:path ?path .
+        OPTIONAL { ?path sh:inversePath ?inverse . }
         OPTIONAL {
             ?property sh:node ?node_shape .
             OPTIONAL {
                 ?node_shape sh:targetClass ?object_class .
             }
+        }
+        OPTIONAL {
+            ?property shui:editor shui:AutoCompleteEditor ;
+                      sh:class ?link_class .
+            ?link_shape sh:targetClass ?link_class .
+            FILTER NOT EXISTS { ?property sh:node ?declared_node . }
         }
         OPTIONAL {
             { ?property sh:or ?orList . }
@@ -81,6 +102,12 @@ COMMON_SPARQL_QUERY = prepareQuery(
             } UNION {
                 ?orList rdf:rest*/rdf:first ?or_node_shape .
                 ?or_node_shape sh:node ?or_node .
+            } UNION {
+                ?property shui:editor shui:AutoCompleteEditor .
+                ?orList rdf:rest*/rdf:first ?or_link .
+                ?or_link sh:class ?or_link_class .
+                ?or_link_shape sh:targetClass ?or_link_class .
+                FILTER NOT EXISTS { ?or_link sh:node ?or_declared_node . }
             } UNION {
                 ?orList rdf:rest*/rdf:first ?or_constraint .
                 ?or_constraint sh:hasValue ?optional_value .
@@ -108,16 +135,21 @@ COMMON_SPARQL_QUERY = prepareQuery(
         }
         OPTIONAL { ?property sh:name ?name . }
         OPTIONAL { ?property shui:editor ?editor . }
-        FILTER (isURI(?predicate))
+        OPTIONAL { ?property shui:viewer ?viewer . }
+        OPTIONAL { ?property dash:composite ?composite . }
+        OPTIONAL { ?property dash:hidden ?hidden . }
+        OPTIONAL { ?property sh:property/sh:path ?detail_path . }
+        FILTER (isURI(?path) || BOUND(?inverse))
         FILTER NOT EXISTS { ?property sh:values ?computed . }
     }
-    GROUP BY ?shape ?type ?predicate ?node_shape ?datatype
+    GROUP BY ?shape ?type ?path ?inverse ?node_shape ?link_shape ?link_class ?datatype
              ?max_count ?min_count ?has_value ?object_class
-             ?name ?editor
+             ?name ?editor ?viewer ?composite ?hidden
 """,
     initNs={
         "sh": "http://www.w3.org/ns/shacl#",
         "shui": str(SHUI),
+        "dash": str(DASH),
         "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     },
 )
@@ -126,20 +158,25 @@ COMMON_SPARQL_QUERY = prepareQuery(
 def _parse_row(row: ResultRow) -> _ParsedRow:
     subject_shape = str(row.shape)
     entity_type = str(row.type)
-    predicate = str(row.predicate)
-    node_shape = str(row.node_shape) if row.node_shape else None
+    predicate = inverse_path_key(row.inverse) if row.inverse else str(row.path)
+    linked_shape = row.node_shape or row.link_shape
+    node_shape = str(linked_shape) if linked_shape else None
     has_value = str(row.has_value) if row.has_value else None
-    object_class = str(row.object_class) if row.object_class else None
+    linked_class = row.object_class or row.link_class
+    object_class = str(linked_class) if linked_class else None
     min_count = 0 if row.min_count is None else int(row.min_count)
     max_count = None if row.max_count is None else int(row.max_count)
     datatype = str(row.datatype) if row.datatype else None
     optional_values = [v for v in (row.optional_values or "").split(",") if v]
     or_nodes = [v for v in (row.or_nodes or "").split(",") if v]
+    or_link_shapes = [v for v in (row.or_link_shapes or "").split(",") if v]
+    detail_paths = sorted({v for v in (row.detail_paths or "").split(",") if v})
 
     node_shapes = []
     if node_shape:
         node_shapes.append(node_shape)
     node_shapes.extend(or_nodes)
+    node_shapes.extend(or_link_shapes)
 
     return _ParsedRow(
         subject_shape=subject_shape,
@@ -153,10 +190,16 @@ def _parse_row(row: ResultRow) -> _ParsedRow:
         datatype=datatype,
         optional_values=optional_values,
         or_nodes=or_nodes,
+        or_link_shapes=or_link_shapes,
+        detail_paths=detail_paths,
+        link_only=row.node_shape is None and row.link_shape is not None,
         entity_key=(entity_type, subject_shape),
         node_shapes=node_shapes,
         name=str(row.name) if row.name else None,
         editor=str(row.editor) if row.editor else None,
+        viewer=str(row.viewer) if row.viewer else None,
+        composite=bool(row.composite),
+        hidden=bool(row.hidden),
     )
 
 
@@ -190,6 +233,33 @@ def _find_existing_field(
     return None
 
 
+def _or_option(
+    ctx: ShaclProcessingContext,
+    parsed: _ParsedRow,
+    custom_filter: Filter,
+    node: str,
+) -> dict[str, object]:
+    target_class = get_shape_target_class(ctx.shacl, node)
+    return {
+        "entityType": target_class,
+        "uri": parsed.predicate,
+        "displayName": custom_filter.human_readable_class((target_class, node)),
+        "subjectShape": parsed.subject_shape,
+        "nodeShape": node,
+        "min": parsed.min_count,
+        "max": parsed.max_count,
+        "hasValue": parsed.has_value,
+        "objectClass": get_object_class(ctx.shacl, node, parsed.predicate),
+        "optionalValues": parsed.optional_values,
+        "conditions": _field_conditions(ctx, parsed),
+        "autocomplete": parsed.editor == str(SHUI.AutoCompleteEditor),
+        "detailsEditor": parsed.editor == str(SHUI.DetailsEditor),
+        "detailsViewer": parsed.viewer == str(SHUI.DetailsViewer),
+        "composite": parsed.composite,
+        "hidden": parsed.hidden,
+    }
+
+
 def _process_or_nodes(
     ctx: ShaclProcessingContext,
     parsed: _ParsedRow,
@@ -197,35 +267,18 @@ def _process_or_nodes(
     field_info: dict[str, object],
     depth: int,
 ) -> None:
-    field_info["or"] = []
+    options: list[dict[str, object]] = []
     for node in parsed.or_nodes:
-        entity_type_or_node = get_shape_target_class(ctx.shacl, node)
-        object_class = get_object_class(ctx.shacl, node, parsed.predicate)
-        shape_display_name = custom_filter.human_readable_class(
-            (entity_type_or_node, node)
-        )
-        or_field_info: dict[str, object] = {
-            "entityType": entity_type_or_node,
-            "uri": parsed.predicate,
-            "displayName": shape_display_name,
-            "subjectShape": parsed.subject_shape,
-            "nodeShape": node,
-            "min": parsed.min_count,
-            "max": parsed.max_count,
-            "hasValue": parsed.has_value,
-            "objectClass": object_class,
-            "optionalValues": parsed.optional_values,
-            "conditions": _field_conditions(ctx, parsed),
-            "autocomplete": parsed.editor == str(SHUI.AutoCompleteEditor),
-            "shouldBeDisplayed": True,
-        }
+        option = _or_option(ctx, parsed, custom_filter, node)
         if node not in ctx.processed_shapes:
-            or_field_info["nestedShape"] = process_nested_shapes(
-                ctx,
-                node,
-                depth=depth + 1,
-            )
-        field_info["or"].append(or_field_info)
+            option["nestedShape"] = process_nested_shapes(ctx, node, depth=depth + 1)
+        options.append(option)
+    for node in parsed.or_link_shapes:
+        option = _or_option(ctx, parsed, custom_filter, node)
+        option["objectClass"] = option["entityType"]
+        option["nestedShape"] = []
+        options.append(option)
+    field_info["or"] = options
 
 
 def _process_single_row(
@@ -267,19 +320,26 @@ def _process_single_row(
         "conditions": _field_conditions(ctx, parsed),
         "inputType": determine_input_type(parsed.editor, parsed.datatype),
         "autocomplete": parsed.editor == str(SHUI.AutoCompleteEditor),
-        "shouldBeDisplayed": True,
+        "detailsEditor": parsed.editor == str(SHUI.DetailsEditor),
+        "detailsViewer": parsed.viewer == str(SHUI.DetailsViewer),
+        "composite": parsed.composite,
+        "hidden": parsed.hidden,
     }
     if parsed.name is not None:
         field_info["displayName"] = parsed.name
+    if parsed.detail_paths:
+        field_info["detailPaths"] = parsed.detail_paths
 
-    if parsed.node_shape and parsed.node_shape not in ctx.processed_shapes:
+    if parsed.link_only:
+        field_info["nestedShape"] = []
+    elif parsed.node_shape and parsed.node_shape not in ctx.processed_shapes:
         field_info["nestedShape"] = process_nested_shapes(
             ctx,
             parsed.node_shape,
             depth=depth + 1,
         )
 
-    if parsed.or_nodes:
+    if parsed.or_nodes or parsed.or_link_shapes:
         _process_or_nodes(ctx, parsed, custom_filter, field_info, depth)
 
     form_fields[parsed.entity_key][parsed.predicate].append(field_info)
@@ -305,29 +365,7 @@ def process_query_results(
         parsed = _parse_row(row)
         _process_single_row(ctx, parsed, custom_filter, form_fields, depth)
 
-    for fields in form_fields.values():
-        for predicate_fields in fields.values():
-            _add_distinguishing_properties(ctx.shacl, predicate_fields)
-
     return form_fields
-
-
-# When several property shapes share a path and differ by sh:node, a new value
-# needs the fixed values of its node shape to tell which property shape it
-# belongs to.
-def _add_distinguishing_properties(
-    shacl: Graph, predicate_fields: list[dict[str, object]]
-) -> None:
-    node_shapes = {field.get("nodeShape") for field in predicate_fields}
-    if len(node_shapes) == 1:
-        return
-    for field in predicate_fields:
-        if field.get("nodeShape"):
-            additional_properties = extract_additional_properties(
-                shacl, str(field["nodeShape"])
-            )
-            if additional_properties:
-                field["additionalProperties"] = additional_properties
 
 
 def process_nested_shapes(
@@ -350,9 +388,7 @@ def process_nested_shapes(
     )
 
     if ctx.display_rules:
-        temp_form_fields = apply_display_rules(
-            ctx.shacl, temp_form_fields, ctx.display_rules
-        )
+        temp_form_fields = apply_display_rules(temp_form_fields, ctx.display_rules)
     temp_form_fields = order_form_fields(temp_form_fields, ctx.presentation)
 
     for entity_type in temp_form_fields:
@@ -403,7 +439,6 @@ def order_form_fields(
 
 
 def apply_display_rules(
-    shacl: Graph,
     form_fields: dict[
         tuple[str, str],
         dict[str, list[dict[str, object]]],
@@ -432,22 +467,21 @@ def apply_display_rules(
         if entity_class and entity_shape:
             entity_key = (entity_class, entity_shape)
             if entity_key in form_fields:
-                apply_rule_to_entity(shacl, form_fields, entity_key, rule)
+                apply_rule_to_entity(form_fields, entity_key, rule)
         # Case 2: Only class is specified (apply to all matching classes)
         elif entity_class:
             for key in list(form_fields.keys()):
                 if key[0] == entity_class:  # Check if class part of tuple matches
-                    apply_rule_to_entity(shacl, form_fields, key, rule)
+                    apply_rule_to_entity(form_fields, key, rule)
         # Case 3: Only shape is specified (apply to all matching shapes)
         elif entity_shape:
             for key in list(form_fields.keys()):
                 if key[1] == entity_shape:  # Check if shape part of tuple matches
-                    apply_rule_to_entity(shacl, form_fields, key, rule)
+                    apply_rule_to_entity(form_fields, key, rule)
     return form_fields
 
 
 def apply_rule_to_entity(
-    shacl: Graph,
     form_fields: dict[
         tuple[str, str],
         dict[str, list[dict[str, object]]],
@@ -458,11 +492,9 @@ def apply_rule_to_entity(
     display_props = cast("list[dict[str, object]]", rule.get("displayProperties", []))
     for prop in display_props:
         prop_uri = prop.get("property")
-        if prop_uri and prop_uri in form_fields[entity_key]:
+        if prop_uri and prop_uri in form_fields[entity_key] and "orderedBy" in prop:
             for field_info in form_fields[entity_key][str(prop_uri)]:
-                add_display_information(field_info, prop)
-                if "intermediateRelation" in prop:
-                    handle_intermediate_relation(shacl, field_info, prop)
+                field_info["orderedBy"] = prop["orderedBy"]
 
 
 def determine_input_type(editor: str | None, datatype: str | None) -> str:
@@ -485,94 +517,6 @@ def determine_input_type(editor: str | None, datatype: str | None) -> str:
         "http://www.w3.org/2001/XMLSchema#email": "email",
     }
     return datatype_to_input.get(str(datatype), "text")
-
-
-def add_display_information(
-    field_info: dict[str, object],
-    prop: dict[str, object],
-) -> None:
-    """
-    Aggiunge informazioni di visualizzazione dal display_rules ad un campo.
-
-    Argomenti:
-        field_info (dict): Le informazioni del campo da aggiornare.
-        prop (dict): Le informazioni della proprietà dalle display_rules.
-    """
-    if "shouldBeDisplayed" in prop:
-        field_info["shouldBeDisplayed"] = prop.get("shouldBeDisplayed", True)
-    if "orderedBy" in prop:
-        field_info["orderedBy"] = prop["orderedBy"]
-
-
-def handle_intermediate_relation(
-    shacl: Graph,
-    field_info: dict[str, object],
-    prop: dict[str, object],
-) -> None:
-    """
-    Processa 'intermediateRelation' nelle display_rules e aggiorna il campo.
-
-    Argomenti:
-        field_info (dict): Le informazioni del campo da aggiornare.
-        prop (dict): Le informazioni della proprietà dalle display_rules.
-    """
-    intermediate_relation = cast("dict[str, str]", prop["intermediateRelation"])
-    target_entity_type = intermediate_relation["targetEntityType"]
-    intermediate_class = intermediate_relation["class"]
-
-    connecting_property_query = prepareQuery(
-        """
-        SELECT ?property
-        WHERE {
-            ?shape sh:targetClass ?intermediateClass ;
-                   sh:property ?propertyShape .
-            ?propertyShape sh:path ?property ;
-                           sh:node ?targetNode .
-            ?targetNode sh:targetClass ?targetClass.
-        }
-    """,
-        initNs={"sh": "http://www.w3.org/ns/shacl#"},
-    )
-
-    connecting_property_results = shacl.query(
-        connecting_property_query,
-        initBindings={
-            "intermediateClass": URIRef(intermediate_class),
-            "targetClass": URIRef(target_entity_type),
-        },
-    )
-
-    connecting_property = next(
-        (str(row.property) for row in select_results(connecting_property_results)), None
-    )
-
-    intermediate_properties = {}
-    target_shape = None
-    if "nestedShape" in field_info:
-        for nested_field in cast("list[dict[str, object]]", field_info["nestedShape"]):
-            if (
-                nested_field.get("uri") == connecting_property
-                and "nestedShape" in nested_field
-            ):
-                field_info["autocomplete"] = nested_field["autocomplete"]
-                for target_field in cast(
-                    "list[dict[str, object]]", nested_field["nestedShape"]
-                ):
-                    uri = target_field.get("uri")
-                    if uri:
-                        if uri not in intermediate_properties:
-                            intermediate_properties[uri] = []
-                        intermediate_properties[uri].append(target_field)
-                    if target_field.get("subjectShape"):
-                        target_shape = target_field["subjectShape"]
-
-    field_info["intermediateRelation"] = {
-        "class": intermediate_class,
-        "targetEntityType": target_entity_type,
-        "targetShape": target_shape,
-        "connectingProperty": connecting_property,
-        "properties": intermediate_properties,
-    }
 
 
 def get_shape_target_class(shacl: Graph, shape_uri: str) -> str | None:
@@ -703,40 +647,13 @@ def execute_shacl_query(
     return shacl.query(query)
 
 
-def extract_additional_properties(shacl: Graph, shape_uri: str) -> dict[str, str]:
-    """
-    Estrae proprietà aggiuntive da una shape SHACL.
-
-    Argomenti:
-        shape_uri (str): L'URI della shape SHACL.
-
-    Restituisce:
-        dict: Un dizionario delle proprietà aggiuntive.
-    """
-    additional_properties_query = prepareQuery(
-        """
-        SELECT ?predicate ?has_value
-        WHERE {
-            ?shape a sh:NodeShape ;
-                   sh:property ?property .
-            ?property sh:path ?predicate .
-            { ?property sh:hasValue ?has_value . }
-            UNION
-            { ?property sh:qualifiedValueShape/sh:hasValue ?has_value . }
-        }
-    """,
-        initNs={"sh": "http://www.w3.org/ns/shacl#"},
-    )
-
-    additional_properties_results = shacl.query(
-        additional_properties_query,
-        initBindings={"shape": URIRef(shape_uri)},
-    )
-
-    additional_properties = {}
-    for row in select_results(additional_properties_results):
-        predicate = str(row.predicate)
-        has_value = str(row.has_value)
-        additional_properties[predicate] = has_value
-
-    return additional_properties
+def remove_inverse_back_links(fields: Iterable[dict[str, object]]) -> None:
+    for field in fields:
+        if "or" in field:
+            remove_inverse_back_links(cast("list[dict[str, object]]", field["or"]))
+        if "nestedShape" not in field:
+            continue
+        nested = cast("list[dict[str, object]]", field["nestedShape"])
+        back_link = inverse_predicate(cast("str", field["uri"]))
+        field["nestedShape"] = [item for item in nested if item["uri"] != back_link]
+        remove_inverse_back_links(cast("list[dict[str, object]]", field["nestedShape"]))

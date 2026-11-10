@@ -36,7 +36,6 @@ from time_agnostic_library.support import generate_config_file
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from heritrace.configuration.entity import (
-    META_DISPLAY_RULES,
     META_SHAPES,
     PROVENANCE_FILE,
     SkolemURIGenerator,
@@ -56,11 +55,11 @@ from heritrace.sparql import (
     SparqlEndpoint,
     SPARQLWrapperWithRetry,
     get_sparql_bindings,
-    select_results,
 )
 from heritrace.uri_generator.uri_generator import CounterBasedURIGenerator, URIGenerator
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_presentation import (
+    SH,
     ShapesPresentation,
     labels_use_inverse_relations,
     read_presentation,
@@ -233,7 +232,7 @@ def build_configuration_state(app: Flask) -> AppState:
     )
     with use_state(placeholder):
         display_rules, form_fields_cache, _, classes_with_multiple_shapes = (
-            initialize_global_variables(app, meta_shapes, META_DISPLAY_RULES)
+            initialize_global_variables(app, meta_shapes, None)
         )
     presentation = read_presentation(meta_shapes)
     return replace(
@@ -413,66 +412,27 @@ def initialize_counter_handler(
     mark_counters_initialized(redis)
 
 
-def identify_classes_with_multiple_shapes(
-    display_rules: list[dict], shacl_graph: Graph
-) -> set[str]:
-    if not display_rules or not shacl_graph:
-        return set()
-
-    from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
-        is_entity_type_visible,
-    )
-
-    class_to_shapes: defaultdict[str, set[str]] = defaultdict(set)
-
-    for rule in display_rules:
-        target = rule.get("target", {})
-
-        if "class" in target:
-            class_uri = target["class"]
-            query_string = f"""
-                SELECT DISTINCT ?shape WHERE {{
-                    ?shape <http://www.w3.org/ns/shacl#targetClass> <{class_uri}> .
-                }}
-            """
-            results = shacl_graph.query(query_string)
-            for row in select_results(results):
-                shape_uri = str(row.shape)
-                entity_key = (class_uri, shape_uri)
-                if is_entity_type_visible(entity_key):
-                    class_to_shapes[class_uri].add(shape_uri)
-
-        elif "shape" in target:
-            shape_uri = target["shape"]
-            query_string = f"""
-                SELECT DISTINCT ?class WHERE {{
-                    <{shape_uri}> <http://www.w3.org/ns/shacl#targetClass> ?class .
-                }}
-            """
-            results = shacl_graph.query(query_string)
-            for row in select_results(results):
-                class_uri = str(row[0])
-                entity_key = (class_uri, shape_uri)
-                if is_entity_type_visible(entity_key):
-                    class_to_shapes[class_uri].add(shape_uri)
-
+def identify_classes_with_multiple_shapes(shacl_graph: Graph) -> set[str]:
+    shapes_by_class: defaultdict[str, set[str]] = defaultdict(set)
+    for shape, class_uri in shacl_graph.subject_objects(SH.targetClass):
+        shapes_by_class[str(class_uri)].add(str(shape))
     return {
-        class_uri for class_uri, shapes in class_to_shapes.items() if len(shapes) > 1
+        class_uri for class_uri, shapes in shapes_by_class.items() if len(shapes) > 1
     }
 
 
 def initialize_global_variables(
-    app: Flask, shacl_graph: Graph, display_rules_path: Path
+    app: Flask, shacl_graph: Graph, display_rules_path: Path | None
 ) -> tuple[list[dict], dict, bool, set[str]]:
     try:
         dataset_is_quadstore = app.config.get("DATASET_IS_QUADSTORE", False)
 
         display_rules: list[dict] = []
-        if not display_rules_path.exists():
+        if display_rules_path is not None and not display_rules_path.exists():
             app.logger.warning(
                 "Display rules file not found at: %s", display_rules_path
             )
-        else:
+        elif display_rules_path is not None:
             try:
                 with display_rules_path.open() as f:
                     display_rules = yaml.safe_load(f)["rules"]
@@ -497,7 +457,7 @@ def initialize_global_variables(
                 raise SetupRequiredError(msg) from e
 
         classes_with_multiple_shapes = identify_classes_with_multiple_shapes(
-            display_rules, shacl_graph
+            shacl_graph
         )
 
         app.logger.info("Global variables initialized successfully")

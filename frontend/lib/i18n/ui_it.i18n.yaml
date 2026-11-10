@@ -131,7 +131,7 @@ lock:
 orphans:
   title: Attenzione
   orphansIntro: "Le seguenti risorse resteranno orfane, cioè non più collegate ad altre risorse del dataset:"
-  proxiesIntro: "Queste risorse servono solo a collegare quella che stai eliminando ad altre:"
+  compositesIntro: "Queste risorse dipendono da ciò che stai eliminando:"
   question: Vuoi eliminare subito tutte queste risorse?
   delete: Sì, elimina le risorse coinvolte
   keep: No, mantieni le risorse coinvolte
@@ -210,9 +210,8 @@ settings:
     deletion: Pulizia dopo un'eliminazione
     orphans: Risorse rimaste isolate
     orphansHint: Quando elimini una risorsa o un collegamento, le risorse a cui puntava possono non essere più collegate a niente.
-    proxies: Risorse di collegamento
-    proxiesHint: Alcune risorse servono solo a collegarne altre due. Quando elimini una delle due o togli il collegamento, non servono più.
-    proxiesHowTo: Come si definiscono
+    composites: Risorse dipendenti
+    compositesHint: Alcune risorse esistono solo in rapporto a un'altra. Quando una delle due o il collegamento tra di esse viene cancellato, perdono di significato.
     strategyAsk: Chiedi ogni volta se eliminarle
     strategyDelete: Eliminale sempre
     strategyKeep: Tienile sempre

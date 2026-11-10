@@ -36,14 +36,12 @@ class SettingsValue extends StatelessWidget {
     required this.label,
     required this.value,
     this.hint,
-    this.link,
     super.key,
   });
 
   final String label;
   final String? value;
   final String? hint;
-  final Widget? link;
 
   @override
   Widget build(BuildContext context) {
@@ -60,11 +58,6 @@ class SettingsValue extends StatelessWidget {
                 : null,
           ),
           if (hint != null) FieldCaption(hint!),
-          if (link != null)
-            Padding(
-              padding: const EdgeInsets.only(top: appCaptionSpacing),
-              child: link,
-            ),
         ],
       ),
     );
@@ -314,7 +307,6 @@ class SettingsMenu<T> extends StatelessWidget {
     required this.onChanged,
     this.errorText,
     this.hint,
-    this.link,
     super.key,
   });
 
@@ -324,7 +316,6 @@ class SettingsMenu<T> extends StatelessWidget {
   final ValueChanged<T>? onChanged;
   final String? errorText;
   final String? hint;
-  final Widget? link;
 
   @override
   Widget build(BuildContext context) {
@@ -334,7 +325,6 @@ class SettingsMenu<T> extends StatelessWidget {
         label: label,
         value: options.firstWhere((option) => option.value == value).label,
         hint: hint,
-        link: link,
       );
     }
     return AppLabeledField(
@@ -349,11 +339,6 @@ class SettingsMenu<T> extends StatelessWidget {
             errorText: errorText,
           ),
           if (hint != null) FieldCaption(hint!),
-          if (link != null)
-            Padding(
-              padding: const EdgeInsets.only(top: appCaptionSpacing),
-              child: link,
-            ),
         ],
       ),
     );

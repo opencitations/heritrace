@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_model.dart';
 import 'package:heritrace/form/form_repository.dart';
 import 'package:heritrace/form/form_scope.dart';
@@ -49,9 +50,10 @@ void main() {
       fields: articleFields(),
       depth: 0,
     );
-    item =
+    final role =
         root.groups.firstWhere((g) => g.def.uri == documentContext).addItem()
             as NestedItem;
+    item = heldByItem(role);
     repository = _FakeFormRepository();
   });
 
@@ -89,6 +91,30 @@ void main() {
     await tester.pump();
   }
 
+  testWidgets('a link without a nested form only searches', (tester) async {
+    final linkOnly = createItem(
+      FieldDef.fromJson(const {
+        'uri': 'urn:cites',
+        'nodeShape': 'urn:WorkShape',
+        'objectClass': 'urn:Work',
+        'autocomplete': true,
+        'nestedShape': <Object>[],
+      }),
+      0,
+      root.groups.first,
+    ) as NestedItem;
+    addTearDown(linkOnly.dispose);
+    item = linkOnly;
+
+    await pumpItem(tester);
+    await typeTerm(tester, 'Ad');
+
+    expect(linkOnly.def.kind, FieldKind.nested);
+    expect(find.text('Create new resource'), findsNothing);
+    expect(repository.searches.single.entityClass, 'urn:Work');
+    expect(repository.searches.single.shape, 'urn:WorkShape');
+  });
+
   testWidgets('one character starts a search', (tester) async {
     await pumpItem(tester);
 
@@ -97,7 +123,7 @@ void main() {
     expect(repository.searches.single.term, 'A');
   });
 
-  testWidgets('a search looks for the final entity of a proxy', (tester) async {
+  testWidgets('a search looks for the final entity of a role', (tester) async {
     await pumpItem(tester);
 
     await typeTerm(tester, 'Ad');

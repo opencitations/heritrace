@@ -45,10 +45,6 @@ class TestGetAvailableClassesIntegration:
                 "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
                 lambda: ["http://example.org/Person", "http://example.org/Document"],
             )
-            monkeypatch.setattr(
-                "heritrace.utils.sparql_utils.is_entity_type_visible",
-                lambda _uri: True,
-            )
             get_app_state().class_counts.clear()
 
             classes = get_available_classes()
@@ -400,23 +396,15 @@ class TestFindOrphanedEntitiesIntegration:
     def test_find_orphaned_entities_real_db(self, app, setup_test_data) -> None:
         """Test finding orphaned entities in the real test database."""
         with app.app_context(), pytest.MonkeyPatch.context() as monkeypatch:
-            # Mock the display rules to include our test classes and relationships
-            display_rules = [
-                {
-                    "class": "http://example.org/Person",
-                    "displayProperties": [
-                        {
-                            "property": "http://example.org/knows",
-                            "intermediateRelation": {
-                                "class": "http://example.org/Relationship"
-                            },
-                        }
-                    ],
-                }
-            ]
             monkeypatch.setattr(
-                "heritrace.utils.sparql_utils.get_display_rules",
-                lambda: display_rules,
+                "heritrace.utils.sparql_utils.get_form_fields",
+                lambda: {
+                    ("http://example.org/Person", "urn:shape"): {
+                        "http://example.org/knows": [
+                            {"uri": "http://example.org/knows", "composite": True}
+                        ]
+                    }
+                },
             )
 
             # Find orphaned entities if we delete person1
@@ -432,23 +420,15 @@ class TestFindOrphanedEntitiesIntegration:
     def test_find_orphaned_entities_with_predicate(self, app, setup_test_data) -> None:
         """Test finding orphaned entities when deleting a specific triple."""
         with app.app_context(), pytest.MonkeyPatch.context() as monkeypatch:
-            # Mock the display rules to include our test classes and relationships
-            display_rules = [
-                {
-                    "class": "http://example.org/Person",
-                    "displayProperties": [
-                        {
-                            "property": "http://example.org/knows",
-                            "intermediateRelation": {
-                                "class": "http://example.org/Relationship"
-                            },
-                        }
-                    ],
-                }
-            ]
             monkeypatch.setattr(
-                "heritrace.utils.sparql_utils.get_display_rules",
-                lambda: display_rules,
+                "heritrace.utils.sparql_utils.get_form_fields",
+                lambda: {
+                    ("http://example.org/Person", "urn:shape"): {
+                        "http://example.org/knows": [
+                            {"uri": "http://example.org/knows", "composite": True}
+                        ]
+                    }
+                },
             )
 
             # Find orphaned entities if we delete the author relationship from document1

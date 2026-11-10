@@ -129,6 +129,8 @@ class Filter:
         if not bindings:
             return None
         label_variable = cast("dict", result)["head"]["vars"][0]
+        if label_variable not in bindings[0]:
+            return None
         return bindings[0][label_variable]["value"]
 
     def human_readable_entity(
@@ -146,6 +148,16 @@ class Filter:
             msg = f"The label query returned no result for {uri_string}"
             raise ValueError(msg)
         return label
+
+    # The catalogue lists every instance of a type, also incomplete ones.
+    def catalogue_label(
+        self,
+        uri: str | URIRef,
+        entity_key: tuple[str | None, str | None],
+    ) -> str:
+        shape = self._shape_for(entity_key)
+        label = self.entity_label(uri, shape) if self.has_label(shape) else None
+        return str(uri) if label is None else label
 
     # An entity with a type but no label is named after its type.
     def entity_title(
@@ -252,15 +264,4 @@ def field_with_labels(details: dict, custom_filter: Filter) -> dict:
             }
             for option in field["or"]
         ]
-    relation = field.get("intermediateRelation")
-    if relation and relation.get("properties"):
-        field["intermediateRelation"] = {
-            **relation,
-            "properties": {
-                prop: [
-                    field_with_labels(nested, custom_filter) for nested in nested_list
-                ]
-                for prop, nested_list in relation["properties"].items()
-            },
-        }
     return field

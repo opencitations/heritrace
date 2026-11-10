@@ -7,5 +7,5 @@
   "primarySource": "https://example.org",
   "orcidSafelist": [],
   "orphanHandling": "ASK",
-  "proxyHandling": "ASK"
+  "compositeHandling": "ASK"
 }

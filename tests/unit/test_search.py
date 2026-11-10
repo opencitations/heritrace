@@ -51,7 +51,7 @@ def test_text_paths_cover_the_shape_and_its_nested_shapes() -> None:
             "urn:date": [date],
             "urn:fixed": [fixed],
             "urn:choice": [choice],
-            "Citations": [{"is_virtual": True, "nestedShape": [_text_field(TITLE)]}],
+            "^urn:cites": [{"nestedShape": [_text_field(TITLE)]}],
         }
     )
 

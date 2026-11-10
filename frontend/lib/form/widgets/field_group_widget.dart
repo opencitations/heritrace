@@ -71,6 +71,9 @@ class FieldGroupWidget extends StatelessWidget {
 
   void _add(BuildContext context) {
     final item = group.addItem();
+    if (item is NestedItem && item.def.detailsEditor) {
+      return;
+    }
     if (item is NestedItem && !item.def.autocomplete) {
       item.discardIfUntouched = true;
       showNestedDialog(context, item);

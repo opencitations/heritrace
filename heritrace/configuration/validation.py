@@ -8,7 +8,13 @@ from urllib.parse import urlparse
 
 from heritrace.apis.orcid import is_valid_orcid_id, normalize_orcid
 from heritrace.configuration.settings import STRATEGIES, Settings
-from heritrace.configuration.shapes import EDITORS, NodeShape, PropertyShape, Shapes
+from heritrace.configuration.shapes import (
+    EDITORS,
+    VIEWERS,
+    NodeShape,
+    PropertyShape,
+    Shapes,
+)
 
 _PREFIX = re.compile(r"^[A-Za-z][\w.-]*$")
 
@@ -44,7 +50,7 @@ def validate_settings(settings: Settings) -> list[Issue]:
     _check_iri(issues, "settings.primarySource", settings.primary_source)
     for key, value in (
         ("orphanHandling", settings.orphan_handling),
-        ("proxyHandling", settings.proxy_handling),
+        ("compositeHandling", settings.composite_handling),
     ):
         if value not in STRATEGIES:
             issues.append(Issue(f"settings.{key}", "Choose one of the strategies"))
@@ -74,12 +80,14 @@ def _validate_property(issues: list[Issue], location: str, prop: PropertyShape) 
         )
     if prop.editor is not None and prop.editor not in EDITORS:
         issues.append(Issue(f"{location}.editor", "Unknown editor"))
+    if prop.viewer is not None and prop.viewer not in VIEWERS:
+        issues.append(Issue(f"{location}.viewer", "Unknown viewer"))
     if prop.kind != "any" and not prop.values:
         issues.append(Issue(f"{location}.values", "Add at least one value"))
-    if prop.kind == "class" and len(prop.values) > 1:
-        issues.append(Issue(f"{location}.values", "Choose a single class"))
     for value in prop.values:
         _check_iri(issues, f"{location}.values", value)
+    for detail_path in prop.details:
+        _check_iri(issues, f"{location}.details", detail_path)
 
 
 def _validate_shape(issues: list[Issue], location: str, shape: NodeShape) -> None:

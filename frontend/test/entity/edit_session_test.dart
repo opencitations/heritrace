@@ -38,10 +38,8 @@ EntityView view() => EntityView.fromJson({
       'display_name': 'Title',
       'property': title,
       'object_shape': null,
-      'is_virtual': false,
       'is_draggable': false,
       'ordered_by': null,
-      'intermediate_relation': null,
       'field': (articleFormFields()[1] as List<dynamic>)[1][0],
       'triples': [
         {
@@ -59,10 +57,8 @@ EntityView view() => EntityView.fromJson({
       'display_name': 'Author',
       'property': documentContext,
       'object_shape': authorShape,
-      'is_virtual': false,
       'is_draggable': true,
       'ordered_by': hasNext,
-      'intermediate_relation': {'class': roleInTime},
       'field': (articleFormFields()[3] as List<dynamic>)[1][0],
       'triples': [
         {
@@ -168,9 +164,8 @@ void main() {
   test('new nested items produce a create change and extend the order', () {
     final authorItem =
         group(documentContext).formGroup!.addItem() as NestedItem;
-    final nameGroup = authorItem.child.groups.firstWhere(
-      (g) => g.def.uri == name,
-    );
+    final person = heldByItem(authorItem);
+    final nameGroup = person.child.groups.firstWhere((g) => g.def.uri == name);
     (nameGroup.addItem() as LiteralItem).setValue('New Author');
 
     final changes = session.buildChanges();

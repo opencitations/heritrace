@@ -8,9 +8,6 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -24,9 +21,6 @@ rules:
   - http://purl.org/dc/terms/title
   - http://purl.org/spar/datacite/hasIdentifier
 - target:
-    class: http://purl.org/spar/fabio/Expression
-  shouldBeDisplayed: false
-- target:
     class: http://purl.org/spar/fabio/Journal
   sortableBy:
   - property: http://purl.org/dc/terms/title
@@ -38,17 +32,12 @@ rules:
   - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/datacite/Identifier
-  shouldBeDisplayed: false
   similarity_properties:
   - and:
     - http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue
     - http://purl.org/spar/datacite/usesIdentifierScheme
 - target:
-    class: http://purl.org/spar/pro/RoleInTime
-  shouldBeDisplayed: false
-- target:
     class: http://xmlns.com/foaf/0.1/Agent
-  shouldBeDisplayed: false
   similarity_properties:
   - http://xmlns.com/foaf/0.1/name
   - and:

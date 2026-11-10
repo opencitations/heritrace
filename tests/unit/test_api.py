@@ -30,7 +30,7 @@ from heritrace.routes.api import (
     update_logic,
 )
 from heritrace.services.resource_lock_manager import LockStatus, ResourceLockManager
-from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
+from heritrace.utils.strategies import CompositeHandlingStrategy, OrphanHandlingStrategy
 
 
 # Use a real ResourceLockManager with Redis instead of mocks
@@ -866,7 +866,7 @@ def test_check_orphans_with_orphans_delete_strategy(
 
     # Set the orphan handling strategy to DELETE
     app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.DELETE
-    app.config["PROXY_HANDLING_STRATEGY"] = ProxyHandlingStrategy.DELETE
+    app.config["COMPOSITE_HANDLING_STRATEGY"] = CompositeHandlingStrategy.DELETE
 
     response = api_client.post(
         "/api/check_orphans",
@@ -889,10 +889,10 @@ def test_check_orphans_with_orphans_delete_strategy(
     assert data["affected_entities"][0]["uri"] == "http://example.org/orphan/1"
     assert data["affected_entities"][0]["label"] == "Human Readable Entity"
     assert data["affected_entities"][0]["type"] == "Human Readable Type"
-    assert data["affected_entities"][0]["is_intermediate"] is False
+    assert data["affected_entities"][0]["is_composite"] is False
     assert data["should_delete"] is True
     assert data["orphan_strategy"] == "delete"
-    assert data["proxy_strategy"] == "delete"
+    assert data["composite_strategy"] == "delete"
 
 
 @patch("heritrace.routes.api.find_orphaned_entities")
@@ -913,16 +913,16 @@ def test_check_orphans_with_proxies_delete_strategy(
         [],
         [
             {
-                "uri": "http://example.org/proxy/1",
-                "type": "http://example.org/ProxyType",
-                "shape": "http://example.org/ProxyShape",
+                "uri": "http://example.org/composite/1",
+                "type": "http://example.org/CompositeType",
+                "shape": "http://example.org/CompositeShape",
             }
         ],
     )
 
-    # Set the proxy handling strategy to DELETE
+    # Set the composite handling strategy to DELETE
     app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.DELETE
-    app.config["PROXY_HANDLING_STRATEGY"] = ProxyHandlingStrategy.DELETE
+    app.config["COMPOSITE_HANDLING_STRATEGY"] = CompositeHandlingStrategy.DELETE
 
     response = api_client.post(
         "/api/check_orphans",
@@ -942,13 +942,13 @@ def test_check_orphans_with_proxies_delete_strategy(
     data = json.loads(response.data)
     assert data["status"] == "success"
     assert len(data["affected_entities"]) == 1
-    assert data["affected_entities"][0]["uri"] == "http://example.org/proxy/1"
+    assert data["affected_entities"][0]["uri"] == "http://example.org/composite/1"
     assert data["affected_entities"][0]["label"] == "Human Readable Entity"
     assert data["affected_entities"][0]["type"] == "Human Readable Type"
-    assert data["affected_entities"][0]["is_intermediate"] is True
+    assert data["affected_entities"][0]["is_composite"] is True
     assert data["should_delete"] is True
     assert data["orphan_strategy"] == "delete"
-    assert data["proxy_strategy"] == "delete"
+    assert data["composite_strategy"] == "delete"
 
 
 @patch("heritrace.routes.api.find_orphaned_entities")
@@ -978,7 +978,7 @@ def test_check_orphans_with_orphans_ask_strategy(
 
     # Set the orphan handling strategy to ASK
     app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.ASK
-    app.config["PROXY_HANDLING_STRATEGY"] = ProxyHandlingStrategy.KEEP
+    app.config["COMPOSITE_HANDLING_STRATEGY"] = CompositeHandlingStrategy.KEEP
 
     response = api_client.post(
         "/api/check_orphans",
@@ -1001,10 +1001,10 @@ def test_check_orphans_with_orphans_ask_strategy(
     assert data["affected_entities"][0]["uri"] == "http://example.org/orphan/1"
     assert data["affected_entities"][0]["label"] == "Human Readable Entity"
     assert data["affected_entities"][0]["type"] == "Human Readable Type"
-    assert data["affected_entities"][0]["is_intermediate"] is False
+    assert data["affected_entities"][0]["is_composite"] is False
     assert data["should_delete"] is False
     assert data["orphan_strategy"] == "ask"
-    assert data["proxy_strategy"] == "keep"
+    assert data["composite_strategy"] == "keep"
 
 
 @patch("heritrace.routes.api.find_orphaned_entities")
@@ -1025,16 +1025,16 @@ def test_check_orphans_with_proxies_ask_strategy(
         [],
         [
             {
-                "uri": "http://example.org/proxy/1",
-                "type": "http://example.org/ProxyType",
-                "shape": "http://example.org/ProxyShape",
+                "uri": "http://example.org/composite/1",
+                "type": "http://example.org/CompositeType",
+                "shape": "http://example.org/CompositeShape",
             }
         ],
     )
 
-    # Set the proxy handling strategy to ASK
+    # Set the composite handling strategy to ASK
     app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.KEEP
-    app.config["PROXY_HANDLING_STRATEGY"] = ProxyHandlingStrategy.ASK
+    app.config["COMPOSITE_HANDLING_STRATEGY"] = CompositeHandlingStrategy.ASK
 
     response = api_client.post(
         "/api/check_orphans",
@@ -1054,13 +1054,13 @@ def test_check_orphans_with_proxies_ask_strategy(
     data = json.loads(response.data)
     assert data["status"] == "success"
     assert len(data["affected_entities"]) == 1
-    assert data["affected_entities"][0]["uri"] == "http://example.org/proxy/1"
+    assert data["affected_entities"][0]["uri"] == "http://example.org/composite/1"
     assert data["affected_entities"][0]["label"] == "Human Readable Entity"
     assert data["affected_entities"][0]["type"] == "Human Readable Type"
-    assert data["affected_entities"][0]["is_intermediate"] is True
+    assert data["affected_entities"][0]["is_composite"] is True
     assert data["should_delete"] is False
     assert data["orphan_strategy"] == "keep"
-    assert data["proxy_strategy"] == "ask"
+    assert data["composite_strategy"] == "ask"
 
 
 @patch("heritrace.routes.api.find_orphaned_entities")
@@ -1087,16 +1087,16 @@ def test_check_orphans_with_both_orphans_and_proxies(
         ],
         [
             {
-                "uri": "http://example.org/proxy/1",
-                "type": "http://example.org/ProxyType",
-                "shape": "http://example.org/ProxyShape",
+                "uri": "http://example.org/composite/1",
+                "type": "http://example.org/CompositeType",
+                "shape": "http://example.org/CompositeShape",
             }
         ],
     )
 
     # Set the strategies to ASK
     app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.ASK
-    app.config["PROXY_HANDLING_STRATEGY"] = ProxyHandlingStrategy.ASK
+    app.config["COMPOSITE_HANDLING_STRATEGY"] = CompositeHandlingStrategy.ASK
 
     response = api_client.post(
         "/api/check_orphans",
@@ -1117,12 +1117,12 @@ def test_check_orphans_with_both_orphans_and_proxies(
     assert data["status"] == "success"
     assert len(data["affected_entities"]) == 2
     assert data["affected_entities"][0]["uri"] == "http://example.org/orphan/1"
-    assert data["affected_entities"][0]["is_intermediate"] is False
-    assert data["affected_entities"][1]["uri"] == "http://example.org/proxy/1"
-    assert data["affected_entities"][1]["is_intermediate"] is True
+    assert data["affected_entities"][0]["is_composite"] is False
+    assert data["affected_entities"][1]["uri"] == "http://example.org/composite/1"
+    assert data["affected_entities"][1]["is_composite"] is True
     assert data["should_delete"] is False
     assert data["orphan_strategy"] == "ask"
-    assert data["proxy_strategy"] == "ask"
+    assert data["composite_strategy"] == "ask"
 
 
 def test_check_orphans_invalid_request(api_client: FlaskClient) -> None:
@@ -1899,7 +1899,7 @@ def test_format_entities(mock_get_custom_filter, app: Flask) -> None:
         ]
 
         # Define a format_entities function that mimics the one in check_orphans
-        def format_entities(entities, *, is_intermediate=False):
+        def format_entities(entities, *, is_composite=False):
             return [
                 {
                     "uri": entity["uri"],
@@ -1909,7 +1909,7 @@ def test_format_entities(mock_get_custom_filter, app: Flask) -> None:
                     "type": mock_filter.human_readable_predicate(
                         entity["type"], [entity["type"]]
                     ),
-                    "is_intermediate": is_intermediate,
+                    "is_composite": is_composite,
                 }
                 for entity in entities
             ]
@@ -1922,17 +1922,17 @@ def test_format_entities(mock_get_custom_filter, app: Flask) -> None:
         assert result[0]["uri"] == "http://example.org/entity/1"
         assert result[0]["label"] == "Entity Label"
         assert result[0]["type"] == "Entity Type"
-        assert result[0]["is_intermediate"] is False
+        assert result[0]["is_composite"] is False
 
         assert result[1]["uri"] == "http://example.org/entity/2"
         assert result[1]["label"] == "Entity Label"
         assert result[1]["type"] == "Entity Type"
-        assert result[1]["is_intermediate"] is False
+        assert result[1]["is_composite"] is False
 
-        # Test with is_intermediate=True
-        result = format_entities(entities, is_intermediate=True)
-        assert result[0]["is_intermediate"] is True
-        assert result[1]["is_intermediate"] is True
+        # Test with is_composite=True
+        result = format_entities(entities, is_composite=True)
+        assert result[0]["is_composite"] is True
+        assert result[1]["is_composite"] is True
 
 
 @patch("heritrace.routes.api.validate_new_triple")
@@ -2523,7 +2523,7 @@ def test_apply_changes_invalid_primary_source(api_client: FlaskClient) -> None:
 
 @patch("heritrace.routes.api.update_logic")
 @patch("heritrace.routes.api.save_user_default_primary_source")
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
@@ -2577,7 +2577,7 @@ def test_apply_changes_save_default_source(
 
 
 @patch("heritrace.routes.api.update_logic")
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
@@ -2629,7 +2629,7 @@ def test_apply_changes_set_primary_source_on_editor(
     )
 
 
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.import_referenced_entities")
 @patch("heritrace.routes.api.create_logic")
@@ -2680,7 +2680,7 @@ def test_apply_changes_with_create_action(
 
 
 @patch("heritrace.routes.api.update_logic")
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
@@ -2737,7 +2737,7 @@ def test_apply_changes_with_quadstore(
     assert response.status_code == 200
 
 
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.delete_logic")
 @patch("heritrace.routes.api.new_editor")
@@ -2753,7 +2753,7 @@ def test_apply_changes_with_orphan_deletion(
 ) -> None:
     """Test apply_changes with orphan entity deletion."""
     app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.DELETE
-    app.config["PROXY_HANDLING_STRATEGY"] = ProxyHandlingStrategy.KEEP
+    app.config["COMPOSITE_HANDLING_STRATEGY"] = CompositeHandlingStrategy.KEEP
 
     mock_get_responsible.return_value = "http://agent"
 
@@ -2770,7 +2770,7 @@ def test_apply_changes_with_orphan_deletion(
             "predicate": "http://example.org/prop",
             "object": "http://example.org/entity2",
             "affected_entities": [
-                {"uri": "http://example.org/orphan1", "is_intermediate": False}
+                {"uri": "http://example.org/orphan1", "is_composite": False}
             ],
             "delete_affected": True,
         }
@@ -2785,7 +2785,7 @@ def test_apply_changes_with_orphan_deletion(
                 "predicate": "http://example.org/prop",
                 "object": "http://example.org/entity2",
                 "affected_entities": [
-                    {"uri": "http://example.org/orphan1", "is_intermediate": False}
+                    {"uri": "http://example.org/orphan1", "is_composite": False}
                 ],
                 "delete_affected": True,
             }
@@ -2796,12 +2796,12 @@ def test_apply_changes_with_orphan_deletion(
     assert mock_delete_logic.call_count >= 1
 
 
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.delete_logic")
 @patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
-def test_apply_changes_with_proxy_deletion(
+def test_apply_changes_with_composite_deletion(
     mock_get_responsible,
     mock_editor_class,
     mock_delete_logic,
@@ -2810,9 +2810,9 @@ def test_apply_changes_with_proxy_deletion(
     api_client: FlaskClient,
     app: Flask,
 ) -> None:
-    """Test apply_changes with proxy entity deletion."""
+    """Test apply_changes with composite entity deletion."""
     app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.KEEP
-    app.config["PROXY_HANDLING_STRATEGY"] = ProxyHandlingStrategy.DELETE
+    app.config["COMPOSITE_HANDLING_STRATEGY"] = CompositeHandlingStrategy.DELETE
 
     mock_get_responsible.return_value = "http://agent"
 
@@ -2829,7 +2829,7 @@ def test_apply_changes_with_proxy_deletion(
             "predicate": "http://example.org/prop",
             "object": "http://example.org/entity2",
             "affected_entities": [
-                {"uri": "http://example.org/proxy1", "is_intermediate": True}
+                {"uri": "http://example.org/composite1", "is_composite": True}
             ],
             "delete_affected": True,
         }
@@ -2844,7 +2844,7 @@ def test_apply_changes_with_proxy_deletion(
                 "predicate": "http://example.org/prop",
                 "object": "http://example.org/entity2",
                 "affected_entities": [
-                    {"uri": "http://example.org/proxy1", "is_intermediate": True}
+                    {"uri": "http://example.org/composite1", "is_composite": True}
                 ],
                 "delete_affected": True,
             }
@@ -2855,7 +2855,7 @@ def test_apply_changes_with_proxy_deletion(
     assert mock_delete_logic.call_count >= 1
 
 
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.delete_logic")
 @patch("heritrace.routes.api.new_editor")
@@ -2891,7 +2891,7 @@ def test_apply_changes_delete_entity(
     mock_delete_logic.assert_called()
 
 
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.update_logic")
 @patch("heritrace.routes.api.new_editor")
@@ -2941,7 +2941,7 @@ def test_apply_changes_update_action(
     mock_update_logic.assert_called_once()
 
 
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.order_logic")
 @patch("heritrace.routes.api.new_editor")
@@ -2991,7 +2991,7 @@ def test_apply_changes_order_action(
     mock_order_logic.assert_called_once()
 
 
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
@@ -3043,7 +3043,7 @@ def test_apply_changes_save_valueerror(
 
 
 @patch("heritrace.routes.api.update_logic")
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
@@ -3095,7 +3095,7 @@ def test_apply_changes_save_exception(
     assert data["error_type"] == "database"
 
 
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.import_entity_graph")
 def test_apply_changes_outer_valueerror(
     mock_import_entity, mock_transform, api_client: FlaskClient
@@ -3122,7 +3122,7 @@ def test_apply_changes_outer_valueerror(
     assert data["error_type"] == "validation"
 
 
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 def test_apply_changes_outer_exception(mock_transform, api_client: FlaskClient) -> None:
     """Test apply_changes when a generic Exception is raised in outer try block."""
     mock_transform.side_effect = Exception("Unexpected error")

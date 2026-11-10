@@ -5,47 +5,9 @@
 rules:
 - target:
     class: http://purl.org/spar/fabio/Expression
-  shouldBeDisplayed: false
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - displayName: Citations
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/CitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitingEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitedEntity:
-          displayName: Cited Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
-  - displayName: Is Cited By
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/ReverseCitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitedEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitingEntity:
-          displayName: Citing Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -63,43 +25,6 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - displayName: Citations
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/CitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitingEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitedEntity:
-          displayName: Cited Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
-  - displayName: Is Cited By
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/ReverseCitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitedEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitingEntity:
-          displayName: Citing Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -117,43 +42,6 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - displayName: Citations
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/CitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitingEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitedEntity:
-          displayName: Cited Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
-  - displayName: Is Cited By
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/ReverseCitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitedEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitingEntity:
-          displayName: Citing Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -171,43 +59,6 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - displayName: Citations
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/CitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitingEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitedEntity:
-          displayName: Cited Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
-  - displayName: Is Cited By
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/ReverseCitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitedEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitingEntity:
-          displayName: Citing Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -225,43 +76,6 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - displayName: Citations
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/CitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitingEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitedEntity:
-          displayName: Cited Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
-  - displayName: Is Cited By
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/ReverseCitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitedEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitingEntity:
-          displayName: Citing Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -301,43 +115,6 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - displayName: Citations
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/CitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitingEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitedEntity:
-          displayName: Cited Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
-  - displayName: Is Cited By
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/ReverseCitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitedEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitingEntity:
-          displayName: Citing Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
   similarity_properties:
   - http://purl.org/dc/terms/title
   - and:
@@ -348,43 +125,6 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - displayName: Citations
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/CitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitingEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitedEntity:
-          displayName: Cited Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
-  - displayName: Is Cited By
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/ReverseCitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitedEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitingEntity:
-          displayName: Citing Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -402,43 +142,6 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - displayName: Citations
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/CitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitingEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitedEntity:
-          displayName: Cited Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
-  - displayName: Is Cited By
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/ReverseCitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitedEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitingEntity:
-          displayName: Citing Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -456,43 +159,6 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - displayName: Citations
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/CitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitingEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitedEntity:
-          displayName: Cited Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
-  - displayName: Is Cited By
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/ReverseCitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitedEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitingEntity:
-          displayName: Citing Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -510,43 +176,6 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - displayName: Citations
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/CitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitingEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitedEntity:
-          displayName: Cited Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
-  - displayName: Is Cited By
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/ReverseCitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitedEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitingEntity:
-          displayName: Citing Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -564,43 +193,6 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - displayName: Citations
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/CitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitingEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitedEntity:
-          displayName: Cited Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
-  - displayName: Is Cited By
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/ReverseCitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitedEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitingEntity:
-          displayName: Citing Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -618,43 +210,6 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - displayName: Citations
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/CitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitingEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitedEntity:
-          displayName: Cited Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
-  - displayName: Is Cited By
-    isVirtual: true
-    implementedVia:
-      target:
-        class: http://purl.org/spar/cito/Citation
-        shape: http://schema.org/ReverseCitationShape
-      fieldOverrides:
-        http://www.w3.org/1999/02/22-rdf-syntax-ns#type:
-          shouldBeDisplayed: false
-          value: http://purl.org/spar/cito/Citation
-        http://purl.org/spar/cito/hasCitedEntity:
-          shouldBeDisplayed: false
-          value: ${currentEntity}
-        http://purl.org/spar/cito/hasCitingEntity:
-          displayName: Citing Resource
-        http://purl.org/spar/cito/hasCitationCharacterization:
-          displayName: Citation Type
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -669,27 +224,15 @@ rules:
   - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/datacite/Identifier
-  shouldBeDisplayed: false
   similarity_properties:
   - and:
     - http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue
     - http://purl.org/spar/datacite/usesIdentifierScheme
 - target:
-    class: http://purl.org/spar/fabio/Manifestation
-  shouldBeDisplayed: false
-- target:
-    class: http://purl.org/spar/pro/RoleInTime
-  shouldBeDisplayed: false
-- target:
     class: http://xmlns.com/foaf/0.1/Agent
-  shouldBeDisplayed: false
   similarity_properties:
   - http://xmlns.com/foaf/0.1/name
   - and:
     - http://xmlns.com/foaf/0.1/familyName
     - http://xmlns.com/foaf/0.1/givenName
   - http://purl.org/spar/datacite/hasIdentifier
-- target:
-    class: http://purl.org/spar/cito/Citation
-    shape: http://schema.org/ReverseCitationShape
-  shouldBeDisplayed: false

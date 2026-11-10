@@ -4,6 +4,7 @@
 
 import 'field_def.dart';
 import 'form_model.dart';
+import 'validator.dart';
 
 /// Builds the `properties` map accepted by the backend from the editable tree.
 /// Empty values are skipped, so an untouched nested entity contributes nothing.
@@ -36,44 +37,13 @@ Object? collectItem(FormItem item) => switch (item) {
 
 Map<String, Object>? collectNested(NestedItem item) {
   final def = item.def;
-  final relation = def.intermediateRelation;
+  if (def.detailsEditor && !hasAnyValue(item.child)) {
+    return null;
+  }
   final properties = item.isExisting
       ? <String, List<Object>>{}
       : collectProperties(item.child);
   final orderedBy = def.orderedBy;
-
-  if (relation != null) {
-    final entity = <String, Object>{
-      'entity_type': relation.intermediateClass,
-      'entity_shape': ?def.nodeShape,
-      'properties': <String, Object>{},
-      'targetEntityType': relation.targetEntityType,
-      'targetShape': ?relation.targetShape,
-    };
-    final entityProperties = entity['properties'] as Map<String, Object>;
-    final connecting = relation.connectingProperty!;
-    if (properties.isNotEmpty) {
-      entityProperties[connecting] = {
-        'entity_type': item.child.entityType,
-        'entity_shape': ?(relation.targetShape ?? def.nodeShape),
-        'properties': properties,
-      };
-    } else if (item.isExisting) {
-      entityProperties[connecting] = [
-        {'is_existing_entity': true, 'entity_uri': item.existingUri!},
-      ];
-    } else {
-      return null;
-    }
-    entityProperties.addAll(def.additionalProperties);
-    if (orderedBy != null) {
-      entity['orderedBy'] = orderedBy;
-    }
-    if (item.tempId != null) {
-      entity['tempId'] = item.tempId!;
-    }
-    return entity;
-  }
 
   if (properties.isNotEmpty) {
     return {

@@ -334,6 +334,10 @@ void _validateItem(
 ) {
   final def = item.def;
   switch (item) {
+    case NestedItem() when def.detailsEditor && !hasAnyValue(item.child):
+      if (def.isRequired) {
+        errors.add(_requiredError(item, messages, path));
+      }
     case NestedItem()
         when def.autocomplete && !item.isExisting && !hasAnyValue(item.child):
       if (def.isRequired) {
@@ -421,11 +425,10 @@ String? _siblingValue(EntityNode node, String predicate) {
 }
 
 bool hasAnyValue(EntityNode node) =>
-    node.groups.any((group) => group.items.any(_hasValue));
+    node.groups.any((group) => group.items.any(hasValue));
 
-bool _hasValue(FormItem item) => switch (item) {
-  OrItem(:final selectedItem) =>
-    selectedItem != null && _hasValue(selectedItem),
+bool hasValue(FormItem item) => switch (item) {
+  OrItem(:final selectedItem) => selectedItem != null && hasValue(selectedItem),
   NestedItem() => item.isExisting || hasAnyValue(item.child),
   MandatoryItem() => false,
   _ => !item.isEmpty,

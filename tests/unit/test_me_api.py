@@ -44,18 +44,18 @@ def test_me_for_signed_in_users_includes_the_user_and_default_source(
     default_source.assert_called_once_with("0000-0000-0000-0000")
 
 
-def test_entity_types_are_sorted_by_priority_with_labels(
+def test_entity_types_are_listed_with_their_labels(
     logged_in_client: FlaskClient,
 ) -> None:
     response = logged_in_client.get("/api/entity-types")
 
     assert response.status_code == 200
     types = response.get_json()["types"]
-    assert types[0] == {
+    assert {
         "class": "http://purl.org/spar/fabio/Article",
         "shape": "http://schema.org/ArticleShape",
         "label": "Article",
-    }
+    } in types
     assert {
         "class": "http://purl.org/spar/fabio/JournalArticle",
         "shape": "http://schema.org/JournalArticleShape",

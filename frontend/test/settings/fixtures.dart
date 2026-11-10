@@ -13,7 +13,7 @@ Json settingsJson() => {
   'primarySource': 'https://example.org/source',
   'orcidSafelist': ['0000-0002-1825-0097'],
   'orphanHandling': 'ASK',
-  'proxyHandling': 'KEEP',
+  'compositeHandling': 'KEEP',
 };
 
 Json storedJson() => {

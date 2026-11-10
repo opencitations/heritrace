@@ -14,12 +14,12 @@ from heritrace.utils.shacl_display import (
     ShaclProcessingContext,
     execute_shacl_query,
     get_object_class,
+    process_nested_shapes,
     process_query_results,
 )
 from heritrace.utils.shacl_presentation import read_presentation
 from heritrace.utils.shacl_utils import (
     get_form_fields_from_shacl,
-    process_nested_shapes,
 )
 from heritrace.utils.shacl_validation import (
     convert_to_matching_class,
@@ -602,7 +602,7 @@ def test_get_form_fields_with_display_rules(app: Flask, shacl_graph: Graph) -> N
                 "displayProperties": [
                     {
                         "property": "http://purl.org/dc/terms/abstract",
-                        "shouldBeDisplayed": False,
+                        "orderedBy": "http://example.org/next",
                     },
                 ],
             }
@@ -630,8 +630,8 @@ def test_get_form_fields_with_display_rules(app: Flask, shacl_graph: Graph) -> N
 
         assert title_field["displayName"] == "Title"
         assert abstract_field["displayName"] == "Abstract"
-        assert title_field["shouldBeDisplayed"] is True
-        assert abstract_field["shouldBeDisplayed"] is False
+        assert "orderedBy" not in title_field
+        assert abstract_field["orderedBy"] == "http://example.org/next"
 
 
 def test_validate_new_triple_with_delete_action(
@@ -883,61 +883,6 @@ def test_validate_new_triple_with_multiple_types(
         assert isinstance(valid_value, Literal)
         assert valid_value.datatype == XSD.string
         assert str(valid_value) == new_value
-
-
-def test_validate_new_triple_with_intermediate_relation(
-    app: Flask, shacl_graph: Graph, mock_fetch_data_graph
-) -> None:
-    """Test validation with intermediate relations."""
-    with app.app_context():
-        # Update display rules to include both class and shape
-        journal_article_shape = "http://schema.org/JournalArticleShape"
-        display_rules = [
-            {
-                "target": {
-                    "class": "http://purl.org/spar/fabio/JournalArticle",
-                    "shape": journal_article_shape,
-                },
-                "displayProperties": [
-                    {
-                        "property": "http://purl.org/spar/pro/isDocumentContextFor",
-                        "intermediateRelation": {
-                            "class": "http://purl.org/spar/pro/RoleInTime",
-                            "targetEntityType": "http://xmlns.com/foaf/0.1/Person",
-                        },
-                    }
-                ],
-            }
-        ]
-
-        form_fields = get_form_fields_from_shacl(shacl_graph, display_rules, app)
-
-        # Find the key for JournalArticle in the tuple-based keys
-        journal_article_key = None
-        for key in form_fields:
-            if (
-                isinstance(key, tuple)
-                and key[0] == "http://purl.org/spar/fabio/JournalArticle"
-            ):
-                journal_article_key = key
-                break
-
-        # Check that we found a key for JournalArticle
-        assert journal_article_key is not None, "No key found for JournalArticle"
-        article_fields = form_fields[journal_article_key]
-
-        # Check that intermediate relation is processed
-        role_field = article_fields["http://purl.org/spar/pro/isDocumentContextFor"][0]
-
-        assert "intermediateRelation" in role_field
-        assert (
-            role_field["intermediateRelation"]["class"]
-            == "http://purl.org/spar/pro/RoleInTime"
-        )
-        assert (
-            role_field["intermediateRelation"]["targetEntityType"]
-            == "http://xmlns.com/foaf/0.1/Person"
-        )
 
 
 def test_validate_new_triple_with_datatype_conversion_edge_cases(
@@ -1198,7 +1143,11 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         mock_row = MagicMock()
         mock_row.shape = URIRef("http://example.org/shape")
         mock_row.type = URIRef("http://example.org/type")
-        mock_row.predicate = URIRef("http://example.org/predicate")
+        mock_row.path = URIRef("http://example.org/predicate")
+        mock_row.inverse = None
+        mock_row.viewer = None
+        mock_row.composite = None
+        mock_row.hidden = None
         mock_row.nodeShape = None
         mock_row.hasValue = None
         mock_row.objectClass = None
@@ -1580,7 +1529,11 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
             ) -> None:
                 self.shape = URIRef(shape)
                 self.type = URIRef(type_val)
-                self.predicate = URIRef(predicate)
+                self.path = URIRef(predicate)
+                self.inverse = None
+                self.viewer = None
+                self.composite = None
+                self.hidden = None
                 self.node_shape = node_shape
                 self.min_count = (
                     Literal(min_count, datatype=XSD.integer) if min_count else None
@@ -1593,6 +1546,10 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 self.datatype = None
                 self.optional_values = None
                 self.or_nodes = or_nodes
+                self.or_link_shapes = ""
+                self.link_shape = None
+                self.link_class = None
+                self.detail_paths = ""
                 self.condition_path = None
                 self.condition_value = None
                 self.name = None

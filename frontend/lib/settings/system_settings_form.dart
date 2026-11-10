@@ -5,7 +5,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 
-import '../common/reference_views.dart';
 import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
@@ -13,10 +12,6 @@ import 'iri_text.dart';
 import 'orcid_list_field.dart';
 import 'settings_draft.dart';
 import 'settings_fields.dart';
-
-const _linkingResourcesDocs =
-    'https://opencitations.github.io/heritrace/configuration/extra/'
-    '#relationship-properties-proxy-pattern';
 
 class SystemSettingsForm extends StatelessWidget {
   const SystemSettingsForm({required this.draft, super.key});
@@ -126,16 +121,12 @@ class SystemSettingsForm extends StatelessWidget {
               onChanged: edit((value) => settings.orphanHandling = value),
             ),
             SettingsMenu<String>(
-              label: t.proxies,
-              value: settings.proxyHandling,
+              label: t.composites,
+              value: settings.compositeHandling,
               options: strategies,
-              errorText: issue('proxyHandling'),
-              hint: t.proxiesHint,
-              link: LinkText(
-                label: t.proxiesHowTo,
-                onTap: () => openExternal(_linkingResourcesDocs),
-              ),
-              onChanged: edit((value) => settings.proxyHandling = value),
+              errorText: issue('compositeHandling'),
+              hint: t.compositesHint,
+              onChanged: edit((value) => settings.compositeHandling = value),
             ),
           ],
         ),

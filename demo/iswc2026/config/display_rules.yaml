@@ -4,37 +4,10 @@
 
 rules:
 - target:
-    class: http://purl.org/spar/fabio/Expression
-  shouldBeDisplayed: false
-- target:
     class: http://purl.org/spar/fabio/JournalArticle
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-    intermediateRelation:
-      class: http://purl.org/spar/pro/RoleInTime
-      targetEntityType: http://xmlns.com/foaf/0.1/Agent
   similarity_properties:
   - http://purl.org/dc/terms/title
   - http://purl.org/spar/datacite/hasIdentifier
-- target:
-    class: http://purl.org/spar/fabio/Journal
-  shouldBeDisplayed: false
-- target:
-    class: http://purl.org/spar/fabio/JournalVolume
-  shouldBeDisplayed: false
-- target:
-    class: http://purl.org/spar/fabio/JournalIssue
-  shouldBeDisplayed: false
-- target:
-    class: http://purl.org/spar/datacite/Identifier
-  shouldBeDisplayed: false
-- target:
-    class: http://purl.org/spar/fabio/Manifestation
-  shouldBeDisplayed: false
-- target:
-    class: http://purl.org/spar/pro/RoleInTime
-  shouldBeDisplayed: false
-- target:
-    class: http://xmlns.com/foaf/0.1/Agent
-  shouldBeDisplayed: false

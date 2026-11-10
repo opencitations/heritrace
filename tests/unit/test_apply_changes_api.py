@@ -10,11 +10,21 @@ import json
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
+import pytest
 from flask import Flask
 from flask.testing import FlaskClient
 from rdflib import Literal, URIRef
 
-from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
+from heritrace.utils.strategies import CompositeHandlingStrategy, OrphanHandlingStrategy
+
+
+@pytest.fixture(autouse=True)
+def _keep_changes_as_sent():
+    with patch(
+        "heritrace.routes.api.expand_inverse_changes",
+        side_effect=lambda changes: changes,
+    ):
+        yield
 
 
 @patch("heritrace.routes.api.import_entity_graph")
@@ -252,19 +262,19 @@ def test_apply_changes_with_affected_entities(
     mock_validate_new_triple.return_value = (None, Literal("Value to Delete"), "")
 
     app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.DELETE
-    app.config["PROXY_HANDLING_STRATEGY"] = ProxyHandlingStrategy.DELETE
+    app.config["COMPOSITE_HANDLING_STRATEGY"] = CompositeHandlingStrategy.DELETE
 
     # --- Test Scenario Data ---
     # 1. orphan1 will be deleted in phase 1 (orphan handling).
-    # 2. proxy1 will be deleted in phase 1 (proxy handling).
-    # 3. Duplicate orphan/proxy entries will be skipped in phase 1 (continue L543,
+    # 2. composite1 will be deleted in phase 1 (composite handling).
+    # 3. Duplicate orphan/composite entries will be skipped in phase 1 (continue L543,
     # L558).
     # 4. A full entity deletion for orphan1 will be attempted in phase 2, should be
     # skipped (continue L573).
-    # 5. A triple deletion where proxy1 is the object will be attempted in phase 2,
+    # 5. A triple deletion where composite1 is the object will be attempted in phase 2,
     # should be skipped (continue L581).
     orphan_uri = "http://example.org/orphan/1"
-    proxy_uri = "http://example.org/proxy/1"
+    composite_uri = "http://example.org/composite/1"
     main_entity_uri = "http://example.org/main/1"
     main_entity_predicate = "http://example.org/pred/1"
     main_entity_object = "Value to Delete"
@@ -278,16 +288,16 @@ def test_apply_changes_with_affected_entities(
             "object": main_entity_object,
             "entity_type": "http://example.org/MainType",
             "affected_entities": [
-                {"uri": orphan_uri, "is_intermediate": False},  # First orphan
-                {"uri": proxy_uri, "is_intermediate": True},  # First proxy
+                {"uri": orphan_uri, "is_composite": False},  # First orphan
+                {"uri": composite_uri, "is_composite": True},  # First composite
                 {
                     "uri": orphan_uri,
-                    "is_intermediate": False,
+                    "is_composite": False,
                 },  # Duplicate orphan (for L543)
                 {
-                    "uri": proxy_uri,
-                    "is_intermediate": True,
-                },  # Duplicate proxy (for L558)
+                    "uri": composite_uri,
+                    "is_composite": True,
+                },  # Duplicate composite (for L558)
             ],
             "delete_affected": True,  # Instructs to delete orphans/proxies
         },
@@ -297,16 +307,16 @@ def test_apply_changes_with_affected_entities(
             "subject": orphan_uri,
             "entity_type": "http://example.org/OrphanType",
         },
-        # Attempt to delete a triple where the proxy is the object (should be skipped by
-        # L581)
+        # Attempt to delete a triple where the composite is the object (should be
+        # skipped by L581)
         {
             "action": "delete",
             "subject": "http://example.org/another/subj",
             "predicate": "http://example.org/relates/to",
-            "object": proxy_uri,
+            "object": composite_uri,
             "entity_type": "http://example.org/AnotherType",
         },
-        # Delete a full entity that wasn't an orphan/proxy (should hit L576)
+        # Delete a full entity that wasn't an orphan/composite (should hit L576)
         {
             "action": "delete",
             "subject": full_delete_target_uri,
@@ -338,6 +348,11 @@ def test_apply_changes_with_affected_entities(
             ),
             mock.call(
                 mock_editor,
+                URIRef(composite_uri),
+                include_referencing_entities=True,
+            ),
+            mock.call(
+                mock_editor,
                 URIRef(full_delete_target_uri),
                 include_referencing_entities=True,
             ),
@@ -346,19 +361,14 @@ def test_apply_changes_with_affected_entities(
                 URIRef(orphan_uri),
                 include_referencing_entities=True,
             ),
-            mock.call(
-                mock_editor,
-                URIRef(proxy_uri),
-                include_referencing_entities=True,
-            ),
         ]
     )
-    assert mock_import_entity_graph.call_count == 4
+    assert mock_import_entity_graph.call_count == 5
 
     # Verify delete_logic calls:
     # Expected calls:
     # 1. For the unique orphan (phase 1)
-    # 2. For the unique proxy (phase 1)
+    # 2. For the unique composite (phase 1)
     # 3. For the full entity deletion (phase 2, L576)
     # 4 & 5. For the normal triple deletion (phase 2, L584, called twice as object is
     # literal)
@@ -371,18 +381,19 @@ def test_apply_changes_with_affected_entities(
         for call in mock_delete_logic.call_args_list
         if call[0][0].subject == URIRef(orphan_uri)
     ]
-    proxy_delete_calls = [
+    composite_delete_calls = [
         call
         for call in mock_delete_logic.call_args_list
-        if call[0][0].subject == URIRef(proxy_uri)
+        if call[0][0].subject == URIRef(composite_uri)
     ]
     assert len(orphan_delete_calls) == 1, (
         f"Expected 1 delete call for orphan"
         f" {orphan_uri},"
         f" got {len(orphan_delete_calls)}"
     )
-    assert len(proxy_delete_calls) == 1, (
-        f"Expected 1 delete call for proxy {proxy_uri}, got {len(proxy_delete_calls)}"
+    assert len(composite_delete_calls) == 1, (
+        f"Expected 1 delete call for composite {composite_uri}, "
+        f"got {len(composite_delete_calls)}"
     )
 
     # Check call specifically for the full entity deletion (phase 2)
@@ -405,22 +416,22 @@ def test_apply_changes_with_affected_entities(
     ]
     assert len(skipped_orphan_full_delete_calls) == 0
 
-    # More robust check for the skipped proxy object deletion call
-    found_skipped_proxy_object_delete_call = False
+    # More robust check for the skipped composite object deletion call
+    found_skipped_composite_object_delete_call = False
     for call in mock_delete_logic.call_args_list:
         args, _kwargs = call
         op = args[0]
         if (
             op.subject == URIRef("http://example.org/another/subj")
             and len(args) > 2
-            and str(args[2]) == proxy_uri
+            and str(args[2]) == composite_uri
             and op.entity_type == "http://example.org/AnotherType"
         ):
-            found_skipped_proxy_object_delete_call = True
+            found_skipped_composite_object_delete_call = True
             break
-    assert not found_skipped_proxy_object_delete_call, (
-        "delete_logic call for triple with deleted proxy object was found, but should"
-        "have been skipped"
+    assert not found_skipped_composite_object_delete_call, (
+        "delete_logic call for triple with deleted composite object was found, but"
+        " should have been skipped"
     )
 
     # Verify editor save was called
@@ -565,7 +576,7 @@ def test_apply_changes_database_error(
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.create_logic")
 @patch("heritrace.routes.api.import_referenced_entities")
-@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.expand_inverse_changes")
 @patch("heritrace.routes.api.g")
 def test_apply_changes_with_quadstore(
     mock_g,

@@ -11,7 +11,7 @@ from heritrace.apis.orcid import normalize_orcid
 from heritrace.configuration.components import build_components
 from heritrace.configuration.settings import Settings, StoredSettings
 from heritrace.configuration.validation import validate_settings
-from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
+from heritrace.utils.strategies import CompositeHandlingStrategy, OrphanHandlingStrategy
 
 
 class SetupRequiredError(Exception):
@@ -39,7 +39,9 @@ def apply_settings(config: Config, settings: Settings) -> None:
         PRIMARY_SOURCE=settings.primary_source,
         ORCID_SAFELIST=settings.orcid_safelist,
         ORPHAN_HANDLING_STRATEGY=OrphanHandlingStrategy[settings.orphan_handling],
-        PROXY_HANDLING_STRATEGY=ProxyHandlingStrategy[settings.proxy_handling],
+        COMPOSITE_HANDLING_STRATEGY=CompositeHandlingStrategy[
+            settings.composite_handling
+        ],
     )
 
 

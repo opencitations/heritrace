@@ -6,3 +6,4 @@ from rdflib import Namespace
 
 SH = Namespace("http://www.w3.org/ns/shacl#")
 SHUI = Namespace("http://www.w3.org/ns/shacl-ui/")
+DASH = Namespace("http://datashapes.org/dash#")

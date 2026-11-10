@@ -40,7 +40,6 @@ SYSTEM_AGENT = URIRef("https://w3id.org/heritrace/system")
 PROVENANCE_FILE = "shacl-provenance.trig"
 META_DIR = Path(__file__).parent / "meta"
 META_SHAPES = META_DIR / "shapes.ttl"
-META_DISPLAY_RULES = META_DIR / "display_rules.yaml"
 
 
 class ConfigurationRejectedError(Exception):

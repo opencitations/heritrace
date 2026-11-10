@@ -173,7 +173,7 @@ def test_check_orphans_labels_each_entity_with_its_own_shape(
                 f" [omid:ra/test{data['test_id']}n{i}]"
             ),
             "type": "Agent Role",
-            "is_intermediate": True,
+            "is_composite": True,
         }
         for i in range(1, AUTHOR_COUNT + 1)
     ]

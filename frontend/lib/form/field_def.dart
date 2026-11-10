@@ -32,37 +32,6 @@ class FieldCondition {
   final String message;
 }
 
-class IntermediateRelation {
-  const IntermediateRelation({
-    required this.intermediateClass,
-    required this.targetEntityType,
-    required this.targetShape,
-    required this.connectingProperty,
-    required this.properties,
-  });
-
-  factory IntermediateRelation.fromJson(Map<String, dynamic> json) =>
-      IntermediateRelation(
-        intermediateClass: json['class'] as String,
-        targetEntityType: json['targetEntityType'] as String,
-        targetShape: json['targetShape'] as String?,
-        connectingProperty: json['connectingProperty'] as String?,
-        properties: {
-          for (final entry
-              in (json['properties'] as Map<String, dynamic>? ?? {}).entries)
-            entry.key: (entry.value as List<dynamic>)
-                .map((e) => FieldDef.fromJson(e as Map<String, dynamic>))
-                .toList(),
-        },
-      );
-
-  final String intermediateClass;
-  final String targetEntityType;
-  final String? targetShape;
-  final String? connectingProperty;
-  final Map<String, List<FieldDef>> properties;
-}
-
 enum FieldKind { or, nested, mandatory, select, date, literal }
 
 class FieldDef {
@@ -72,6 +41,7 @@ class FieldDef {
     required this.entityType,
     required this.subjectShape,
     required this.nodeShape,
+    required this.objectClass,
     required this.datatypes,
     required this.min,
     required this.max,
@@ -83,12 +53,11 @@ class FieldDef {
     required this.inputType,
     required this.orderedBy,
     required this.autocomplete,
+    required this.detailsEditor,
+    required this.detailPaths,
     required this.nestedShape,
     required this.or,
-    required this.intermediateRelation,
-    required this.additionalProperties,
-    required this.isVirtual,
-    required this.shouldBeDisplayed,
+    required this.hidden,
   });
 
   factory FieldDef.fromJson(Map<String, dynamic> json) {
@@ -102,6 +71,7 @@ class FieldDef {
       entityType: json['entityType'] as String?,
       subjectShape: json['subjectShape'] as String?,
       nodeShape: json['nodeShape'] as String?,
+      objectClass: json['objectClass'] as String?,
       datatypes: (json['datatypes'] as List<dynamic>? ?? [])
           .map((e) => e.toString())
           .toList(),
@@ -122,25 +92,15 @@ class FieldDef {
       inputType: json['inputType'] as String? ?? 'text',
       orderedBy: json['orderedBy'] as String?,
       autocomplete: json['autocomplete'] == true,
+      detailsEditor: json['detailsEditor'] == true,
+      detailPaths: (json['detailPaths'] as List<dynamic>?)?.cast<String>(),
       nestedShape: (json['nestedShape'] as List<dynamic>?)
           ?.map((e) => FieldDef.fromJson(e as Map<String, dynamic>))
           .toList(),
       or: (json['or'] as List<dynamic>?)
           ?.map((e) => FieldDef.fromJson(e as Map<String, dynamic>))
           .toList(),
-      intermediateRelation: json['intermediateRelation'] == null
-          ? null
-          : IntermediateRelation.fromJson(
-              json['intermediateRelation'] as Map<String, dynamic>,
-            ),
-      additionalProperties: {
-        for (final entry
-            in (json['additionalProperties'] as Map<String, dynamic>? ?? {})
-                .entries)
-          entry.key: entry.value.toString(),
-      },
-      isVirtual: json['is_virtual'] == true,
-      shouldBeDisplayed: json['shouldBeDisplayed'] != false,
+      hidden: json['hidden'] == true,
     );
   }
 
@@ -149,6 +109,7 @@ class FieldDef {
   final String? entityType;
   final String? subjectShape;
   final String? nodeShape;
+  final String? objectClass;
   final List<String> datatypes;
   final int min;
   final int? max;
@@ -160,12 +121,16 @@ class FieldDef {
   final String inputType;
   final String? orderedBy;
   final bool autocomplete;
+
+  /// The only field shown for this nested entity, without a frame around it.
+  final bool detailsEditor;
+
+  /// The fields of the nested entity shown in place, declared with
+  /// `sh:property` on the property shape; all of them when null.
+  final List<String>? detailPaths;
   final List<FieldDef>? nestedShape;
   final List<FieldDef>? or;
-  final IntermediateRelation? intermediateRelation;
-  final Map<String, String> additionalProperties;
-  final bool isVirtual;
-  final bool shouldBeDisplayed;
+  final bool hidden;
 
   bool get isRequired => min > 0 && hasValue == null;
 
@@ -178,8 +143,7 @@ class FieldDef {
     if (or != null && or!.isNotEmpty) {
       return FieldKind.or;
     }
-    if (intermediateRelation != null ||
-        (nestedShape != null && nestedShape!.isNotEmpty)) {
+    if (nestedShape != null && (nestedShape!.isNotEmpty || autocomplete)) {
       return FieldKind.nested;
     }
     if (hasValue != null) {
@@ -195,19 +159,11 @@ class FieldDef {
   }
 
   String get childEntityType =>
-      intermediateRelation?.targetEntityType ?? nestedShape!.first.entityType!;
+      nestedShape!.isEmpty ? objectClass! : nestedShape!.first.entityType!;
 
-  String? get childEntityShape => intermediateRelation != null
-      ? intermediateRelation!.targetShape
-      : nodeShape;
+  String? get childEntityShape => nodeShape;
 
-  List<FieldDef> get childFields {
-    final relation = intermediateRelation;
-    if (relation != null) {
-      return [for (final defs in relation.properties.values) ...defs];
-    }
-    return nestedShape!;
-  }
+  List<FieldDef> get childFields => nestedShape!;
 
   String optionalValueLabel(String value) =>
       optionalValueLabels[value] ?? value;

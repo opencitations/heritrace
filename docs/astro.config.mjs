@@ -67,7 +67,6 @@ export default defineConfig({
 						{ label: 'Configuration editor', slug: 'configuration/editor' },
 						{ label: 'SHACL configuration', slug: 'configuration/shacl' },
 						{ label: 'Extra configuration', slug: 'configuration/extra' },
-						{ label: 'Virtual properties', slug: 'configuration/virtual-properties' },
 					],
 				},
 				{

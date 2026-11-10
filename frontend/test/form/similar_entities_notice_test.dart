@@ -40,29 +40,37 @@ void main() {
     });
   });
 
+  NestedItem addIssue() {
+    final container = group(partOf).addItem() as OrItem;
+    container.select(container.def.or!.first);
+    return container.selectedItem! as NestedItem;
+  }
+
   test('a selected entity is sent as a reference', () {
-    final item = group(documentContext).addItem() as NestedItem;
-    item.selectExisting('https://example.org/ra/1', 'A person');
+    addIssue().selectExisting('https://example.org/br/1', 'An issue');
 
     expect(draftSimilarityValues(root), {
-      documentContext: [
-        {'uri': 'https://example.org/ra/1'},
+      partOf: [
+        {'uri': 'https://example.org/br/1'},
       ],
     });
   });
 
   test('a nested draft is sent through its entered fields', () {
-    final item = group(documentContext).addItem() as NestedItem;
-    final nameItem = item.child.groups
-        .firstWhere((g) => g.def.uri == name)
+    final numberItem = addIssue().child.groups
+        .firstWhere((g) => g.def.uri == sequenceIdentifier)
         .addItem();
-    (nameItem as LiteralItem).setValue('Ada');
+    (numberItem as LiteralItem).setValue('4');
 
     expect(draftSimilarityValues(root), {
-      documentContext: [
+      partOf: [
         {
           'fields': [
-            {'predicate': name, 'value': 'Ada', 'datatype': xsdString},
+            {
+              'predicate': sequenceIdentifier,
+              'value': '4',
+              'datatype': xsdString,
+            },
           ],
         },
       ],

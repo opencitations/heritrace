@@ -5,6 +5,7 @@
 import 'dart:convert';
 
 import 'package:heritrace/form/field_def.dart';
+import 'package:heritrace/form/form_model.dart';
 
 const article = 'http://purl.org/spar/fabio/JournalArticle';
 const articleShape = 'http://schema.org/JournalArticleShape';
@@ -33,8 +34,8 @@ const literalValue =
     'http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue';
 
 /// A trimmed version of `/api/form-fields` for a journal article with its
-/// title, publication date, an ordered author list (an intermediate relation
-/// to agents), identifiers and a container that is an issue or a volume.
+/// title, publication date, an ordered author list (a role held by an
+/// agent, edited through the agent), identifiers and a container that is an issue or a volume.
 List<dynamic> articleFormFields() =>
     jsonDecode(jsonEncode(_rawArticleFormFields)) as List<dynamic>;
 
@@ -94,13 +95,37 @@ const List<Object> _rawArticleFormFields = [
         'objectClass': roleInTime,
         'min': 0,
         'orderedBy': hasNext,
-        'intermediateRelation': {
-          'class': roleInTime,
-          'targetEntityType': agent,
-          'targetShape': agentShape,
-          'connectingProperty': heldBy,
-          'properties': {
-            name: [
+        'detailsEditor': true,
+        'nestedShape': [
+          {
+            'uri': withRole,
+            'displayName': 'Role',
+            'entityType': roleInTime,
+            'subjectShape': authorShape,
+            'hasValue': author,
+            'min': 1,
+            'max': 1,
+          },
+          {
+            'uri': hasNext,
+            'displayName': 'Has Next',
+            'entityType': roleInTime,
+            'subjectShape': authorShape,
+            'hidden': true,
+            'min': 0,
+            'max': 1,
+          },
+          {
+            'uri': heldBy,
+            'displayName': 'Held By',
+            'entityType': roleInTime,
+            'subjectShape': authorShape,
+            'nodeShape': agentShape,
+            'objectClass': agent,
+            'autocomplete': true,
+            'min': 1,
+            'max': 1,
+            'nestedShape': [
               {
                 'uri': name,
                 'displayName': 'Name',
@@ -110,8 +135,6 @@ const List<Object> _rawArticleFormFields = [
                 'min': 0,
                 'max': 1,
               },
-            ],
-            identifier: [
               {
                 'uri': identifier,
                 'displayName': 'Identifier',
@@ -134,8 +157,7 @@ const List<Object> _rawArticleFormFields = [
               },
             ],
           },
-        },
-        'additionalProperties': {withRole: author},
+        ],
       },
     ],
   ],
@@ -197,3 +219,8 @@ const List<Object> _rawArticleFormFields = [
 ];
 
 List<FieldDef> articleFields() => parseFormFields(articleFormFields());
+
+/// The person of an author role, filled in through the role's own fields.
+NestedItem heldByItem(NestedItem role) =>
+    role.child.groups.firstWhere((g) => g.def.uri == heldBy).items.single
+        as NestedItem;

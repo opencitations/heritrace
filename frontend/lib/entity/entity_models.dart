@@ -16,6 +16,31 @@ class OptionalValue {
   final String label;
 }
 
+class DetailValue {
+  const DetailValue({required this.label, required this.uri});
+
+  factory DetailValue.fromJson(Map<String, dynamic> json) =>
+      DetailValue(label: json['label'] as String, uri: json['uri'] as String?);
+
+  final String label;
+  final String? uri;
+}
+
+/// A field of a linked entity shown in place of the link (`shui:DetailsViewer`).
+class EntityDetail {
+  const EntityDetail({required this.name, required this.values});
+
+  factory EntityDetail.fromJson(Map<String, dynamic> json) => EntityDetail(
+    name: json['name'] as String,
+    values: (json['values'] as List<dynamic>)
+        .map((e) => DetailValue.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
+
+  final String name;
+  final List<DetailValue> values;
+}
+
 class EntityTriple {
   const EntityTriple({
     required this.subject,
@@ -25,6 +50,7 @@ class EntityTriple {
     required this.externalEntity,
     required this.isMandatory,
     required this.label,
+    required this.details,
   });
 
   factory EntityTriple.fromJson(Map<String, dynamic> json) => EntityTriple(
@@ -35,6 +61,9 @@ class EntityTriple {
     externalEntity: json['external_entity'] as String?,
     isMandatory: json['is_mandatory'] as bool,
     label: json['label'] as String?,
+    details: (json['details'] as List<dynamic>?)
+        ?.map((e) => EntityDetail.fromJson(e as Map<String, dynamic>))
+        .toList(),
   );
 
   final String subject;
@@ -44,6 +73,7 @@ class EntityTriple {
   final String? externalEntity;
   final bool isMandatory;
   final String? label;
+  final List<EntityDetail>? details;
 }
 
 class PropertyGroup {
@@ -51,7 +81,6 @@ class PropertyGroup {
     required this.displayName,
     required this.property,
     required this.objectShape,
-    required this.isVirtual,
     required this.isDraggable,
     required this.orderedBy,
     required this.field,
@@ -62,7 +91,6 @@ class PropertyGroup {
     displayName: json['display_name'] as String,
     property: json['property'] as String,
     objectShape: json['object_shape'] as String?,
-    isVirtual: json['is_virtual'] as bool,
     isDraggable: json['is_draggable'] as bool,
     orderedBy: json['ordered_by'] as String?,
     field: json['field'] == null
@@ -76,16 +104,15 @@ class PropertyGroup {
   final String displayName;
   final String property;
   final String? objectShape;
-  final bool isVirtual;
   final bool isDraggable;
   final String? orderedBy;
   final FieldDef? field;
   final List<EntityTriple> triples;
 
-  /// Display rules can hide a property that the shape defines.
+  /// A shape can hide one of its properties with `dash:hidden`.
   bool get isShown => switch (field) {
     null => true,
-    final field => field.shouldBeDisplayed,
+    final field => !field.hidden,
   };
 }
 
@@ -202,26 +229,26 @@ class AffectedEntity {
     required this.uri,
     required this.label,
     required this.type,
-    required this.isIntermediate,
+    required this.isComposite,
   });
 
   factory AffectedEntity.fromJson(Map<String, dynamic> json) => AffectedEntity(
     uri: json['uri'] as String,
     label: json['label'] as String,
     type: json['type'] as String,
-    isIntermediate: json['is_intermediate'] as bool,
+    isComposite: json['is_composite'] as bool,
   );
 
   final String uri;
   final String label;
   final String type;
-  final bool isIntermediate;
+  final bool isComposite;
 
   Map<String, Object> toJson() => {
     'uri': uri,
     'label': label,
     'type': type,
-    'is_intermediate': isIntermediate,
+    'is_composite': isComposite,
   };
 }
 
@@ -230,7 +257,7 @@ class OrphanCheck {
     required this.affectedEntities,
     required this.shouldDelete,
     required this.orphanStrategy,
-    required this.proxyStrategy,
+    required this.compositeStrategy,
   });
 
   factory OrphanCheck.fromJson(Map<String, dynamic> json) => OrphanCheck(
@@ -239,13 +266,13 @@ class OrphanCheck {
         .toList(),
     shouldDelete: json['should_delete'] as bool? ?? false,
     orphanStrategy: json['orphan_strategy'] as String?,
-    proxyStrategy: json['proxy_strategy'] as String?,
+    compositeStrategy: json['composite_strategy'] as String?,
   );
 
   final List<AffectedEntity> affectedEntities;
   final bool shouldDelete;
   final String? orphanStrategy;
-  final String? proxyStrategy;
+  final String? compositeStrategy;
 }
 
 class LockResponse {

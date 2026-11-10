@@ -9,13 +9,17 @@ import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_model.dart';
 import 'package:heritrace/form/form_scope.dart';
 import 'package:heritrace/design/controls.dart';
+import 'package:heritrace/form/widgets/entity_autocomplete.dart';
 import 'package:heritrace/form/widgets/field_group_widget.dart';
 import 'package:heritrace/form/widgets/item_widgets.dart';
 import 'package:heritrace/i18n/translations.g.dart';
 
 import 'fixtures.dart';
 
-Future<void> pumpGroup(WidgetTester tester, FieldGroup group) async {
+Future<void> pumpGroup(WidgetTester tester, FieldGroup group) =>
+    pumpInForm(tester, FieldGroupWidget(group: group));
+
+Future<void> pumpInForm(WidgetTester tester, Widget child) async {
   LocaleSettings.setLocale(AppLocale.en);
   tester.view.physicalSize = const Size(1280, 900);
   tester.view.devicePixelRatio = 1;
@@ -28,9 +32,7 @@ Future<void> pumpGroup(WidgetTester tester, FieldGroup group) async {
           home: CupertinoPageScaffold(
             child: FormScope(
               notifier: FormScopeController(rootLabel: 'Journal Article'),
-              child: SingleChildScrollView(
-                child: FieldGroupWidget(group: group),
-              ),
+              child: SingleChildScrollView(child: child),
             ),
           ),
         ),
@@ -91,17 +93,63 @@ void main() {
   });
 
   testWidgets('cancelling a new nested entity discards it', (tester) async {
-    await pumpGroup(tester, group(documentContext));
+    final role = group(documentContext).addItem() as NestedItem;
+    final person = heldByItem(role);
+    final identifiers = person.child.groups.firstWhere(
+      (g) => g.def.uri == identifier,
+    );
+    await pumpGroup(tester, identifiers);
 
-    await tester.tap(find.text('Add Author'));
+    await tester.tap(find.text('Add Identifier'));
     await tester.pumpAndSettle();
-    expect(group(documentContext).items, hasLength(1));
+    expect(identifiers.items, hasLength(1));
 
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(group(documentContext).items, isEmpty);
+    expect(identifiers.items, isEmpty);
+  });
+
+  testWidgets('a details editor shows the nested fields in place', (
+    tester,
+  ) async {
+    await pumpGroup(tester, group(documentContext));
+
+    await tester.tap(find.text('Add Author'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NestedTile), findsNothing);
+    expect(find.text('Role'), findsOneWidget);
+    expect(find.byType(EntityAutocompleteField), findsOneWidget);
+  });
+
+  testWidgets('a single declared field is edited without a heading', (
+    tester,
+  ) async {
+    final roleJson =
+        ((articleFormFields().firstWhere(
+                      (entry) =>
+                          (entry as List<dynamic>).first == documentContext,
+                    ) as List<dynamic>)[1]
+                    as List<dynamic>)
+                .first
+            as Map<String, dynamic>;
+    final role = createItem(
+      FieldDef.fromJson({
+        ...roleJson,
+        'detailPaths': [heldBy],
+      }),
+      0,
+      group(documentContext),
+    ) as NestedItem;
+    addTearDown(role.dispose);
+
+    await pumpInForm(tester, NestedFields(item: role));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Role'), findsNothing);
+    expect(find.byType(EntityAutocompleteField), findsOneWidget);
   });
 
   testWidgets('mandatory values show their label and an explanation', (

@@ -9,13 +9,13 @@ import pytest
 from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.routes.linked_resources import (
-    _is_proxy_entity,
-    _resolve_proxy_entity,
+    _resolve_parent_entity,
     get_paginated_inverse_references,
 )
 from heritrace.utils.virtuoso_utils import VIRTUOSO_EXCLUDED_GRAPHS
 
 SAMPLE_SUBJECT_URI = "http://example.org/entity1"
+COMPOSITE_SHAPE = "http://example.org/CompositeShape"
 SAMPLE_REFERRING_SUBJECT_1 = "http://example.org/ref1"
 SAMPLE_REFERRING_SUBJECT_2 = "http://example.org/ref2"
 SAMPLE_REFERRING_SUBJECT_3 = "http://example.org/ref3"
@@ -394,84 +394,10 @@ def test_get_linked_resources_api_internal_error(
     mock_get_paginated.assert_called_once_with(SAMPLE_SUBJECT_URI, 5, 0)
 
 
-@patch("heritrace.routes.linked_resources.get_display_rules")
-def test_is_proxy_entity_empty_types(mock_get_display_rules) -> None:
-    """Test _is_proxy_entity with empty entity types."""
-    result, predicate = _is_proxy_entity([])
-    assert not result
-    assert predicate == ""
-    mock_get_display_rules.assert_not_called()
-
-
-@patch("heritrace.routes.linked_resources.get_display_rules")
-def test_is_proxy_entity_no_display_rules(mock_get_display_rules) -> None:
-    """Test _is_proxy_entity when display rules are None."""
-    mock_get_display_rules.return_value = None
-    result, predicate = _is_proxy_entity(["http://example.org/SomeType"])
-    assert not result
-    assert predicate == ""
-
-
-@patch("heritrace.routes.linked_resources.get_display_rules")
-def test_is_proxy_entity_no_matching_proxy(mock_get_display_rules) -> None:
-    """Test _is_proxy_entity when no proxy class matches."""
-    mock_get_display_rules.return_value = [
-        {
-            "displayProperties": [
-                {
-                    "property": "http://example.org/predicate1",
-                    "intermediateRelation": {
-                        "class": "http://example.org/DifferentType"
-                    },
-                }
-            ]
-        }
-    ]
-    result, predicate = _is_proxy_entity(["http://example.org/SomeType"])
-    assert not result
-    assert predicate == ""
-
-
-@patch("heritrace.routes.linked_resources.get_display_rules")
-def test_is_proxy_entity_matching_proxy(mock_get_display_rules) -> None:
-    """Test _is_proxy_entity when a proxy class matches."""
-    mock_get_display_rules.return_value = [
-        {
-            "displayProperties": [
-                {
-                    "property": "http://example.org/predicate1",
-                    "intermediateRelation": {"class": "http://example.org/ProxyType"},
-                }
-            ]
-        }
-    ]
-    result, predicate = _is_proxy_entity(["http://example.org/ProxyType"])
-    assert result
-    assert predicate == "http://example.org/predicate1"
-
-
-@patch("heritrace.routes.linked_resources.get_display_rules")
-def test_is_proxy_entity_no_intermediate_relation(mock_get_display_rules) -> None:
-    """Test _is_proxy_entity when displayProperties have no intermediateRelation."""
-    mock_get_display_rules.return_value = [
-        {
-            "displayProperties": [
-                {
-                    "property": "http://example.org/predicate1"
-                    # No intermediateRelation
-                }
-            ]
-        }
-    ]
-    result, predicate = _is_proxy_entity(["http://example.org/SomeType"])
-    assert not result
-    assert predicate == ""
-
-
 @patch("heritrace.routes.linked_resources.get_sparql")
 @patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
-def test_resolve_proxy_entity_success_non_virtuoso(mock_get_sparql) -> None:
-    """Test _resolve_proxy_entity successful resolution on non-Virtuoso."""
+def test_resolve_parent_entity_success_non_virtuoso(mock_get_sparql) -> None:
+    """Test _resolve_parent_entity successful resolution on non-Virtuoso."""
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
 
@@ -480,11 +406,11 @@ def test_resolve_proxy_entity_success_non_virtuoso(mock_get_sparql) -> None:
     }
     mock_sparql.query.return_value.convert.return_value = mock_result
 
-    subject_uri = "http://example.org/proxy1"
+    subject_uri = "http://example.org/composite1"
     predicate = "http://example.org/originalPred"
     connecting_predicate = "http://example.org/connectingPred"
 
-    final_subject, final_predicate = _resolve_proxy_entity(
+    final_subject, final_predicate = _resolve_parent_entity(
         subject_uri, predicate, connecting_predicate
     )
 
@@ -498,8 +424,8 @@ def test_resolve_proxy_entity_success_non_virtuoso(mock_get_sparql) -> None:
 
 @patch("heritrace.routes.linked_resources.get_sparql")
 @patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: True)
-def test_resolve_proxy_entity_success_virtuoso(mock_get_sparql) -> None:
-    """Test _resolve_proxy_entity successful resolution on Virtuoso."""
+def test_resolve_parent_entity_success_virtuoso(mock_get_sparql) -> None:
+    """Test _resolve_parent_entity successful resolution on Virtuoso."""
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
 
@@ -508,11 +434,11 @@ def test_resolve_proxy_entity_success_virtuoso(mock_get_sparql) -> None:
     }
     mock_sparql.query.return_value.convert.return_value = mock_result
 
-    subject_uri = "http://example.org/proxy1"
+    subject_uri = "http://example.org/composite1"
     predicate = "http://example.org/originalPred"
     connecting_predicate = "http://example.org/connectingPred"
 
-    final_subject, final_predicate = _resolve_proxy_entity(
+    final_subject, final_predicate = _resolve_parent_entity(
         subject_uri, predicate, connecting_predicate
     )
 
@@ -527,19 +453,19 @@ def test_resolve_proxy_entity_success_virtuoso(mock_get_sparql) -> None:
 
 @patch("heritrace.routes.linked_resources.get_sparql")
 @patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
-def test_resolve_proxy_entity_no_results(mock_get_sparql) -> None:
-    """Test _resolve_proxy_entity when no source is found."""
+def test_resolve_parent_entity_no_results(mock_get_sparql) -> None:
+    """Test _resolve_parent_entity when no source is found."""
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
 
     mock_result = {"results": {"bindings": []}}
     mock_sparql.query.return_value.convert.return_value = mock_result
 
-    subject_uri = "http://example.org/proxy1"
+    subject_uri = "http://example.org/composite1"
     predicate = "http://example.org/originalPred"
     connecting_predicate = "http://example.org/connectingPred"
 
-    final_subject, final_predicate = _resolve_proxy_entity(
+    final_subject, final_predicate = _resolve_parent_entity(
         subject_uri, predicate, connecting_predicate
     )
 
@@ -549,53 +475,57 @@ def test_resolve_proxy_entity_no_results(mock_get_sparql) -> None:
 
 @patch("heritrace.routes.linked_resources.get_sparql")
 @patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
-def test_resolve_proxy_entity_exception(mock_get_sparql):
+def test_resolve_parent_entity_exception(mock_get_sparql):
     mock_get_sparql.return_value.query.side_effect = SPARQLWrapperException()
     with pytest.raises(SPARQLWrapperException):
-        _resolve_proxy_entity(
-            "http://example.org/proxy1",
+        _resolve_parent_entity(
+            "http://example.org/composite1",
             "http://example.org/originalPred",
             "http://example.org/connectingPred",
         )
 
 
-@patch("heritrace.routes.linked_resources._resolve_proxy_entity")
-@patch("heritrace.routes.linked_resources._is_proxy_entity")
+@patch("heritrace.routes.linked_resources._resolve_parent_entity")
+@patch(
+    "heritrace.routes.linked_resources.determine_shape_for_classes",
+    new=lambda _types: COMPOSITE_SHAPE,
+)
+@patch("heritrace.routes.linked_resources._composite_parent_paths")
 @patch("heritrace.routes.linked_resources.get_entity_types")
 @patch("heritrace.routes.linked_resources.get_custom_filter")
 @patch("heritrace.routes.linked_resources.get_sparql")
 @patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
-def test_get_paginated_inverse_references_with_proxy_entity(
+def test_get_paginated_inverse_references_with_composite_entity(
     mock_get_sparql,
     mock_get_filter,
     mock_get_types,
-    mock_is_proxy,
-    mock_resolve_proxy,
+    mock_composite_paths,
+    mock_resolve_composite,
     app,
 ) -> None:
-    """Test get_paginated_inverse_references when a proxy entity is found."""
+    """Test get_paginated_inverse_references when a composite entity is found."""
     limit = 5
     offset = 0
-    proxy_uri = "http://example.org/proxy1"
+    composite_uri = "http://example.org/composite1"
     source_uri = "http://example.org/source1"
     predicate = "http://example.org/originalPred"
     connecting_predicate = "http://example.org/connectingPred"
 
     mock_bindings = [
-        {"s": {"value": proxy_uri}, "p": {"value": predicate}},
+        {"s": {"value": composite_uri}, "p": {"value": predicate}},
     ]
     mock_sparql_instance = mock_sparql_query_results(
         mock_bindings, limit=limit, offset=offset
     )
     mock_get_sparql.return_value = mock_sparql_instance
 
-    # Mock proxy detection
-    mock_is_proxy.return_value = (True, connecting_predicate)
-    mock_resolve_proxy.return_value = (source_uri, connecting_predicate)
+    # Mock composite detection
+    mock_composite_paths.return_value = {COMPOSITE_SHAPE: connecting_predicate}
+    mock_resolve_composite.return_value = (source_uri, connecting_predicate)
 
-    # Mock entity type calls for both proxy and source
+    # Mock entity type calls for both composite and source
     mock_get_types.side_effect = [
-        ["http://example.org/ProxyType"],  # types for proxy
+        ["http://example.org/CompositeType"],  # types for composite
         ["http://example.org/SourceType"],  # types for source
     ]
 
@@ -614,7 +544,7 @@ def test_get_paginated_inverse_references_with_proxy_entity(
 
     assert not has_more
     assert len(refs) == 1
-    assert refs[0]["subject"] == source_uri  # Should be resolved source, not proxy
+    assert refs[0]["subject"] == source_uri  # Should be resolved source, not composite
     assert (
         refs[0]["predicate"] == connecting_predicate
     )  # Should be connecting predicate
@@ -622,53 +552,57 @@ def test_get_paginated_inverse_references_with_proxy_entity(
     assert refs[0]["predicate_label"] == f"{connecting_predicate}_label"
     assert refs[0]["type_label"] == "Source Type"
 
-    # Verify that resolve_proxy_entity was called
-    mock_resolve_proxy.assert_called_once_with(
-        proxy_uri, predicate, connecting_predicate
+    # Verify that resolve_composite_entity was called
+    mock_resolve_composite.assert_called_once_with(
+        composite_uri, predicate, connecting_predicate
     )
-    # Verify get_entity_types was called twice - once for proxy, once for source
+    # Verify get_entity_types was called twice - once for composite, once for source
     assert mock_get_types.call_count == 2
 
 
-@patch("heritrace.routes.linked_resources._resolve_proxy_entity")
-@patch("heritrace.routes.linked_resources._is_proxy_entity")
+@patch("heritrace.routes.linked_resources._resolve_parent_entity")
+@patch(
+    "heritrace.routes.linked_resources.determine_shape_for_classes",
+    new=lambda _types: COMPOSITE_SHAPE,
+)
+@patch("heritrace.routes.linked_resources._composite_parent_paths")
 @patch("heritrace.routes.linked_resources.get_entity_types")
 @patch("heritrace.routes.linked_resources.get_custom_filter")
 @patch("heritrace.routes.linked_resources.get_sparql")
 @patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
-def test_get_paginated_inverse_references_proxy_same_as_original(
+def test_get_paginated_inverse_references_composite_same_as_original(
     mock_get_sparql,
     mock_get_filter,
     mock_get_types,
-    mock_is_proxy,
-    mock_resolve_proxy,
+    mock_composite_paths,
+    mock_resolve_composite,
     app,
 ) -> None:
     """
-    Test proxy handling when resolved entity is same as original (proxy resolution
-    failed).
+    Test composite handling when resolved entity is same as original (composite
+    resolution failed).
     """
     limit = 5
     offset = 0
-    proxy_uri = "http://example.org/proxy1"
+    composite_uri = "http://example.org/composite1"
     predicate = "http://example.org/originalPred"
     connecting_predicate = "http://example.org/connectingPred"
 
     mock_bindings = [
-        {"s": {"value": proxy_uri}, "p": {"value": predicate}},
+        {"s": {"value": composite_uri}, "p": {"value": predicate}},
     ]
     mock_sparql_instance = mock_sparql_query_results(
         mock_bindings, limit=limit, offset=offset
     )
     mock_get_sparql.return_value = mock_sparql_instance
 
-    # Mock proxy detection
-    mock_is_proxy.return_value = (True, connecting_predicate)
+    # Mock composite detection
+    mock_composite_paths.return_value = {COMPOSITE_SHAPE: connecting_predicate}
     # Mock failed resolution - returns same URI
-    mock_resolve_proxy.return_value = (proxy_uri, predicate)
+    mock_resolve_composite.return_value = (composite_uri, predicate)
 
     # Mock entity types - only called once since resolved == original
-    mock_get_types.return_value = ["http://example.org/ProxyType"]
+    mock_get_types.return_value = ["http://example.org/CompositeType"]
 
     mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, _t: (
         f"{s}_label"
@@ -676,7 +610,7 @@ def test_get_paginated_inverse_references_proxy_same_as_original(
     mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: (
         f"{p}_label"
     )
-    mock_get_filter.return_value.human_readable_class.return_value = "Proxy Type"
+    mock_get_filter.return_value.human_readable_class.return_value = "Composite Type"
 
     with app.app_context():
         refs, has_more = get_paginated_inverse_references(
@@ -685,11 +619,11 @@ def test_get_paginated_inverse_references_proxy_same_as_original(
 
     assert not has_more
     assert len(refs) == 1
-    assert refs[0]["subject"] == proxy_uri
+    assert refs[0]["subject"] == composite_uri
     assert refs[0]["predicate"] == predicate
-    assert refs[0]["label"] == f"{proxy_uri}_label"
+    assert refs[0]["label"] == f"{composite_uri}_label"
     assert refs[0]["predicate_label"] == f"{predicate}_label"
-    assert refs[0]["type_label"] == "Proxy Type"
+    assert refs[0]["type_label"] == "Composite Type"
 
     # Verify get_entity_types was called only once
     assert mock_get_types.call_count == 1
@@ -741,19 +675,6 @@ def test_get_paginated_inverse_references_no_highest_priority_type(
     assert refs[0]["type_label"] is None  # Should be None when no highest priority type
 
 
-@patch("heritrace.routes.linked_resources.get_display_rules")
-def test_is_proxy_entity_missing_displayproperties(mock_get_display_rules) -> None:
-    """Test _is_proxy_entity when displayProperties key is missing."""
-    mock_get_display_rules.return_value = [
-        {
-            # Missing displayProperties key
-        }
-    ]
-    result, predicate = _is_proxy_entity(["http://example.org/SomeType"])
-    assert not result
-    assert predicate == ""
-
-
 @pytest.mark.parametrize("error", [TimeoutError("timed out"), SPARQLWrapperException()])
 @patch("heritrace.routes.linked_resources.get_paginated_inverse_references")
 def test_linked_resources_endpoint_failure(mock_get_paginated, logged_in_client, error):
@@ -766,3 +687,38 @@ def test_linked_resources_endpoint_failure(mock_get_paginated, logged_in_client,
         "status": "error",
         "message": "Error loading linked resources.",
     }
+
+
+@patch("heritrace.routes.linked_resources._composite_parent_paths")
+@patch(
+    "heritrace.routes.linked_resources.determine_shape_for_classes",
+    new=lambda _types: COMPOSITE_SHAPE,
+)
+@patch("heritrace.routes.linked_resources.get_highest_priority_class")
+@patch("heritrace.routes.linked_resources.get_entity_types")
+@patch("heritrace.routes.linked_resources.get_custom_filter")
+@patch("heritrace.routes.linked_resources.get_sparql")
+@patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
+def test_get_paginated_inverse_references_skips_inverse_composite_children(
+    mock_get_sparql,
+    _mock_get_filter,
+    mock_get_types,
+    _mock_priority,
+    mock_composite_paths,
+    app,
+) -> None:
+    mock_get_sparql.return_value = mock_sparql_query_results(
+        [{"s": {"value": "urn:citation"}, "p": {"value": "urn:cites"}}],
+        limit=5,
+        offset=0,
+    )
+    mock_get_types.return_value = ["urn:Citation"]
+    mock_composite_paths.return_value = {COMPOSITE_SHAPE: "^urn:cites"}
+
+    with app.app_context():
+        references, has_more = get_paginated_inverse_references(
+            SAMPLE_SUBJECT_URI, limit=5, offset=0
+        )
+
+    assert references == []
+    assert not has_more

@@ -18,15 +18,12 @@ from heritrace.extensions import (
 from heritrace.sparql import get_sparql_bindings, select_results
 from heritrace.utils.filters import format_uri_as_readable
 from heritrace.utils.shacl_display import (
-    ShaclProcessingContext,
     apply_display_rules,
     extract_shacl_form_fields,
     order_form_fields,
-    process_nested_shapes,
+    remove_inverse_back_links,
 )
-from heritrace.utils.shacl_patterns import read_pattern_alternatives
 from heritrace.utils.shacl_presentation import read_presentation
-from heritrace.utils.virtual_properties import get_virtual_properties_for_entity
 
 _class_shapes_cache: WeakKeyDictionary[Graph, dict[str, list[str]]] = (
     WeakKeyDictionary()
@@ -60,134 +57,20 @@ def get_form_fields_from_shacl(
 
     presentation = read_presentation(shacl)
 
-    # Step 1: Get the initial form fields from SHACL shapes
     form_fields = extract_shacl_form_fields(shacl, display_rules, presentation, app=app)
 
-    # Step 2: Process nested shapes for each field
-    processed_shapes: set[str] = set()
-    ctx = ShaclProcessingContext(
-        shacl=shacl,
-        display_rules=display_rules,
-        presentation=presentation,
-        pattern_alternatives=read_pattern_alternatives(shacl),
-        app=app,
-        processed_shapes=processed_shapes,
-    )
-    for entity_key in form_fields:
-        for predicate in form_fields[entity_key]:
-            for field_info in form_fields[entity_key][predicate]:
-                if field_info.get("nodeShape"):
-                    field_info["nestedShape"] = process_nested_shapes(
-                        ctx,
-                        str(field_info["nodeShape"]),
-                    )
-
-    # Step 3: Apply display rules to the form fields
     if display_rules:
-        form_fields = apply_display_rules(shacl, form_fields, display_rules)
+        form_fields = apply_display_rules(form_fields, display_rules)
 
-    # Step 3.5: Ensure all form fields have displayName, using fallback for those
-    # without display rules
     ensure_display_names(form_fields)
 
-    # Step 4: Add virtual properties to form_fields
-    enhanced_form_fields = add_virtual_properties_to_form_fields_internal(form_fields)
+    ordered_fields = order_form_fields(form_fields, presentation)
 
-    # Step 5: Order form fields (including virtual properties)
-    return order_form_fields(enhanced_form_fields, presentation)
+    for fields in ordered_fields.values():
+        for definitions in fields.values():
+            remove_inverse_back_links(definitions)
 
-
-def _apply_field_overrides(shape_data: dict, override: dict) -> dict:
-    nested_field = shape_data.copy()
-    if "shouldBeDisplayed" in override:
-        nested_field["shouldBeDisplayed"] = override["shouldBeDisplayed"]
-    if "displayName" in override:
-        nested_field["displayName"] = override["displayName"]
-    if "value" in override:
-        nested_field["hasValue"] = override["value"]
-        nested_field["nestedShape"] = []
-    return nested_field
-
-
-def _build_nested_shape_entry(vp: dict, enhanced_form_fields: dict) -> list[dict]:
-    implementation = vp.get("implementedVia", {})
-    target = implementation.get("target", {})
-    intermediate_class = target.get("class")
-    specific_shape = target.get("shape")
-
-    if not specific_shape and intermediate_class:
-        specific_shape = determine_shape_for_classes([intermediate_class])
-
-    intermediate_entity_key = find_matching_form_field(
-        class_uri=intermediate_class,
-        shape_uri=specific_shape,
-        form_fields=enhanced_form_fields,
-    )
-
-    nested_shape_list: list[dict] = []
-    if not intermediate_entity_key:
-        return nested_shape_list
-
-    nested_shape_data = enhanced_form_fields.get(intermediate_entity_key, {})
-    field_overrides = implementation.get("fieldOverrides", {})
-
-    for nested_prop_uri, nested_details_list in nested_shape_data.items():
-        for nested_details in nested_details_list:
-            if nested_prop_uri in field_overrides:
-                nested_field = _apply_field_overrides(
-                    nested_details, field_overrides[nested_prop_uri]
-                )
-            else:
-                nested_field = nested_details.copy()
-
-            if nested_field.get("shouldBeDisplayed", True):
-                nested_shape_list.append(nested_field)
-
-    return nested_shape_list
-
-
-def add_virtual_properties_to_form_fields_internal(form_fields: dict) -> dict:
-    enhanced_form_fields = form_fields.copy() if form_fields else {}
-
-    for entity_key in enhanced_form_fields:
-        entity_class, entity_shape = entity_key
-
-        virtual_properties = get_virtual_properties_for_entity(
-            entity_class, entity_shape
-        )
-
-        if not virtual_properties:
-            continue
-
-        for display_name, prop_config in virtual_properties:
-            if not prop_config.get("shouldBeDisplayed", True):
-                continue
-
-            nested_shape_list = _build_nested_shape_entry(
-                prop_config, enhanced_form_fields
-            )
-
-            virtual_form_field = {
-                "displayName": prop_config.get("displayName", display_name),
-                "uri": display_name,
-                "is_virtual": True,
-                "min": 0,
-                "max": None,
-                "datatypes": [],
-                "optionalValues": [],
-                "orderedBy": None,
-                "nodeShape": None,
-                "subjectClass": None,
-                "subjectShape": None,
-                "objectClass": None,
-                "entityType": None,
-                "nestedShape": nested_shape_list,
-                "or": None,
-            }
-
-            enhanced_form_fields[entity_key][display_name] = [virtual_form_field]
-
-    return enhanced_form_fields
+    return ordered_fields
 
 
 def _get_shapes_for_class(shacl_graph: Graph, class_uri: str) -> list[str]:

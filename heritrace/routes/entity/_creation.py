@@ -20,53 +20,59 @@ from heritrace.extensions import (
 from heritrace.routes.entity._blueprint import entity_bp
 from heritrace.routes.entity._validation import validate_entity_data
 from heritrace.utils.datatypes import determine_datatype
-from heritrace.utils.display_rules_utils import (
-    is_entity_type_visible,
+from heritrace.utils.inverse_paths import (
+    existing_inverse_links,
+    new_inverse_entities,
+    without_inverse_properties,
 )
 from heritrace.utils.primary_source_utils import save_user_default_primary_source
 from heritrace.utils.shacl_utils import find_matching_form_field
 from heritrace.utils.sparql_utils import import_referenced_entities
 from heritrace.utils.uri_utils import generate_unique_uri, is_valid_url
-from heritrace.utils.virtual_properties import (
-    remove_virtual_properties_from_creation_data,
-    transform_entity_creation_with_virtual_properties,
-)
 
 
 def _prepare_entity_creation_data(
     structured_data: dict,
 ) -> tuple[dict, str]:
-    cleaned_structured_data = remove_virtual_properties_from_creation_data(
-        structured_data
-    )
+    cleaned_structured_data = without_inverse_properties(structured_data)
     entity_type: str = cleaned_structured_data["entity_type"]
 
     return cleaned_structured_data, entity_type
 
 
-def _setup_editor_for_creation(editor: Editor, cleaned_structured_data: dict) -> None:
-    import_referenced_entities(editor, cleaned_structured_data)
+def _setup_editor_for_creation(editor: Editor, structured_data: dict) -> None:
+    import_referenced_entities(editor, structured_data)
     editor.preexisting_finished()
 
 
-def _process_virtual_properties_after_creation(
+def _create_inverse_values(
+    editor: Editor,
+    structured_data: dict,
+    entity_uri: URIRef,
+    graph_uri: URIRef | None,
+) -> None:
+    for entity in new_inverse_entities(structured_data, str(entity_uri)):
+        create_nested_entity(
+            editor,
+            generate_unique_uri(entity["entity_type"]),
+            entity,
+            graph_uri,
+        )
+    for linked_uri, predicate in existing_inverse_links(structured_data):
+        editor.create(URIRef(linked_uri), URIRef(predicate), entity_uri, graph_uri)
+
+
+def _process_inverse_values_after_creation(
     editor: Editor,
     structured_data: dict,
     entity_uri: URIRef,
     default_graph_uri: URIRef | None,
 ) -> None:
-    virtual_entities = transform_entity_creation_with_virtual_properties(
-        structured_data, str(entity_uri)
-    )
-
-    if virtual_entities:
+    if new_inverse_entities(structured_data, str(entity_uri)) or existing_inverse_links(
+        structured_data
+    ):
         editor.begin_counter_transaction()
-        for virtual_entity in virtual_entities:
-            virtual_entity_uri = generate_unique_uri(virtual_entity["entity_type"])
-            create_nested_entity(
-                editor, virtual_entity_uri, virtual_entity, default_graph_uri
-            )
-
+        _create_inverse_values(editor, structured_data, entity_uri, default_graph_uri)
         editor.save()
 
 
@@ -77,9 +83,7 @@ def _create_entity_with_form_fields(
     default_graph_uri: URIRef | None,
     form_fields: dict,
 ) -> None:
-    cleaned_structured_data = remove_virtual_properties_from_creation_data(
-        structured_data
-    )
+    cleaned_structured_data = without_inverse_properties(structured_data)
     entity_type = cleaned_structured_data["entity_type"]
     properties = cleaned_structured_data.get("properties", {})
 
@@ -132,9 +136,7 @@ def _create_entity_without_form_fields(
     entity_uri: URIRef,
     default_graph_uri: URIRef | None,
 ) -> None:
-    cleaned_structured_data = remove_virtual_properties_from_creation_data(
-        structured_data
-    )
+    cleaned_structured_data = without_inverse_properties(structured_data)
     entity_type = cleaned_structured_data["entity_type"]
     properties = cleaned_structured_data.get("properties", {})
 
@@ -207,7 +209,7 @@ def _handle_create_entity_post(
     )
     if not form_fields:
         editor.import_entity(entity_uri)
-    _setup_editor_for_creation(editor, cleaned_structured_data)
+    _setup_editor_for_creation(editor, structured_data)
     editor.set_primary_source(URIRef(primary_source) if primary_source else None)
 
     if form_fields:
@@ -228,7 +230,7 @@ def _handle_create_entity_post(
 
     try:
         editor.save()
-        _process_virtual_properties_after_creation(
+        _process_inverse_values_after_creation(
             editor, structured_data, entity_uri, default_graph_uri
         )
     except (EditorError, OSError) as e:
@@ -255,9 +257,7 @@ def create_entity() -> tuple[Response, int]:
 def entity_types() -> Response:
     custom_filter = get_custom_filter()
     labelled_keys = [
-        (key, custom_filter.human_readable_class(key))
-        for key in get_form_fields()
-        if is_entity_type_visible(key)
+        (key, custom_filter.human_readable_class(key)) for key in get_form_fields()
     ]
     labelled_keys.sort(key=lambda item: item[1])
     return jsonify(
@@ -287,7 +287,7 @@ def create_nested_entity(
 
     entity_type = entity_data.get("entity_type")
     entity_shape = entity_data.get("entity_shape")
-    properties = entity_data.get("properties", {})
+    properties = without_inverse_properties(entity_data)["properties"]
 
     matching_key = find_matching_form_field(entity_type, entity_shape, form_fields)
 
@@ -301,25 +301,9 @@ def create_nested_entity(
 
         for value in values:
             if isinstance(value, dict) and "entity_type" in value:
-                if "intermediateRelation" in value:
-                    intermediate_uri = generate_unique_uri(
-                        value["intermediateRelation"]["class"]
-                    )
-                    target_uri = generate_unique_uri(value["entity_type"])
-                    editor.create(
-                        entity_uri, predicate_uri, intermediate_uri, graph_uri
-                    )
-                    editor.create(
-                        intermediate_uri,
-                        URIRef(value["intermediateRelation"]["property"]),
-                        target_uri,
-                        graph_uri,
-                    )
-                    create_nested_entity(editor, target_uri, value, graph_uri)
-                else:
-                    nested_uri = generate_unique_uri(value["entity_type"])
-                    editor.create(entity_uri, predicate_uri, nested_uri, graph_uri)
-                    create_nested_entity(editor, nested_uri, value, graph_uri)
+                nested_uri = generate_unique_uri(value["entity_type"])
+                editor.create(entity_uri, predicate_uri, nested_uri, graph_uri)
+                create_nested_entity(editor, nested_uri, value, graph_uri)
             elif isinstance(value, dict) and value.get("is_existing_entity", False):
                 existing_entity_uri = value.get("entity_uri")
                 if existing_entity_uri:
@@ -341,6 +325,8 @@ def create_nested_entity(
                     datatype = determine_datatype(str_value, datatype_uris)
                     object_value = Literal(str_value, datatype=datatype)
                 editor.create(entity_uri, predicate_uri, object_value, graph_uri)
+
+    _create_inverse_values(editor, entity_data, entity_uri, graph_uri)
 
 
 @dataclass(frozen=True, slots=True)
