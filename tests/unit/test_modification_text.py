@@ -54,7 +54,7 @@ def _presentation(ordered: list[str], shape_order: list[str] | None = None):
     presentation = MagicMock()
     presentation.predicate_order.return_value = ordered
     presentation.node_order.return_value = shape_order or []
-    presentation.ordered_by.return_value = None
+    presentation.ordering.return_value = None
     return presentation
 
 

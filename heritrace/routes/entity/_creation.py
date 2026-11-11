@@ -126,7 +126,13 @@ def _create_entity_with_form_fields(
         )
 
         if ordered_by:
-            process_ordered_properties(ctx, values, URIRef(ordered_by))
+            ordering = get_presentation().ordering(entity_shape, predicate)
+            process_ordered_properties(
+                ctx,
+                values,
+                URIRef(ordered_by),
+                indexed=ordering is not None and ordering.indexed,
+            )
         else:
             process_unordered_properties(ctx, values, matching_field_def)
 
@@ -418,6 +424,8 @@ def process_ordered_properties(
     ctx: CreationContext,
     values: list[dict],
     ordered_by: URIRef,
+    *,
+    indexed: bool = False,
 ) -> None:
     values_by_shape = {}
     for value in values:
@@ -430,10 +438,14 @@ def process_ordered_properties(
 
     for shape_values in values_by_shape.values():
         previous_entity = None
-        for value in shape_values:
+        for position, value in enumerate(shape_values, start=1):
             nested_uri = _process_ordered_entity_value(ctx, value)
 
-            if previous_entity:
+            if indexed:
+                ctx.editor.create(
+                    nested_uri, ordered_by, Literal(position), ctx.default_graph_uri
+                )
+            elif previous_entity:
                 ctx.editor.create(
                     previous_entity,
                     ordered_by,

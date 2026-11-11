@@ -46,6 +46,7 @@ class PropertyPresentation:
     order: Decimal | None
     editor: str | None
     ordered_by: str | None
+    indexed: bool
     identifier: str
 
 
@@ -90,10 +91,12 @@ class ShapesPresentation:
         prop = self.property_presentation(shape, predicate, object_shape)
         return prop.name if prop else None
 
-    def ordered_by(self, shape: str | None, predicate: str) -> str | None:
+    def ordering(
+        self, shape: str | None, predicate: str
+    ) -> PropertyPresentation | None:
         for prop in self.shape_properties(shape):
             if prop.path == predicate and prop.ordered_by is not None:
-                return prop.ordered_by
+                return prop
         return None
 
     def predicate_order(self, shape: str | None) -> list[str]:
@@ -156,13 +159,22 @@ def _label_query(graph: Graph, property_shape: Node, path: URIRef) -> str:
     return _prefix_block(graph, select_expression) + str(select)
 
 
+def _shape_order(graph: Graph, node: Node | None) -> URIRef | None:
+    # SHACL defines sh:order as the relative position of property shapes.
+    for property_shape in graph.objects(node, SH.property) if node else ():
+        if graph.value(property_shape, SH.path) == SH.order:
+            return SH.order
+    return None
+
+
 def _property_presentation(
     graph: Graph, property_shape: Node, path: str
 ) -> PropertyPresentation:
     order = graph.value(property_shape, SH.order)
     node = graph.value(property_shape, SH.node)
     editor = graph.value(property_shape, SHUI.editor)
-    ordered_by = graph.value(property_shape, HT.orderedBy)
+    chained_by = graph.value(property_shape, HT.orderedBy)
+    ordered_by = chained_by or _shape_order(graph, node)
     return PropertyPresentation(
         path=path,
         node=str(node) if isinstance(node, URIRef) else None,
@@ -170,6 +182,7 @@ def _property_presentation(
         order=Decimal(str(order)) if isinstance(order, Literal) else None,
         editor=str(editor) if editor else None,
         ordered_by=str(ordered_by) if ordered_by else None,
+        indexed=chained_by is None and ordered_by is not None,
         identifier=str(property_shape),
     )
 

@@ -191,8 +191,7 @@ meta:PropertyShapeShape
   ] ;
   sh:property [
     sh:path sh:order ;
-    sh:name "Position"@en, "Posizione"@it ;
-    sh:order 3 ;
+    dash:hidden true ;
     sh:datatype xsd:integer ;
     sh:maxCount 1 ;
   ] ;

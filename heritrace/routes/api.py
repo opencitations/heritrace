@@ -24,6 +24,7 @@ from heritrace.editor import Editor
 from heritrace.extensions import (
     get_custom_filter,
     get_form_fields,
+    get_presentation,
     get_primary_source,
     get_shacl_graph,
     new_editor,
@@ -739,7 +740,11 @@ def _process_remaining_changes(
                 subject=URIRef(change["subject"]),
                 graph_uri=graph_uri,
             )
-            order_logic(
+            presentation = get_presentation().property_presentation(
+                change["entity_shape"], change["predicate"], change["shape"]
+            )
+            indexed = presentation is not None and presentation.indexed
+            (index_logic if indexed else order_logic)(
                 op,
                 URIRef(change["predicate"]),
                 change["object"],
@@ -1198,6 +1203,25 @@ def order_logic(
     if ordered_entities:
         rebuild_entity_order(op.editor, ordered_by, ordered_entities, op.graph_uri)
 
+    return op.editor
+
+
+def index_logic(
+    op: ChangeOperation,
+    _predicate: URIRef,
+    new_order: list[str],
+    index_property: URIRef,
+    temp_id_to_uri: dict[str, str] | None = None,
+) -> Editor:
+    for position, value in enumerate(new_order, start=1):
+        entity = URIRef((temp_id_to_uri or {}).get(value, value))
+        for _, _, index in list(
+            get_triples_from_graph(op.editor.g_set, (entity, index_property, None))
+        ):
+            op.editor.delete(
+                entity, index_property, cast("Literal | URIRef", index), op.graph_uri
+            )
+        op.editor.create(entity, index_property, Literal(position), op.graph_uri)
     return op.editor
 
 

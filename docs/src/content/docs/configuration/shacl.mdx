@@ -335,6 +335,8 @@ sh:property [ sh:path dcterms:title ; sh:name "Title" ; sh:order 1 ] ;
 sh:property [ sh:path prism:publicationDate ; sh:name "Publication Date" ; sh:order 2 ] .
 ```
 
+In the [configuration editor](../editor/), you set this order by dragging the fields of an entity type. HERITRACE then numbers every field from 1 onward, including those that had no `sh:order`.
+
 ### Widgets (`shui:editor`)
 
 HERITRACE does its best to pick the right input from the constraints of each property. A property with `sh:in` becomes a list of values to choose from. A date datatype (`xsd:date`, `xsd:gYearMonth` or `xsd:gYear`) gets a calendar, and when the shape allows more than one of them, users also choose between a full date, a month and a year. Numbers and `xsd:anyURI` open the matching keyboard. Any other value gets a single-line text field.

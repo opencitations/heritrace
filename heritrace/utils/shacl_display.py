@@ -137,7 +137,13 @@ COMMON_SPARQL_QUERY = prepareQuery(
         OPTIONAL { ?property shui:viewer ?viewer . }
         OPTIONAL { ?property dash:composite ?composite . }
         OPTIONAL { ?property dash:hidden ?hidden . }
-        OPTIONAL { ?property ht:orderedBy ?ordered_by . }
+        OPTIONAL { ?property ht:orderedBy ?chained_by . }
+        BIND(COALESCE(
+            ?chained_by,
+            IF(BOUND(?node_shape)
+               && EXISTS { ?node_shape sh:property/sh:path sh:order },
+               sh:order, ?no_order)
+        ) AS ?ordered_by)
         OPTIONAL { ?property sh:property/sh:path ?detail_path . }
         FILTER (isURI(?path) || BOUND(?inverse))
         FILTER NOT EXISTS { ?property sh:values ?computed . }

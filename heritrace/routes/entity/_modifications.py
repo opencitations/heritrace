@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from rdflib import RDF, Graph, Literal, URIRef
 from rdflib.term import Node
@@ -16,6 +16,7 @@ from heritrace.routes.entity._types import (
 from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.shacl_utils import (
     determine_shape_for_entity_triples,
+    get_entity_index_position,
     get_entity_position_in_sequence,
 )
 from heritrace.utils.sparql_utils import get_triples_from_graph
@@ -92,20 +93,22 @@ def _build_predicate_shape_groups(
         object_value = str(triple[2])
         object_shape_uri = object_shapes_cache.get(object_value)
 
-        if predicate not in predicate_ordering_cache:
-            predicate_ordering_cache[predicate] = get_presentation().ordered_by(
-                identity.entity_shape, predicate
-            )
+        ordering = get_presentation().ordering(identity.entity_shape, predicate)
+        predicate_ordering_cache[predicate] = ordering.ordered_by if ordering else None
 
-        order_property = predicate_ordering_cache[predicate]
-        if order_property and is_valid_url(object_value) and identity.relevant_snapshot:
+        if ordering and is_valid_url(object_value) and identity.relevant_snapshot:
             position_key = (object_value, predicate)
             if position_key not in entity_position_cache:
-                entity_position_cache[position_key] = get_entity_position_in_sequence(
+                position_of = (
+                    get_entity_index_position
+                    if ordering.indexed
+                    else get_entity_position_in_sequence
+                )
+                entity_position_cache[position_key] = position_of(
                     object_value,
                     identity.entity_uri,
                     predicate,
-                    order_property,
+                    cast("str", ordering.ordered_by),
                     identity.relevant_snapshot,
                 )
 

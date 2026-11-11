@@ -219,6 +219,8 @@ def test_apply_changes_order(
     changes = [
         {
             "action": "order",
+            "entity_shape": None,
+            "shape": None,
             "subject": "http://example.org/entity/1",
             "predicate": "http://example.org/property/1",
             "object": ["Value1", "Value2", "Value3"],

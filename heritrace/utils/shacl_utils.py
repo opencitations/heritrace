@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 from collections.abc import Iterable
+from decimal import Decimal
 from weakref import WeakKeyDictionary
 
 from flask import Flask
@@ -393,6 +394,46 @@ def _find_entity_position_in_order_map(entity_uri: str, order_map: dict) -> int 
 
     # Entity was not found in any of the ordered chains
     return None
+
+
+def index_order(
+    subject_uri: str,
+    predicate_uri: str,
+    index_property: str,
+    snapshot: Graph | None = None,
+) -> list[str]:
+    query = f"""
+        SELECT ?value ?index
+        WHERE {{
+            <{subject_uri}> <{predicate_uri}> ?value .
+            ?value <{index_property}> ?index .
+        }}
+    """
+    if snapshot is not None:
+        rows = [
+            (str(row[0]), str(row[1])) for row in select_results(snapshot.query(query))
+        ]
+    else:
+        sparql = get_sparql()
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        rows = [
+            (binding["value"]["value"], binding["index"]["value"])
+            for binding in get_sparql_bindings(sparql.query().convert())
+        ]
+    rows.sort(key=lambda row: Decimal(row[1]))
+    return [value for value, _ in rows]
+
+
+def get_entity_index_position(
+    entity_uri: str,
+    subject_uri: str,
+    predicate_uri: str,
+    index_property: str,
+    snapshot: Graph | None = None,
+) -> int | None:
+    values = index_order(subject_uri, predicate_uri, index_property, snapshot)
+    return values.index(entity_uri) + 1 if entity_uri in values else None
 
 
 def get_entity_position_in_sequence(

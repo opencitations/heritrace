@@ -2955,6 +2955,8 @@ def test_apply_changes_order_action(
         {
             "subject": "http://example.org/entity1",
             "action": "order",
+            "entity_shape": None,
+            "shape": None,
             "predicate": "http://example.org/prop",
             "object": ["http://example.org/e1", "http://example.org/e2"],
             "newObject": "http://example.org/orderedBy",
@@ -2967,6 +2969,8 @@ def test_apply_changes_order_action(
             {
                 "subject": "http://example.org/entity1",
                 "action": "order",
+                "entity_shape": None,
+                "shape": None,
                 "predicate": "http://example.org/prop",
                 "object": ["http://example.org/e1", "http://example.org/e2"],
                 "newObject": "http://example.org/orderedBy",

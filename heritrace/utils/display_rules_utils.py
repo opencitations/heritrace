@@ -21,6 +21,7 @@ from heritrace.extensions import (
 )
 from heritrace.sparql import select_results
 from heritrace.utils.shacl_presentation import inverse_predicate
+from heritrace.utils.shacl_utils import index_order
 
 if TYPE_CHECKING:
     from rdflib.query import ResultRow
@@ -260,24 +261,47 @@ def _group_shape_properties(ctx: GroupingContext) -> None:
             ctx.grouped_triples[group_name]["triples"].append(
                 _triple_data(ctx, triple, presentation.node)
             )
-        ordered_groups = {
-            group_names[presentation.identifier]: presentation.ordered_by
-            for presentation in presentations
-            if presentation.ordered_by is not None
-        }
-        for group_name, order_property in ordered_groups.items():
-            _apply_ordering_to_group(ctx, predicate, order_property, group_name)
+        for presentation in presentations:
+            if presentation.ordered_by is not None:
+                _apply_ordering_to_group(
+                    ctx, predicate, presentation, group_names[presentation.identifier]
+                )
 
 
 def _apply_ordering_to_group(
     ctx: GroupingContext,
     predicate: str,
-    order_property: str,
+    presentation: PropertyPresentation,
     display_name: str,
 ) -> None:
+    order_property = cast("str", presentation.ordered_by)
     ctx.grouped_triples[display_name]["is_draggable"] = True
     ctx.grouped_triples[display_name]["ordered_by"] = order_property
-    process_ordering(ctx, predicate, order_property, display_name)
+    if presentation.indexed:
+        process_index_ordering(ctx, predicate, order_property, display_name)
+    else:
+        process_ordering(ctx, predicate, order_property, display_name)
+
+
+def process_index_ordering(
+    ctx: GroupingContext,
+    predicate: str,
+    index_property: str,
+    display_name: str,
+) -> None:
+    values = index_order(
+        unquote(ctx.subject), predicate, index_property, ctx.historical_snapshot
+    )
+    positions = {value: position for position, value in enumerate(values)}
+    ctx.grouped_triples[display_name]["triples"].sort(
+        key=lambda x: (
+            positions.get(
+                ctx.fetched_values_map.get(str(x["triple"][2]), str(x["triple"][2])),
+                len(positions),
+            ),
+            str(x["triple"][2]),
+        )
+    )
 
 
 def get_grouped_triples(

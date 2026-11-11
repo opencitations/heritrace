@@ -119,6 +119,8 @@ def test_reorder_backfills_provenance_for_all_chained_authors(
         json=[
             {
                 "action": "order",
+                "entity_shape": None,
+                "shape": None,
                 "subject": data["br"],
                 "predicate": PRO_IS_DOCUMENT_CONTEXT_FOR,
                 "object": new_order,
