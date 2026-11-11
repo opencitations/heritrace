@@ -30,7 +30,6 @@ copy "..\written_responses_end_users.md" "%ENDUSER_DIR%\written_responses.md"
 copy "..\user_testing_privacy_consent_form.pdf" "%ENDUSER_DIR%\user_testing_privacy_consent_form.pdf"
 
 mkdir "%ENDUSER_DIR%\config"
-copy "enduser\config\display_rules.yaml" "%ENDUSER_DIR%\config\"
 copy "enduser\config\shacl.ttl" "%ENDUSER_DIR%\config\"
 
 mkdir "%ENDUSER_DIR%\dataset_database"
@@ -63,7 +62,6 @@ mkdir "%TECHNICIAN_DIR%\prov_database"
 copy "common\templates\virtuoso_dataset.ini" "%TECHNICIAN_DIR%\dataset_database\virtuoso.ini"
 copy "common\templates\virtuoso_provenance.ini" "%TECHNICIAN_DIR%\prov_database\virtuoso.ini"
 
-copy "technician\config\display_rules.yaml" "%TECHNICIAN_DIR%\config\"
 copy "technician\config\shacl.ttl" "%TECHNICIAN_DIR%\config\"
 
 copy "common\scripts\export-resources.sh" "%TECHNICIAN_DIR%\"
@@ -99,8 +97,8 @@ if "%package_type%"=="enduser" (
     set export_message=echo    - Export all modified data: double-click export-data.cmd
     set export_command=   - Export all modified data: double-click export-data.cmd
 ) else (
-    set export_message=echo    - Export the modified resources ^(Shacl and Display Rules^): double-click export-resources.cmd
-    set export_command=   - Export the modified resources ^(Shacl and Display Rules^): double-click export-resources.cmd
+    set export_message=echo    - Export the modified resources ^(SHACL^): double-click export-resources.cmd
+    set export_command=   - Export the modified resources ^(SHACL^): double-click export-resources.cmd
 )
 
 if exist "%template_file%" (
@@ -137,6 +135,6 @@ if exist "heritrace-enduser-testing.zip" (
     echo    - export-data.cmd - Script to export all data (double-click to run)
 )
 if exist "heritrace-technician-testing.zip" (
-    echo    - export-resources.cmd - Script to export SHACL and display rules (double-click to run)
+    echo    - export-resources.cmd - Script to export SHACL (double-click to run)
 )
 exit /b 0

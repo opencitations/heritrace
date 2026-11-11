@@ -23,7 +23,6 @@ The configuration lives in the folder set by [`CONFIG_DIR`](../app-settings/#con
 | `shacl.ttl` | The entity types, as SHACL shapes in Turtle. It is optional |
 | `shacl-provenance.trig` | The history of the entity types, as provenance snapshots in TriG |
 | `settings.db` | The system settings, in an SQLite database |
-| `display_rules.yaml` | The [extra configuration](../extra/), which the editor does not change. It is optional |
 
 HERITRACE reads the folder when it starts. Without `shacl.ttl`, it starts with no entity types and creates the file, so you can add entity types later in the **Entity types** tab. On the first start, `shacl-provenance.trig` does not exist yet: HERITRACE checks `shacl.ttl`, records its content as the first version of the entity types and creates the file. From then on, every change made in the app rewrites `shacl.ttl` and adds a snapshot to `shacl-provenance.trig`. Because of this rewrite, the comments and the layout of a `shacl.ttl` written by hand are lost on the first save.
 

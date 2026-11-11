@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: ISC
 
 # HERITRACE Testing - Resources Export Script
-# This script exports the modified resources (Shacl and Display Rules) from Docker volumes
+# This script exports the modified resources (SHACL) from Docker volumes
 
 set -e
 
@@ -25,10 +25,9 @@ if [ ! -d "$SOURCE_DIR" ]; then
 fi
 
 SHACL_FILE="${SOURCE_DIR}/shacl.ttl"
-DISPLAY_RULES_FILE="${SOURCE_DIR}/display_rules.yaml"
 
-if [ ! -f "$SHACL_FILE" ] && [ ! -f "$DISPLAY_RULES_FILE" ]; then
-    echo "❌ Error: Neither 'shacl.ttl' nor 'display_rules.yaml' found in the 'config' directory."
+if [ ! -f "$SHACL_FILE" ]; then
+    echo "❌ Error: 'shacl.ttl' not found in the 'config' directory."
     exit 1
 fi
 
@@ -37,15 +36,8 @@ mkdir -p "$EXPORT_DIR"
 
 echo "🔄 Copying resources to export directory..."
 
-if [ -f "$SHACL_FILE" ]; then
-    cp "$SHACL_FILE" "$EXPORT_DIR/"
-    echo "   - Found shacl.ttl"
-fi
-
-if [ -f "$DISPLAY_RULES_FILE" ]; then
-    cp "$DISPLAY_RULES_FILE" "$EXPORT_DIR/"
-    echo "   - Found display_rules.yaml"
-fi
+cp "$SHACL_FILE" "$EXPORT_DIR/"
+echo "   - Found shacl.ttl"
 
 echo "📋 Including testing questionnaires and responses..."
 if [ -f "sus_questionnaire.md" ]; then

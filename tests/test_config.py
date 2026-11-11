@@ -35,7 +35,6 @@ class TestConfig:
     GUNICORN_WORKERS = 2
 
     CONFIG_DIR = test_config_dir
-    DISPLAY_RULES_PATH = test_config_dir / "display_rules.yaml"
     ADMIN_ORCIDS: ClassVar[list[str]] = ["0000-0000-0000-0000"]
 
     DATASET_DB_TRIPLESTORE = "virtuoso"

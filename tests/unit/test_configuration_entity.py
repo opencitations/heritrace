@@ -45,7 +45,6 @@ def config_app(tmp_path: Path) -> Generator[Flask, None, None]:
 
     class Config(TestConfig):
         CONFIG_DIR = tmp_path
-        DISPLAY_RULES_PATH = tmp_path / "display_rules.yaml"
 
     app = create_app(Config)
     with app.app_context():
@@ -56,11 +55,9 @@ def config_app(tmp_path: Path) -> Generator[Flask, None, None]:
 def empty_config_app(tmp_path: Path) -> Generator[Flask, None, None]:
     seed_config(tmp_path, test_example_dir)
     (tmp_path / "shacl.ttl").unlink()
-    (tmp_path / "display_rules.yaml").unlink()
 
     class Config(TestConfig):
         CONFIG_DIR = tmp_path
-        DISPLAY_RULES_PATH = tmp_path / "display_rules.yaml"
 
     app = create_app(Config)
     with app.app_context():

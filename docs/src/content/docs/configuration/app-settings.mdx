@@ -62,7 +62,7 @@ Set a unique `SECRET_KEY` in production.
 |---------------------|------|-------------|----------|
 | `CONFIG_DIR` | Path | Folder that holds the configuration. A relative path starts from the HERITRACE folder | **Yes** |
 
-The folder holds `settings.db` with the system settings, `shacl.ttl` with the entity types and `display_rules.yaml` with the extra configuration. HERITRACE needs only `settings.db`, which [setup mode](../editor/#setup-mode) creates on the first start. [Where the configuration lives](../editor/#where-the-configuration-lives) describes each file.
+The folder holds `settings.db` with the system settings and `shacl.ttl` with the entity types. HERITRACE needs only `settings.db`, which [setup mode](../editor/#setup-mode) creates on the first start. [Where the configuration lives](../editor/#where-the-configuration-lives) describes each file.
 
 The configuration editor rewrites the files when you save, so HERITRACE must be able to write to the folder. In Docker, mount the folder:
 
@@ -221,10 +221,6 @@ While the system functions correctly with external databases, using Docker conta
 <Aside type="tip" title="Pro Tip: Managing Virtuoso with `virtuoso-utilities`">
 For managing your Virtuoso instance (launching the server, bulk-loading data, exporting dumps, rebuilding the full-text index), see <a href="https://github.com/opencitations/virtuoso_utilities" target="_blank" rel="noopener noreferrer">**virtuoso-utilities**</a>. This Python package automates tasks that are otherwise tedious to configure in Virtuoso.
 </Aside>
-
-## Display rules
-
-The [extra configuration](../extra/) is read from `display_rules.yaml` in the [configuration folder](#configuration-folder). Without that file, HERITRACE runs with no display rules.
 
 ## Components
 

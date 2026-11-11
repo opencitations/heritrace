@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import cast
 from urllib.parse import urlparse, urlunparse
 
-import yaml
 from flask import (
     Flask,
     Response,
@@ -84,7 +83,6 @@ class AppState:
     generation_time: datetime | None
     change_tracking_config: dict
     custom_filter: Filter
-    display_rules: list[dict]
     presentation: ShapesPresentation
     form_fields_cache: dict
     dataset_is_quadstore: bool
@@ -156,7 +154,6 @@ def init_extensions(
         generation_time=app.config["DATASET_GENERATION_TIME"],
         change_tracking_config=change_tracking_config,
         custom_filter=cast("Filter", None),
-        display_rules=[],
         presentation=read_presentation(Graph()),
         form_fields_cache={},
         dataset_is_quadstore=False,
@@ -168,11 +165,10 @@ def init_extensions(
     app.extensions["heritrace"] = placeholder
 
     (
-        display_rules,
         form_fields_cache,
         dataset_is_quadstore,
         classes_with_multiple_shapes,
-    ) = initialize_global_variables(app, shacl_graph, app.config["DISPLAY_RULES_PATH"])
+    ) = initialize_global_variables(app, shacl_graph)
     presentation = read_presentation(shacl_graph)
     custom_filter = init_filters(presentation, placeholder.backend.sparql)
     init_request_handlers(app, redis)
@@ -180,7 +176,6 @@ def init_extensions(
     app.extensions["heritrace"] = replace(
         placeholder,
         custom_filter=custom_filter,
-        display_rules=display_rules,
         presentation=presentation,
         form_fields_cache=form_fields_cache,
         dataset_is_quadstore=dataset_is_quadstore,
@@ -221,7 +216,6 @@ def build_configuration_state(app: Flask) -> AppState:
             provenance_is_quadstore=True,
         ),
         custom_filter=cast("Filter", None),
-        display_rules=[],
         presentation=read_presentation(Graph()),
         form_fields_cache={},
         dataset_is_quadstore=False,
@@ -231,14 +225,13 @@ def build_configuration_state(app: Flask) -> AppState:
         labels_use_inverse_relations=False,
     )
     with use_state(placeholder):
-        display_rules, form_fields_cache, _, classes_with_multiple_shapes = (
-            initialize_global_variables(app, meta_shapes, None)
+        form_fields_cache, _, classes_with_multiple_shapes = (
+            initialize_global_variables(app, meta_shapes)
         )
     presentation = read_presentation(meta_shapes)
     return replace(
         placeholder,
         custom_filter=init_filters(presentation, backend.sparql),
-        display_rules=display_rules,
         presentation=presentation,
         form_fields_cache=form_fields_cache,
         shacl_graph=meta_shapes,
@@ -311,7 +304,7 @@ def initialize_change_tracking_config(
                 config_path=config_path,
                 dataset_urls=dataset_urls,
                 dataset_dirs=app.config.get("DATASET_DIRS", []),
-                dataset_is_quadstore=app.config.get("DATASET_IS_QUADSTORE", False),
+                dataset_is_quadstore=app.config["DATASET_IS_QUADSTORE"],
                 provenance_urls=provenance_urls,
                 provenance_is_quadstore=app.config.get(
                     "PROVENANCE_IS_QUADSTORE", False
@@ -422,57 +415,26 @@ def identify_classes_with_multiple_shapes(shacl_graph: Graph) -> set[str]:
 
 
 def initialize_global_variables(
-    app: Flask, shacl_graph: Graph, display_rules_path: Path | None
-) -> tuple[list[dict], dict, bool, set[str]]:
-    try:
-        dataset_is_quadstore = app.config.get("DATASET_IS_QUADSTORE", False)
-
-        display_rules: list[dict] = []
-        if display_rules_path is not None and not display_rules_path.exists():
-            app.logger.warning(
-                "Display rules file not found at: %s", display_rules_path
-            )
-        elif display_rules_path is not None:
-            try:
-                with display_rules_path.open() as f:
-                    display_rules = yaml.safe_load(f)["rules"]
-            except yaml.YAMLError as e:
-                app.logger.exception("Error loading display rules")
-                msg = f"Failed to load display rules: {e!s}"
-                raise SetupRequiredError(msg) from e
-
-        form_fields_cache: dict = {}
-        if len(shacl_graph):
-            from heritrace.utils.shacl_utils import (  # noqa: PLC0415
-                get_form_fields_from_shacl,
-            )
-
-            try:
-                form_fields_cache = get_form_fields_from_shacl(shacl_graph, app=app)
-            except ValueError as e:
-                app.logger.exception("Error initializing form fields from SHACL")
-                msg = f"Failed to initialize form fields: {e!s}"
-                raise SetupRequiredError(msg) from e
-
-        classes_with_multiple_shapes = identify_classes_with_multiple_shapes(
-            shacl_graph
+    app: Flask, shacl_graph: Graph
+) -> tuple[dict, bool, set[str]]:
+    form_fields_cache: dict = {}
+    if len(shacl_graph):
+        from heritrace.utils.shacl_utils import (  # noqa: PLC0415
+            get_form_fields_from_shacl,
         )
 
-        app.logger.info("Global variables initialized successfully")
+        try:
+            form_fields_cache = get_form_fields_from_shacl(shacl_graph, app=app)
+        except ValueError as e:
+            app.logger.exception("Error initializing form fields from SHACL")
+            msg = f"Failed to initialize form fields: {e!s}"
+            raise SetupRequiredError(msg) from e
 
-    except SetupRequiredError:
-        raise
-    except (OSError, yaml.YAMLError, ValueError) as e:
-        app.logger.exception("Error during global variables initialization")
-        msg = f"Global variables initialization failed: {e!s}"
-        raise SetupRequiredError(msg) from e
-    else:
-        return (
-            display_rules,
-            form_fields_cache,
-            dataset_is_quadstore,
-            classes_with_multiple_shapes,
-        )
+    return (
+        form_fields_cache,
+        app.config["DATASET_IS_QUADSTORE"],
+        identify_classes_with_multiple_shapes(shacl_graph),
+    )
 
 
 def init_sparql_services(
@@ -580,10 +542,6 @@ def get_custom_filter() -> Filter:
 
 def get_change_tracking_config() -> dict:
     return get_app_state().change_tracking_config
-
-
-def get_display_rules() -> list[dict]:
-    return get_app_state().display_rules
 
 
 def get_form_fields() -> dict:

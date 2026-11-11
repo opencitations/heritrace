@@ -28,14 +28,14 @@ generate_script_from_template() {
     if [ "$package_type" = "enduser" ]; then
         export_message="echo \"   - Export all modified data: ./export-data.sh\""
     else
-        export_message="echo \"   - Export the modified resources (Shacl and Display Rules): ./export-resources.sh\""
+        export_message="echo \"   - Export the modified resources (SHACL): ./export-resources.sh\""
     fi
 
     local export_command
     if [ "$package_type" = "enduser" ]; then
         export_command="   - Export all modified data: ./export-data.sh"
     else
-        export_command="   - Export the modified resources (Shacl and Display Rules): ./export-resources.sh"
+        export_command="   - Export the modified resources (SHACL): ./export-resources.sh"
     fi
 
     sed -e "s/{{PACKAGE_TYPE}}/$package_type/g" \
@@ -66,7 +66,6 @@ cp "../written_responses_end_users.md" "$ENDUSER_DIR/written_responses.md"
 cp "../user_testing_privacy_consent_form.pdf" "$ENDUSER_DIR/user_testing_privacy_consent_form.pdf"
 
 mkdir -p "$ENDUSER_DIR/config"
-cp "enduser/config/display_rules.yaml" "$ENDUSER_DIR/config/"
 cp "enduser/config/shacl.ttl" "$ENDUSER_DIR/config/"
 
 mkdir -p "$ENDUSER_DIR/dataset_database"
@@ -100,7 +99,6 @@ mkdir -p "$TECHNICIAN_DIR/prov_database"
 cp "common/templates/virtuoso_dataset.ini" "$TECHNICIAN_DIR/dataset_database/virtuoso.ini"
 cp "common/templates/virtuoso_provenance.ini" "$TECHNICIAN_DIR/prov_database/virtuoso.ini"
 
-cp "technician/config/display_rules.yaml" "$TECHNICIAN_DIR/config/"
 cp "technician/config/shacl.ttl" "$TECHNICIAN_DIR/config/"
 
 cp "common/scripts/export-resources.sh" "$TECHNICIAN_DIR/"
@@ -188,7 +186,7 @@ print_summary() {
         echo "   - export-data.sh/cmd - Script to export all data"
     fi
     if [ -f "heritrace-technician-testing.zip" ]; then
-        echo "   - export-resources.sh/cmd - Script to export SHACL and display rules"
+        echo "   - export-resources.sh/cmd - Script to export SHACL"
     fi
 
     echo ""

@@ -6,7 +6,7 @@ SPDX-License-Identifier: ISC
 
 # HERITRACE Configurator Testing Package
 
-**What is HERITRACE?**: HERITRACE is a customizable semantic data editing tool with provenance and change tracking capabilities that enables non-technical domain experts to enrich and edit data without knowing anything about Semantic Web technologies. Configurators can set up the editing system using SHACL to generate forms and YAML configuration to customize the display.
+**What is HERITRACE?**: HERITRACE is a customizable semantic data editing tool with provenance and change tracking capabilities that enables non-technical domain experts to enrich and edit data without knowing anything about Semantic Web technologies. Configurators set up the editing system with SHACL shapes, which generate the forms and customize the display.
 
 **What HERITRACE is NOT**: HERITRACE is not a browsing or search tool. It is specifically designed as a semantic data editing tool.
 
@@ -16,7 +16,6 @@ This package contains everything needed to test HERITRACE configuration features
 
 - `docker-compose.yml` - Docker container configuration
 - `config/` - Configuration files to modify:
-  - `display_rules.yaml` - Controls property display in UI
   - `shacl.ttl` - Defines entity validation rules
 - `start.sh` / `start.cmd` - Start environment (run script or double-click .cmd)
 - `stop.sh` / `stop.cmd` - Stop environment (run script or double-click .cmd)
@@ -62,7 +61,6 @@ This package contains everything needed to test HERITRACE configuration features
 
 **Modify during testing**:
 - `config/shacl.ttl`: Defines entity validation rules
-- `config/display_rules.yaml`: Controls property display in UI
 
 **Do not modify**: `docker-compose.yml`, script files, or any configuration files outside the `config` directory.
 
@@ -79,7 +77,7 @@ This package contains everything needed to test HERITRACE configuration features
 
 **IMPORTANT: Start your screen recording software now and ensure it captures both screen and microphone audio.** Think aloud throughout the session. You can speak in either English or Italian.
 
-You are working with a partially configured HERITRACE system. Some entities have complete SHACL schemas and display rules, while others are missing these configurations.
+You are working with a partially configured HERITRACE system. Some entities have complete SHACL schemas, while others are missing parts of their configuration.
 
 Explore the system and think aloud as you navigate. Describe what you see, what you expect, and any questions that arise.
 
@@ -107,15 +105,15 @@ Continue thinking aloud about your process and any difficulties you encounter wh
 
 **Task 2: Add Abstract Display Support (23 minutes)**
 
-After Task 1, you can add abstracts to journal articles. However, the default text input is not ideal for long-form text. Without specific display rules, the user experience is suboptimal.
+After Task 1, you can add abstracts to journal articles. However, the default text input is not ideal for long-form text.
 
-Configure display rules for the dcterms:abstract property with these requirements:
+Extend the SHACL property shape of `dcterms:abstract` so that the interface shows it with these requirements:
 
 1. Property display name: "Abstract"
 2. Input type: appropriate for long-form text
 3. Property should appear under the title in the display order
 
-Think aloud as you work. Describe your approach, what you're looking for, and any challenges. Consult the documentation to understand display rule configuration.
+Think aloud as you work. Describe your approach, what you're looking for, and any challenges. Consult the documentation to learn how SHACL shapes control the interface.
 
 Once completed, verify in the UI that the 'Abstract' input has changed from a simple text field to a multi-line textarea.
 
@@ -137,6 +135,6 @@ After completing the SUS, please fill out the `written_responses.md` file with y
 - Signed privacy notice
 
 **Note**: The `export.zip` file includes:
-- Modified configuration files (`display_rules.yaml`, `shacl.ttl`)
+- Modified configuration file (`shacl.ttl`)
 - Completed SUS questionnaire (`sus_questionnaire.md`)
 - Written responses (`written_responses.md`)

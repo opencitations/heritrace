@@ -62,11 +62,10 @@ See the [user guide](https://opencitations.github.io/heritrace/user-guide/browsi
 
 ## Customization
 
-HERITRACE is data model agnostic. You define your domain through SHACL shapes, which drive forms, validation and presentation. A YAML file covers the interface settings that SHACL cannot express:
+HERITRACE is data model agnostic. You define your domain through SHACL shapes, which drive forms, validation and presentation:
 
 - [Application settings](https://opencitations.github.io/heritrace/configuration/app-settings/)
 - [SHACL schema](https://opencitations.github.io/heritrace/configuration/shacl/)
-- [Extra configuration](https://opencitations.github.io/heritrace/configuration/extra/)
 
 ## Development
 

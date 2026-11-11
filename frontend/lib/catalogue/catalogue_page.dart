@@ -367,11 +367,11 @@ class _EntityList extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (data.sortableProperties.isNotEmpty) ...[
+        if (data.sort case final sort?) ...[
           _SortControls(
-            properties: data.sortableProperties,
-            currentProperty: data.sortProperty,
-            currentDirection: data.sortDirection,
+            properties: sort.properties,
+            currentProperty: sort.property,
+            currentDirection: sort.direction,
             onChanged: (property, direction) => onQueryChanged(
               query.copyWith(sortProperty: property, sortDirection: direction),
             ),
@@ -508,21 +508,20 @@ class _SortControls extends StatelessWidget {
   });
 
   final List<models.SortableProperty> properties;
-  final String? currentProperty;
+  final String currentProperty;
   final String currentDirection;
   final void Function(String property, String direction) onChanged;
 
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final current = currentProperty!;
     return Row(
       children: [
         Text(t.ui.catalogue.sortBy),
         const SizedBox(width: appInputSpacing),
         Flexible(
           child: AppMenuButton<String>(
-            value: current,
+            value: currentProperty,
             options: [
               for (final property in properties)
                 AppMenuOption(property.property, property.displayName),
@@ -534,8 +533,10 @@ class _SortControls extends StatelessWidget {
           label: currentDirection == 'ASC'
               ? t.ui.catalogue.sortAscending
               : t.ui.catalogue.sortDescending,
-          onPressed: () =>
-              onChanged(current, currentDirection == 'ASC' ? 'DESC' : 'ASC'),
+          onPressed: () => onChanged(
+            currentProperty,
+            currentDirection == 'ASC' ? 'DESC' : 'ASC',
+          ),
           icon: currentDirection == 'ASC'
               ? CupertinoIcons.arrow_up
               : CupertinoIcons.arrow_down,

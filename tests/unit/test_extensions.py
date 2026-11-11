@@ -8,7 +8,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 import pytest
-import yaml
 from flask import Flask, g
 from flask_login import LoginManager
 from flask_login.signals import user_loaded_from_cookie
@@ -29,7 +28,6 @@ from heritrace.extensions import (
     get_classes_with_multiple_shapes,
     get_custom_filter,
     get_dataset_is_quadstore,
-    get_display_rules,
     get_form_fields,
     get_labels_use_inverse_relations,
     get_presentation,
@@ -87,7 +85,6 @@ def lightweight_app():
         SAVE_PLUGIN=None,
         PRIMARY_SOURCE="https://example.org/source",
         DATASET_GENERATION_TIME=None,
-        DISPLAY_RULES_PATH=Path("/path/does/not/exist"),
     )
     return app
 
@@ -99,7 +96,7 @@ def test_init_extensions(lightweight_app, login_manager, mock_redis) -> None:
         patch("heritrace.extensions.initialize_counter_handler"),
         patch(
             "heritrace.extensions.initialize_global_variables",
-            return_value=([], {}, False, set()),
+            return_value=({}, False, set()),
         ),
         patch("heritrace.extensions.init_filters", return_value=MagicMock()),
     ):
@@ -125,7 +122,7 @@ def test_login_manager_initialization(
         patch("heritrace.extensions.initialize_counter_handler"),
         patch(
             "heritrace.extensions.initialize_global_variables",
-            return_value=([], {}, False, set()),
+            return_value=({}, False, set()),
         ),
         patch("heritrace.extensions.init_filters", return_value=MagicMock()),
     ):
@@ -211,7 +208,6 @@ def test_getter_functions(app) -> None:
         generation_time=None,
         change_tracking_config={"key": "value"},
         custom_filter=MagicMock(),
-        display_rules=[{"rule": 1}],
         presentation=MagicMock(),
         form_fields_cache={"field": "data"},
         dataset_is_quadstore=True,
@@ -226,7 +222,6 @@ def test_getter_functions(app) -> None:
     assert get_provenance_sparql() is mock_state.provenance_sparql
     assert get_custom_filter() is mock_state.custom_filter
     assert get_change_tracking_config() == {"key": "value"}
-    assert get_display_rules() == [{"rule": 1}]
     assert get_form_fields() == {"field": "data"}
     assert get_dataset_is_quadstore() is True
     assert get_shacl_graph() is mock_state.shacl_graph
@@ -483,79 +478,20 @@ def test_initialize_global_variables_dataset_is_quadstore(app) -> None:
     app.config["DATASET_IS_QUADSTORE"] = True
 
     (
-        _display_rules,
         _form_fields_cache,
         dataset_is_quadstore,
         _classes_with_multiple_shapes,
-    ) = initialize_global_variables(app, Graph(), app.config["DISPLAY_RULES_PATH"])
+    ) = initialize_global_variables(app, Graph())
 
     assert dataset_is_quadstore is True
 
 
-def test_initialize_global_variables_display_rules_not_found(app) -> None:
-    app.config["DISPLAY_RULES_PATH"] = Path("/path/does/not/exist")
-
-    (
-        display_rules,
-        _form_fields_cache,
-        _dataset_is_quadstore,
-        _classes_with_multiple_shapes,
-    ) = initialize_global_variables(app, Graph(), app.config["DISPLAY_RULES_PATH"])
-
-    assert display_rules == []
-
-
-def test_initialize_global_variables_display_rules_loaded(app, tmp_path) -> None:
-    display_rules_path = tmp_path / "display_rules.yaml"
-    display_rules_content = """
-rules:
-  - target:
-      class: "Class1"
-    displayName: "Class 1"
-"""
-    display_rules_path.write_text(display_rules_content)
-
-    app.config["DISPLAY_RULES_PATH"] = display_rules_path
-
-    (
-        display_rules,
-        _form_fields_cache,
-        _dataset_is_quadstore,
-        _classes_with_multiple_shapes,
-    ) = initialize_global_variables(app, Graph(), app.config["DISPLAY_RULES_PATH"])
-
-    assert any(
-        rule.get("target", {}).get("class") == "Class1" for rule in display_rules
-    )
-    assert any(
-        rule.get("displayName") == "Class 1"
-        for rule in display_rules
-        if rule.get("target", {}).get("class") == "Class1"
-    )
-
-
-def test_initialize_global_variables_display_rules_error(app, tmp_path) -> None:
-    display_rules_path = tmp_path / "invalid_display_rules.yaml"
-    display_rules_path.write_text("invalid: yaml: content:")
-
-    app.config["DISPLAY_RULES_PATH"] = display_rules_path
-
-    with (
-        patch("yaml.safe_load", side_effect=yaml.YAMLError("YAML parsing error")),
-        pytest.raises(
-            SetupRequiredError, match="Failed to load display rules: YAML parsing error"
-        ),
-    ):
-        initialize_global_variables(app, Graph(), app.config["DISPLAY_RULES_PATH"])
-
-
 def test_initialize_global_variables_without_shapes(app) -> None:
     (
-        _display_rules,
         form_fields_cache,
         _dataset_is_quadstore,
         _classes_with_multiple_shapes,
-    ) = initialize_global_variables(app, Graph(), Path("/path/does/not/exist"))
+    ) = initialize_global_variables(app, Graph())
 
     assert form_fields_cache == {}
 
@@ -573,11 +509,10 @@ def test_initialize_global_variables_shacl_loaded(app) -> None:
         return_value=mock_form_fields,
     ):
         (
-            _display_rules,
             form_fields_cache,
             _dataset_is_quadstore,
             _classes_with_multiple_shapes,
-        ) = initialize_global_variables(app, shacl_graph, Path("/path/does/not/exist"))
+        ) = initialize_global_variables(app, shacl_graph)
 
     assert form_fields_cache == mock_form_fields
 
@@ -597,18 +532,7 @@ def test_initialize_global_variables_shacl_error(app) -> None:
             SetupRequiredError, match="Failed to initialize form fields: Bad shape"
         ),
     ):
-        initialize_global_variables(app, shacl_graph, Path("/path/does/not/exist"))
-
-
-def test_initialize_global_variables_general_exception(app) -> None:
-    with (
-        patch.object(app.config, "get", side_effect=ValueError("General error")),
-        pytest.raises(
-            SetupRequiredError,
-            match="Global variables initialization failed: General error",
-        ),
-    ):
-        initialize_global_variables(app, Graph(), app.config["DISPLAY_RULES_PATH"])
+        initialize_global_variables(app, shacl_graph)
 
 
 def test_initialize_counter_handler_no_initialization_needed(app) -> None:

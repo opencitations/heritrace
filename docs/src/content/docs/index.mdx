@@ -54,10 +54,7 @@ http://127.0.0.1:5000
 
 ## Configuration
 
-HERITRACE describes the data model in two places:
-
-- **SHACL shapes**: Define the data model, classes, and properties. They are stored in the configuration folder and edited in the [configuration editor](/heritrace/configuration/editor/). See [SHACL configuration](/heritrace/configuration/shacl/).
-- **Extra configuration** (`.yaml`): Covers the editor behaviour that SHACL cannot express. See [Extra configuration](/heritrace/configuration/extra/).
+HERITRACE describes the data model with SHACL shapes, which define the classes and properties and also say how the interface shows them. The shapes are stored in the configuration folder and edited in the [configuration editor](/heritrace/configuration/editor/). See [SHACL configuration](/heritrace/configuration/shacl/).
 
 The `default_components/` directory contains optional URI generator, counter
 handler, and save plugin implementations. They are distributed with HERITRACE but
@@ -72,7 +69,6 @@ Now that HERITRACE is running, you can:
 1. **Explore the interface**: Navigate through the metadata management features with the preconfigured data model
 2. **Production setup**: Configure [ORCID authentication and security settings](/heritrace/configuration/app-settings/) for production use
 3. **Configure schemas**: Customize the [SHACL schema](/heritrace/configuration/shacl/) for your data model
-4. **Set the extra configuration**: Modify the [YAML file](/heritrace/configuration/extra/) for your interface
 
 ## Stopping the application
 

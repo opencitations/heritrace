@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from heritrace.configuration.serialization import settings_from_json
 from heritrace.configuration.settings import write_settings
-from heritrace.configuration.store import DISPLAY_RULES_FILE, SETTINGS_FILE, SHACL_FILE
+from heritrace.configuration.store import SETTINGS_FILE, SHACL_FILE
 
 EXAMPLE_SETTINGS_FILE = "settings.json"
 
@@ -19,10 +19,9 @@ EXAMPLE_SETTINGS_FILE = "settings.json"
 # survive a restart.
 def seed_config(config_dir: Path, example_dir: Path) -> None:
     config_dir.mkdir(parents=True, exist_ok=True)
-    for name in (SHACL_FILE, DISPLAY_RULES_FILE):
-        source = example_dir / name
-        if source.exists() and not (config_dir / name).exists():
-            shutil.copyfile(source, config_dir / name)
+    source = example_dir / SHACL_FILE
+    if source.exists() and not (config_dir / SHACL_FILE).exists():
+        shutil.copyfile(source, config_dir / SHACL_FILE)
     settings_path = config_dir / SETTINGS_FILE
     if not settings_path.exists():
         data = json.loads((example_dir / EXAMPLE_SETTINGS_FILE).read_text())

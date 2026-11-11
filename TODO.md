@@ -21,10 +21,6 @@ The system settings live in SQLite because no vocabulary for them has been chose
 
 The configuration pages do not offer to delete the configuration, an entity type or a field. Decide what deleting means for each of them: whether removing an entity type also removes its fields, what happens to the data that uses it, and how a deleted part is restored, since the configuration has no recycle bin.
 
-## Remove `display_rules.yaml`
-
-Keep the whole configuration in RDF, in the same document as the shapes. `sortableBy` still lives in the YAML file. Choose the term that expresses it.
-
 ## Edit RDF lists in the configuration editor
 
 The configuration editor builds its pages from the meta-shapes and cannot edit RDF lists. The duplicate keys of an entity type (`owl:hasKey`) are lists, which means that they can be changed only in `shacl.ttl` by hand. The same holds for `sh:in` and `sh:or`. Let the editor show and change these lists.

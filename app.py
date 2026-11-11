@@ -91,7 +91,4 @@ if __name__ == "__main__":
     elif env == "demo":
         run_args.update({"debug": True})
 
-    if app.config["DISPLAY_RULES_PATH"].exists():
-        run_args["extra_files"] = [str(app.config["DISPLAY_RULES_PATH"])]
-
     app.run(**run_args)

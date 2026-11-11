@@ -48,6 +48,27 @@ class SortableProperty {
   final String displayName;
 }
 
+/// How the recycle bin orders its entries.
+class CatalogueSort {
+  const CatalogueSort({
+    required this.property,
+    required this.direction,
+    required this.properties,
+  });
+
+  factory CatalogueSort.fromJson(Map<String, dynamic> json) => CatalogueSort(
+    property: json['sort_property'] as String,
+    direction: json['sort_direction'] as String,
+    properties: (json['sortable_properties'] as List<dynamic>)
+        .map((e) => SortableProperty.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
+
+  final String property;
+  final String direction;
+  final List<SortableProperty> properties;
+}
+
 /// An entry of the catalogue, or of the recycle bin when [deletion] is set.
 class CatalogueEntity {
   const CatalogueEntity({
@@ -96,9 +117,7 @@ class CataloguePage {
     required this.entities,
     required this.totalPages,
     required this.currentPage,
-    required this.sortProperty,
-    required this.sortDirection,
-    required this.sortableProperties,
+    required this.sort,
     required this.selectedClass,
     required this.selectedShape,
     required this.availableClasses,
@@ -110,11 +129,9 @@ class CataloguePage {
         .toList(),
     totalPages: json['total_pages'] as int,
     currentPage: json['current_page'] as int,
-    sortProperty: json['sort_property'] as String?,
-    sortDirection: json['sort_direction'] as String,
-    sortableProperties: (json['sortable_properties'] as List<dynamic>)
-        .map((e) => SortableProperty.fromJson(e as Map<String, dynamic>))
-        .toList(),
+    sort: json.containsKey('sort_direction')
+        ? CatalogueSort.fromJson(json)
+        : null,
     selectedClass: json['selected_class'] as String?,
     selectedShape: json['selected_shape'] as String?,
     availableClasses: (json['available_classes'] as List<dynamic>)
@@ -125,9 +142,7 @@ class CataloguePage {
   final List<CatalogueEntity> entities;
   final int totalPages;
   final int currentPage;
-  final String? sortProperty;
-  final String sortDirection;
-  final List<SortableProperty> sortableProperties;
+  final CatalogueSort? sort;
   final String? selectedClass;
   final String? selectedShape;
   final List<CatalogueClass> availableClasses;

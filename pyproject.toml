@@ -18,7 +18,6 @@ dependencies = [
     "pyparsing>=3.3.2",
     "pyshacl>=0.40.0",
     "python-dateutil>=2.9.0.post0",
-    "pyyaml>=6.0.3",
     "rdflib-ocdm==2.1.0",
     "requests>=2.34.2",
     "requests-oauthlib>=2.0.0",

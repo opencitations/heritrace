@@ -37,9 +37,7 @@ class _FakeCatalogueRepository extends CatalogueRepository {
       ],
       totalPages: 2,
       currentPage: page,
-      sortProperty: null,
-      sortDirection: 'ASC',
-      sortableProperties: const [],
+      sort: null,
       selectedClass: _article,
       selectedShape: null,
       availableClasses: const [

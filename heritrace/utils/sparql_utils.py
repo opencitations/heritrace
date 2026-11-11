@@ -29,7 +29,6 @@ from heritrace.extensions import (
     get_custom_filter,
     get_dataset_is_quadstore,
     get_dataset_version,
-    get_display_rules,
     get_form_fields,
     get_presentation,
     get_provenance_sparql,
@@ -37,11 +36,7 @@ from heritrace.extensions import (
     get_sparql,
 )
 from heritrace.sparql import get_sparql_bindings
-from heritrace.utils.display_rules_utils import (
-    find_matching_rule,
-    get_highest_priority_class,
-    get_sortable_properties,
-)
+from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.shacl_presentation import inverse_predicate, is_inverse_path
 from heritrace.utils.shacl_utils import (
     determine_shape_for_classes,
@@ -270,8 +265,7 @@ def _get_entities_with_enhanced_shape_detection(
     return shape_to_entities
 
 
-def get_classes_from_shacl_or_display_rules() -> list[str]:
-    """Extract classes from SHACL shapes or display_rules configuration."""
+def _get_classes_from_shacl() -> list[str]:
     sh_target_class = URIRef("http://www.w3.org/ns/shacl#targetClass")
     classes = set()
 
@@ -283,18 +277,11 @@ def get_classes_from_shacl_or_display_rules() -> list[str]:
             ):
                 classes.add(str(target_class))
 
-    if not classes:
-        display_rules = get_display_rules()
-        if display_rules:
-            for rule in display_rules:
-                if "target" in rule and "class" in rule["target"]:
-                    classes.add(rule["target"]["class"])
-
     return list(classes)
 
 
 def _get_classes_from_config() -> list[str]:
-    classes_from_config = get_classes_from_shacl_or_display_rules()
+    classes_from_config = _get_classes_from_shacl()
     if classes_from_config:
         return classes_from_config
 
@@ -410,45 +397,11 @@ def get_available_classes() -> list[dict[str, str | int]]:
     return available_classes
 
 
-def build_sort_clause(
-    sort_property: str, entity_type: str, shape_uri: str | None = None
-) -> str:
-    """
-    Build a SPARQL sort clause based on the sortableBy configuration.
-
-    Args:
-        sort_property: The property to sort by
-        entity_type: The entity type URI
-        shape_uri: Optional shape URI for more specific sorting rules
-
-    Returns:
-        SPARQL sort clause or empty string
-    """
-    if not sort_property or not entity_type:
-        return ""
-
-    rule = find_matching_rule(entity_type, shape_uri)
-
-    if not rule or "sortableBy" not in rule:
-        return ""
-
-    sort_config = next(
-        (s for s in rule["sortableBy"] if s.get("property") == sort_property), None
-    )
-
-    if not sort_config:
-        return ""
-
-    return f"OPTIONAL {{ ?subject <{sort_property}> ?sortValue }}"
-
-
 @dataclass(frozen=True, slots=True)
 class CatalogQuery:
     selected_class: str | None
     page: int
     per_page: int
-    sort_property: str | None = None
-    sort_direction: str = "ASC"
     selected_shape: str | None = None
 
 
@@ -533,10 +486,6 @@ def _get_entities_with_shape_filtering(
         for uri, label in zip(matching_uris, labels, strict=True)
     ]
 
-    if query.sort_property and query.sort_direction:
-        reverse_sort = query.sort_direction.upper() == "DESC"
-        filtered_entities.sort(key=lambda x: x["label"].lower(), reverse=reverse_sort)
-
     total_count = len(filtered_entities)
     return filtered_entities[: query.per_page], total_count
 
@@ -555,8 +504,6 @@ def get_entities_for_class(
     selected_shape = query.selected_shape
     page = query.page
     per_page = query.per_page
-    sort_property = query.sort_property
-    sort_direction = query.sort_direction
 
     use_shape_filtering = (
         selected_shape and selected_class in classes_with_multiple_shapes
@@ -566,20 +513,12 @@ def get_entities_for_class(
         return _get_entities_with_shape_filtering(query)
 
     offset = (page - 1) * per_page
-    sort_clause = ""
-    order_clause = ""
-
-    if sort_property:
-        sort_clause = build_sort_clause(sort_property, selected_class, selected_shape)
-        if sort_clause:
-            order_clause = f"ORDER BY {sort_direction}(?sortValue)"
 
     entities_query = f"""
-        SELECT ?subject {"?sortValue" if sort_property else ""}
+        SELECT ?subject
         WHERE {{
-            ?subject a <{selected_class}> . {sort_clause}
+            ?subject a <{selected_class}> .
         }}
-        {order_clause}
         LIMIT {per_page}
         OFFSET {offset}
     """
@@ -615,26 +554,8 @@ def get_catalog_data(
 ) -> dict:
     entities = []
     total_count = 0
-    sortable_properties = []
-    sort_property = query.sort_property
-
     if query.selected_class:
-        sortable_properties = get_sortable_properties(
-            (query.selected_class, query.selected_shape)
-        )
-
-        if not sort_property and sortable_properties:
-            sort_property = sortable_properties[0]["property"]
-
-        inner_query = CatalogQuery(
-            selected_class=query.selected_class,
-            page=query.page,
-            per_page=query.per_page,
-            sort_property=sort_property,
-            sort_direction=query.sort_direction,
-            selected_shape=query.selected_shape,
-        )
-        entities, total_count = get_entities_for_class(inner_query, available_classes)
+        entities, total_count = get_entities_for_class(query, available_classes)
 
     return {
         "entities": entities,
@@ -646,9 +567,6 @@ def get_catalog_data(
         "current_page": query.page,
         "per_page": query.per_page,
         "total_count": total_count,
-        "sort_property": sort_property,
-        "sort_direction": query.sort_direction,
-        "sortable_properties": sortable_properties,
         "selected_class": query.selected_class,
         "selected_shape": query.selected_shape,
     }
@@ -978,7 +896,7 @@ def _deletion_update_queries(uris: set[str]) -> list[str]:
 
 def _expand_with_current_state(graph: Graph) -> None:
     """
-    Add the entities the deleted ones point at, so that display rules reaching
+    Add the entities the deleted ones point at, so that labels reaching
     into neighbours can still resolve a label. Neighbours still in the dataset
     are read at their current state; neighbours deleted as well, such as the
     author roles removed together with a record, are read from their deletion

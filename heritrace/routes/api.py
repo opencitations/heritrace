@@ -111,11 +111,6 @@ def catalogue_api() -> Response:
     selected_shape = request.args.get("shape")
     page = int(request.args.get("page", 1))
     per_page = current_app.config["CATALOGUE_DEFAULT_PER_PAGE"]
-    sort_property = request.args.get("sort_property")
-    sort_direction = request.args.get("sort_direction", "ASC")
-
-    if not sort_property or sort_property.lower() == "null":
-        sort_property = None
 
     available_classes = get_available_classes()
 
@@ -124,8 +119,6 @@ def catalogue_api() -> Response:
             selected_class=selected_class,
             page=page,
             per_page=per_page,
-            sort_property=sort_property,
-            sort_direction=sort_direction,
             selected_shape=selected_shape,
         ),
         available_classes,

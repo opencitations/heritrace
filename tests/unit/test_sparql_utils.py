@@ -24,7 +24,6 @@ from heritrace.utils.sparql_utils import (
     _deleted_entity_types,
     _fetch_entity_labels,
     _get_entities_with_enhanced_shape_detection,
-    build_sort_clause,
     fetch_current_state_with_related_entities,
     fetch_data_graph_for_subject,
     find_orphaned_entities,
@@ -80,22 +79,6 @@ def dataset_version():
         "heritrace.utils.sparql_utils.get_dataset_version", return_value="1"
     ) as mock_version:
         yield mock_version
-
-
-@pytest.fixture
-def mock_display_rules():
-    """Mock display rules for testing."""
-    with patch("heritrace.utils.sparql_utils.get_display_rules") as mock_get_rules:
-        mock_rules_data = [
-            {
-                "target": {"class": "http://example.org/Person"},
-                "sortableBy": [
-                    {"property": "http://example.org/name", "label": "Name"}
-                ],
-            }
-        ]
-        mock_get_rules.return_value = mock_rules_data
-        yield mock_rules_data
 
 
 @pytest.fixture
@@ -210,7 +193,7 @@ class TestGetAvailableClasses:
                 return_value="http://example.org/PersonShape",
             ),
             patch(
-                "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
+                "heritrace.utils.sparql_utils._get_classes_from_shacl",
                 return_value=[
                     "http://example.org/Person",
                     "http://example.org/Document",
@@ -299,7 +282,7 @@ class TestGetAvailableClasses:
                 clear=True,
             ),
             patch(
-                "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
+                "heritrace.utils.sparql_utils._get_classes_from_shacl",
                 return_value=["http://example.org/Person"],
             ),
             patch(
@@ -351,7 +334,7 @@ class TestGetAvailableClasses:
                 return_value="http://example.org/PersonShape",
             ),
             patch(
-                "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
+                "heritrace.utils.sparql_utils._get_classes_from_shacl",
                 return_value=[
                     "http://example.org/Person",
                     "http://example.org/Document",
@@ -393,50 +376,6 @@ class TestGetAvailableClasses:
             assert document_class["count"] == "5"
 
 
-class TestBuildSortClause:
-    """Tests for the build_sort_clause function."""
-
-    def test_build_sort_clause_with_valid_property(self, mock_display_rules) -> None:
-        """Test building a sort clause with a valid property."""
-        entity_type = "http://example.org/Person"
-        sort_property = "http://example.org/name"
-
-        with patch("heritrace.utils.sparql_utils.find_matching_rule") as mock_find_rule:
-            mock_find_rule.return_value = {
-                "sortableBy": [{"property": "http://example.org/name", "label": "Name"}]
-            }
-            sort_clause = build_sort_clause(sort_property, entity_type)
-
-            assert (
-                sort_clause
-                == "OPTIONAL { ?subject <http://example.org/name> ?sortValue }"
-            )
-
-    def test_build_sort_clause_with_invalid_property(self, mock_display_rules) -> None:
-        """Test building a sort clause with an invalid property."""
-        entity_type = "http://example.org/Person"
-        sort_property = "http://example.org/invalid"
-
-        with patch("heritrace.utils.sparql_utils.find_matching_rule") as mock_find_rule:
-            mock_find_rule.return_value = {
-                "sortableBy": [{"property": "http://example.org/name", "label": "Name"}]
-            }
-            sort_clause = build_sort_clause(sort_property, entity_type)
-
-            assert sort_clause == ""
-
-    def test_build_sort_clause_with_no_display_rules(self) -> None:
-        """Test building a sort clause with no display rules."""
-        entity_type = "http://example.org/Person"
-        sort_property = "http://example.org/name"
-
-        with patch("heritrace.utils.sparql_utils.find_matching_rule") as mock_find_rule:
-            mock_find_rule.return_value = None
-            sort_clause = build_sort_clause(sort_property, entity_type)
-
-            assert sort_clause == ""
-
-
 class TestGetEntitiesForClass:
     """Tests for the get_entities_for_class function."""
 
@@ -473,9 +412,6 @@ class TestGetEntitiesForClass:
             patch(
                 "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
                 return_value=set(),
-            ),
-            patch(
-                "heritrace.utils.display_rules_utils.get_display_rules", return_value=[]
             ),
             patch(
                 "heritrace.utils.sparql_utils.determine_shape_for_classes",
@@ -539,9 +475,6 @@ class TestGetEntitiesForClass:
             patch(
                 "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
                 return_value=set(),
-            ),
-            patch(
-                "heritrace.utils.display_rules_utils.get_display_rules", return_value=[]
             ),
             patch(
                 "heritrace.utils.sparql_utils.determine_shape_for_classes",
@@ -659,42 +592,19 @@ class TestGetEntitiesForClass:
 
 
 class TestGetCatalogData:
-    """Tests for the get_catalog_data function."""
-
-    def test_get_catalog_data_with_default_sort_property(
+    def test_get_catalog_data_lists_the_entities_of_the_selected_class(
         self, app, mock_sparql_wrapper, mock_custom_filter, mock_virtuoso
     ) -> None:
-        """
-        Test get_catalog_data when sort_property is not provided but sortable_properties
-        exist.
-        """
-        # Configure mock to return some entities with proper structure
-        entities_result = {
+        mock_sparql_wrapper.query.return_value.convert.return_value = {
             "results": {
                 "bindings": [
-                    {
-                        "subject": {"value": "http://example.org/person1"},
-                        "sortValue": {"value": "Alice"},
-                    },
-                    {
-                        "subject": {"value": "http://example.org/person2"},
-                        "sortValue": {"value": "Bob"},
-                    },
+                    {"subject": {"value": "http://example.org/person1"}},
+                    {"subject": {"value": "http://example.org/person2"}},
                 ]
             }
         }
-
-        # Set up the mock to return the entities result
-        mock_sparql_wrapper.query.return_value.convert.return_value = entities_result
-
-        # Mock sortable properties
-        sortable_properties = [
-            {"property": "http://example.org/name", "label": "Name"},
-            {"property": "http://example.org/age", "label": "Age"},
-        ]
-
-        # Create mock available_classes with the correct structure
-        mock_available_classes = [
+        mock_custom_filter.catalogue_label.side_effect = lambda uri, _key: uri[-7:]
+        available_classes = [
             {
                 "uri": "http://example.org/Person",
                 "label": "Person",
@@ -704,41 +614,32 @@ class TestGetCatalogData:
             }
         ]
 
-        # Patch get_sortable_properties
-        with (
-            patch(
-                "heritrace.utils.sparql_utils.get_sortable_properties",
-                return_value=sortable_properties,
-            ),
-            patch(
-                "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
-                return_value=set(),
-            ),
-            patch(
-                "heritrace.utils.display_rules_utils.get_display_rules",
-                return_value=[],
-            ),
+        with patch(
+            "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
+            return_value=set(),
         ):
             catalog_data = get_catalog_data(
                 CatalogQuery(
                     selected_class="http://example.org/Person",
                     page=1,
                     per_page=10,
-                    sort_property=None,
                     selected_shape="http://example.org/PersonShape",
                 ),
-                mock_available_classes,
+                available_classes,
             )
 
-            # Verify that sort_property was set from the first sortable property
-            assert catalog_data["sort_property"] == "http://example.org/name"
-            assert catalog_data["sortable_properties"] == sortable_properties
-
-            # Verify other catalog data
-            assert catalog_data["total_count"] == 2
-            assert catalog_data["current_page"] == 1
-            assert catalog_data["per_page"] == 10
-            assert len(catalog_data["entities"]) == 2
+        assert catalog_data == {
+            "entities": [
+                {"uri": "http://example.org/person1", "label": "person1"},
+                {"uri": "http://example.org/person2", "label": "person2"},
+            ],
+            "total_pages": 1,
+            "current_page": 1,
+            "per_page": 10,
+            "total_count": 2,
+            "selected_class": "http://example.org/Person",
+            "selected_shape": "http://example.org/PersonShape",
+        }
 
 
 class TestWarmCatalogue:
@@ -916,9 +817,7 @@ class TestFetchDataGraphForSubject:
 class TestFindOrphanedEntities:
     """Tests for the find_orphaned_entities function."""
 
-    def test_find_orphaned_entities(
-        self, mock_sparql_wrapper, mock_display_rules
-    ) -> None:
+    def test_find_orphaned_entities(self, mock_sparql_wrapper) -> None:
         """Test finding orphaned entities."""
         # Configure mock to return some orphaned entities
         mock_sparql_wrapper.query.return_value.convert.return_value = {
@@ -1367,7 +1266,7 @@ class TestGetAvailableClassesMultipleShapes:
                 return_value="http://example.org/DocumentShape",
             ),
             patch(
-                "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
+                "heritrace.utils.sparql_utils._get_classes_from_shacl",
                 return_value=[
                     "http://example.org/Person",
                     "http://example.org/Document",
@@ -1461,7 +1360,7 @@ class TestGetAvailableClassesMultipleShapes:
                 return_value=mock_shape_to_entities,
             ),
             patch(
-                "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
+                "heritrace.utils.sparql_utils._get_classes_from_shacl",
                 return_value=["http://example.org/Person"],
             ),
         ):
@@ -1670,92 +1569,6 @@ class TestGetEntitiesForClassShapeFiltering:
             assert len(entities) == 1
             assert entities[0]["uri"] == "http://example.org/doc1"
             assert entities[0]["label"] == "Test Document"
-
-    def test_get_entities_for_class_with_shape_filtering_and_sorting(self, app) -> None:
-        """Test get_entities_for_class with shape filtering and sorting."""
-        selected_class = "http://example.org/Person"
-        selected_shape = "http://example.org/PersonShapeA"
-        classes_with_multiple_shapes = {"http://example.org/Person"}
-
-        mock_sparql_results = {
-            "results": {
-                "bindings": [
-                    {
-                        "subject": {"value": "http://example.org/person1"},
-                        "p": {"value": "http://example.org/name"},
-                        "o": {"value": "Alice"},
-                    },
-                    {
-                        "subject": {"value": "http://example.org/person2"},
-                        "p": {"value": "http://example.org/name"},
-                        "o": {"value": "Bob"},
-                    },
-                ]
-            }
-        }
-
-        with (
-            patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql,
-            patch("heritrace.utils.sparql_utils.get_custom_filter") as mock_get_filter,
-            patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False),
-            patch(
-                "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
-                return_value=classes_with_multiple_shapes,
-            ),
-            patch(
-                "heritrace.utils.sparql_utils.determine_shape_for_entity_triples",
-                return_value=selected_shape,
-            ),
-        ):
-            mock_sparql = mock_get_sparql.return_value
-            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
-
-            mock_filter = mock_get_filter.return_value
-            mock_filter.catalogue_label.side_effect = lambda uri, _entity_key: (
-                uri.split("/")[-1]
-            )
-
-            entities_asc, total_count_asc = get_entities_for_class(
-                CatalogQuery(
-                    selected_class=selected_class,
-                    page=1,
-                    per_page=10,
-                    sort_property="http://example.org/name",
-                    sort_direction="ASC",
-                    selected_shape=selected_shape,
-                ),
-                [],
-            )
-
-            assert total_count_asc == 2
-            assert len(entities_asc) == 2
-            assert (
-                entities_asc[0]["uri"] == "http://example.org/person1"
-            )  # Alice should come first
-            assert (
-                entities_asc[1]["uri"] == "http://example.org/person2"
-            )  # Bob should come second
-
-            entities_desc, total_count_desc = get_entities_for_class(
-                CatalogQuery(
-                    selected_class=selected_class,
-                    page=1,
-                    per_page=10,
-                    sort_property="http://example.org/name",
-                    sort_direction="DESC",
-                    selected_shape=selected_shape,
-                ),
-                [],
-            )
-
-            assert total_count_desc == 2
-            assert len(entities_desc) == 2
-            assert (
-                entities_desc[0]["uri"] == "http://example.org/person2"
-            )  # Bob should come first
-            assert (
-                entities_desc[1]["uri"] == "http://example.org/person1"
-            )  # Alice should come second
 
     def test_get_entities_for_class_with_shape_filtering_pagination(self, app) -> None:
         """Test get_entities_for_class with shape filtering and pagination."""

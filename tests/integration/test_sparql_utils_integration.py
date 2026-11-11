@@ -40,9 +40,8 @@ class TestGetAvailableClassesIntegration:
     def test_get_available_classes_real_db(self, app, setup_test_data) -> None:
         """Test getting available classes from the real test database."""
         with app.app_context(), pytest.MonkeyPatch.context() as monkeypatch:
-            # Make get_classes_from_shacl_or_display_rules return our test classes
             monkeypatch.setattr(
-                "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
+                "heritrace.utils.sparql_utils._get_classes_from_shacl",
                 lambda: ["http://example.org/Person", "http://example.org/Document"],
             )
             get_app_state().class_counts.clear()
@@ -100,40 +99,6 @@ class TestGetEntitiesForClassIntegration:
             assert setup_test_data["person1_uri"] in entity_uris
             assert setup_test_data["person2_uri"] in entity_uris
 
-    def test_get_entities_with_sorting(self, app, setup_test_data) -> None:
-        """Test getting entities with sorting from the real test database."""
-        with app.app_context():
-            mock_available_classes = [
-                {
-                    "uri": "http://example.org/Person",
-                    "label": "Person",
-                    "count": "2",
-                    "count_numeric": 2,
-                    "shape": None,
-                }
-            ]
-
-            # Get entities for the Person class, sorted by name
-            entities, total_count = get_entities_for_class(
-                CatalogQuery(
-                    selected_class="http://example.org/Person",
-                    page=1,
-                    per_page=10,
-                    sort_property="http://example.org/name",
-                    sort_direction="ASC",
-                ),
-                mock_available_classes,
-            )
-
-            # Verify the results without assuming specific order
-            assert len(entities) == 2
-            assert total_count == 2
-
-            # Check that both expected entities are present
-            entity_uris = [entity["uri"] for entity in entities]
-            assert setup_test_data["person1_uri"] in entity_uris
-            assert setup_test_data["person2_uri"] in entity_uris
-
 
 @pytest.mark.usefixtures("setup_test_data")
 class TestGetCatalogDataIntegration:
@@ -141,23 +106,7 @@ class TestGetCatalogDataIntegration:
 
     def test_get_catalog_data_real_db(self, app, setup_test_data) -> None:
         """Test getting catalog data from the real test database."""
-        with app.app_context(), pytest.MonkeyPatch.context() as monkeypatch:
-            monkeypatch.setattr(
-                "heritrace.utils.sparql_utils.get_sortable_properties",
-                lambda _class_uri: [
-                    {
-                        "property": "http://example.org/name",
-                        "displayName": "Name",
-                        "sortType": "string",
-                    },
-                    {
-                        "property": "http://example.org/age",
-                        "displayName": "Age",
-                        "sortType": "number",
-                    },
-                ],
-            )
-
+        with app.app_context():
             mock_available_classes = [
                 {
                     "uri": "http://example.org/Person",
@@ -174,8 +123,6 @@ class TestGetCatalogDataIntegration:
                     selected_class="http://example.org/Person",
                     page=1,
                     per_page=10,
-                    sort_property="http://example.org/name",
-                    sort_direction="ASC",
                     selected_shape="http://example.org/PersonShape",
                 ),
                 mock_available_classes,
@@ -186,8 +133,6 @@ class TestGetCatalogDataIntegration:
             assert catalog_data["current_page"] == 1
             assert catalog_data["per_page"] == 10
             assert catalog_data["total_pages"] == 1
-            assert catalog_data["sort_property"] == "http://example.org/name"
-            assert catalog_data["sort_direction"] == "ASC"
             assert catalog_data["selected_class"] == "http://example.org/Person"
 
             # Verify the entities without assuming specific order
@@ -195,17 +140,6 @@ class TestGetCatalogDataIntegration:
             entity_uris = [entity["uri"] for entity in catalog_data["entities"]]
             assert setup_test_data["person1_uri"] in entity_uris
             assert setup_test_data["person2_uri"] in entity_uris
-
-            # Verify the sortable properties
-            assert len(catalog_data["sortable_properties"]) == 2
-            assert (
-                catalog_data["sortable_properties"][0]["property"]
-                == "http://example.org/name"
-            )
-            assert (
-                catalog_data["sortable_properties"][1]["property"]
-                == "http://example.org/age"
-            )
 
     def test_get_catalog_data_no_class(self, app) -> None:
         """Test getting catalog data with no class selected."""

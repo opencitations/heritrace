@@ -91,19 +91,6 @@ def test_catalogue_api_ignores_a_requested_page_size(api_client: FlaskClient) ->
     assert data["per_page"] == 50
 
 
-def test_catalogue_api_with_null_sort_property(api_client: FlaskClient) -> None:
-    """Test the catalogue API endpoint with a null sort property."""
-    response = api_client.get(
-        "/api/catalogue?class=http://example.org/TestClass&page=1&sort_property=null"
-    )
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert "entities" in data
-    assert "available_classes" in data
-    assert "current_page" in data
-    assert data["current_page"] == 1
-
-
 @patch("heritrace.routes.api.get_deleted_entities_with_filtering")
 def test_recycle_bin_api(
     mock_get_deleted_entities, api_client: FlaskClient, app: Flask

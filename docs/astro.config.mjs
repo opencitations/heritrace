@@ -66,7 +66,6 @@ export default defineConfig({
 						{ label: 'Application settings', slug: 'configuration/app-settings' },
 						{ label: 'Configuration editor', slug: 'configuration/editor' },
 						{ label: 'SHACL configuration', slug: 'configuration/shacl' },
-						{ label: 'Extra configuration', slug: 'configuration/extra' },
 					],
 				},
 				{

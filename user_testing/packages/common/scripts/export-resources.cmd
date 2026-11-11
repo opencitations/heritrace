@@ -1,7 +1,7 @@
 @echo off
 
 REM HERITRACE Testing - Resources Export Script
-REM This script exports the modified resources (Shuffle and Display Rules) from Docker volumes
+REM This script exports the modified resources (SHACL) from Docker volumes
 
 echo [PACK] HERITRACE Resources Export
 echo ==============================================
@@ -20,10 +20,9 @@ if not exist "%SOURCE_DIR%" (
 )
 
 set "SHACL_FILE=%SOURCE_DIR%\shacl.ttl"
-set "DISPLAY_RULES_FILE=%SOURCE_DIR%\display_rules.yaml"
 
-if not exist "%SHACL_FILE%" if not exist "%DISPLAY_RULES_FILE%" (
-    echo Error: Neither 'shacl.ttl' nor 'display_rules.yaml' found in the 'config' directory.
+if not exist "%SHACL_FILE%" (
+    echo Error: 'shacl.ttl' not found in the 'config' directory.
     pause
     exit /b 1
 )
@@ -33,15 +32,8 @@ mkdir "%EXPORT_DIR%"
 
 echo Copying resources to export directory...
 
-if exist "%SHACL_FILE%" (
-    copy "%SHACL_FILE%" "%EXPORT_DIR%\" >nul
-    echo    - Found shacl.ttl
-)
-
-if exist "%DISPLAY_RULES_FILE%" (
-    copy "%DISPLAY_RULES_FILE%" "%EXPORT_DIR%\" >nul
-    echo    - Found display_rules.yaml
-)
+copy "%SHACL_FILE%" "%EXPORT_DIR%\" >nul
+echo    - Found shacl.ttl
 
 echo Including testing questionnaires and responses...
 if exist "sus_questionnaire.md" (

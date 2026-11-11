@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import ClassVar
 
 from heritrace.configuration.components import component_options
-from heritrace.configuration.store import DISPLAY_RULES_FILE
 
 _BASE_DIR = Path(__file__).resolve().parent
 
@@ -32,7 +31,6 @@ class Config:
     GUNICORN_WORKERS = _gunicorn_workers
 
     CONFIG_DIR = _BASE_DIR / os.environ["CONFIG_DIR"]
-    DISPLAY_RULES_PATH = CONFIG_DIR / DISPLAY_RULES_FILE
     ADMIN_ORCIDS: ClassVar[list[str]] = [
         orcid.strip()
         for orcid in os.environ["ADMIN_ORCIDS"].split(",")

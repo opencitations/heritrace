@@ -11,7 +11,6 @@ from heritrace.configuration.vocabulary import SH, SHUI
 
 SHACL_FILE = "shacl.ttl"
 SETTINGS_FILE = "settings.db"
-DISPLAY_RULES_FILE = "display_rules.yaml"
 
 
 def shacl_turtle(graph: Graph) -> str:
