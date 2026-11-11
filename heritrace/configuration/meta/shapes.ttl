@@ -18,7 +18,7 @@ meta:ShapesGraph
 
 meta:ShapesGraphShape
   a sh:NodeShape ;
-  sh:name "Entity types"@en, "Tipi di entità"@it ;
+  sh:name "Resource types"@en, "Tipi di risorsa"@it ;
   sh:targetClass sh:ShapesGraph ;
   sh:property [
     sh:path rdf:type ;
@@ -29,14 +29,14 @@ meta:ShapesGraphShape
   ] ;
   sh:property [
     sh:path dcterms:hasPart ;
-    sh:name "Entity types"@en, "Tipi di entità"@it ;
+    sh:name "Resource types"@en, "Tipi di risorsa"@it ;
     sh:order 1 ;
     sh:node meta:NodeShapeShape ;
   ] .
 
 meta:NodeShapeShape
   a sh:NodeShape ;
-  sh:name "Entity type"@en, "Tipo di entità"@it ;
+  sh:name "Resource type"@en, "Tipo di risorsa"@it ;
   sh:targetClass sh:NodeShape ;
   sh:property [
     sh:path rdf:type ;
@@ -124,6 +124,8 @@ meta:NodeShapeShape
   sh:property [
     sh:path dash:hidden ;
     sh:name "Hidden"@en, "Nascosto"@it ;
+    sh:description "Resources of this type do not appear in the catalogue, in the recycle bin or among the types users can create. Other resources can still link to them."@en,
+      "Le risorse di questo tipo non compaiono nel catalogo, nel cestino né tra i tipi che si possono creare. Altre risorse possono comunque collegarsi a loro."@it ;
     sh:order 3 ;
     sh:datatype xsd:boolean ;
     sh:maxCount 1 ;
@@ -139,6 +141,11 @@ meta:PropertyShapeShape
   a sh:NodeShape ;
   sh:name "Field"@en, "Campo"@it ;
   sh:targetClass sh:PropertyShape ;
+  sh:or (
+    [ sh:path dash:composite ; sh:in ( false ) ]
+    [ sh:path sh:node ; sh:minCount 1 ]
+    [ sh:path sh:class ; sh:minCount 1 ]
+  ) ;
   sh:property [
     sh:path rdf:type ;
     sh:hasValue sh:PropertyShape ;
@@ -218,14 +225,14 @@ meta:PropertyShapeShape
   ] ;
   sh:property [
     sh:path sh:node ;
-    sh:name "Nested entity type"@en, "Tipo di entità annidata"@it ;
+    sh:name "Nested resource type"@en, "Tipo di risorsa annidata"@it ;
     sh:order 7 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path sh:class ;
-    sh:name "Class of the linked entity"@en, "Classe dell'entità collegata"@it ;
+    sh:name "Class of the linked resource"@en, "Classe della risorsa collegata"@it ;
     sh:order 8 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
@@ -246,7 +253,9 @@ meta:PropertyShapeShape
   ] ;
   sh:property [
     sh:path dash:composite ;
-    sh:name "Depends on this entity"@en, "Dipende da questa entità"@it ;
+    sh:name "Points to a dependent resource"@en, "Punta a una risorsa dipendente"@it ;
+    sh:description "A resource reached through this property has no meaning without this link. The Dependent resources setting decides what happens when the link is removed."@en,
+      "Una risorsa raggiunta tramite questa proprietà non ha senso senza questo collegamento. Cosa succede quando il collegamento viene rimosso lo decide l'impostazione Risorse dipendenti."@it ;
     sh:order 11 ;
     sh:datatype xsd:boolean ;
     sh:maxCount 1 ;
@@ -254,6 +263,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path dash:hidden ;
     sh:name "Hidden"@en, "Nascosto"@it ;
+    sh:description "The field does not appear in forms or on resource pages. Its values are still validated."@en,
+      "Il campo non compare nei form e nelle pagine delle risorse, ma i suoi valori vengono comunque validati."@it ;
     sh:order 12 ;
     sh:datatype xsd:boolean ;
     sh:maxCount 1 ;
@@ -261,6 +272,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path ht:orderedBy ;
     sh:name "Link to the next value"@en, "Collegamento al valore successivo"@it ;
+    sh:description "The property that links each value to the next one. Values appear in this order and can be dragged into a new one."@en,
+      "La proprietà che collega ogni valore al successivo. I valori compaiono in quest'ordine e si possono trascinare in un ordine nuovo."@it ;
     sh:order 13 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
@@ -268,6 +281,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:property ;
     sh:name "Fields shown in place"@en, "Campi mostrati sul posto"@it ;
+    sh:description "The fields of the nested resource that appear inside this resource. When the list is empty, all of them appear."@en,
+      "I campi della risorsa annidata che compaiono dentro questa risorsa. Se l'elenco è vuoto, compaiono tutti."@it ;
     sh:order 14 ;
     sh:node meta:DetailFieldShape ;
   ] .

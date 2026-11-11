@@ -38,6 +38,7 @@ class FieldDef {
   const FieldDef({
     required this.uri,
     required this.displayName,
+    required this.description,
     required this.entityType,
     required this.subjectShape,
     required this.nodeShape,
@@ -58,6 +59,7 @@ class FieldDef {
     required this.nestedShape,
     required this.or,
     required this.hidden,
+    required this.shownWith,
   });
 
   factory FieldDef.fromJson(Map<String, dynamic> json) {
@@ -68,6 +70,7 @@ class FieldDef {
     return FieldDef(
       uri: uri,
       displayName: json['displayName'] as String? ?? _readableUri(uri),
+      description: json['description'] as String?,
       entityType: json['entityType'] as String?,
       subjectShape: json['subjectShape'] as String?,
       nodeShape: json['nodeShape'] as String?,
@@ -101,11 +104,15 @@ class FieldDef {
           ?.map((e) => FieldDef.fromJson(e as Map<String, dynamic>))
           .toList(),
       hidden: json['hidden'] == true,
+      shownWith: (json['shownWith'] as List<dynamic>? ?? []).cast<String>(),
     );
   }
 
   final String uri;
   final String displayName;
+
+  /// The `sh:description` of the property shape, shown under the field.
+  final String? description;
   final String? entityType;
   final String? subjectShape;
   final String? nodeShape;
@@ -131,6 +138,10 @@ class FieldDef {
   final List<FieldDef>? nestedShape;
   final List<FieldDef>? or;
   final bool hidden;
+
+  /// The properties of the same entity of which at least one must have a
+  /// value for this field to apply; the field always applies when empty.
+  final List<String> shownWith;
 
   bool get isRequired => min > 0 && hasValue == null;
 

@@ -1071,6 +1071,7 @@ def test_process_nested_shapes_edge_cases(app: Flask, shacl_graph: Graph) -> Non
             shacl=shacl_graph,
             presentation=read_presentation(shacl_graph),
             pattern_alternatives=[],
+            shown_with={},
             app=app,
             processed_shapes=set(),
         )
@@ -1086,6 +1087,7 @@ def test_process_nested_shapes_edge_cases(app: Flask, shacl_graph: Graph) -> Non
             shacl=shacl_graph,
             presentation=read_presentation(shacl_graph),
             pattern_alternatives=[],
+            shown_with={},
             app=app,
             processed_shapes={"http://www.w3.org/ns/shacl#NodeShape"},
         )
@@ -1144,6 +1146,7 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
             shacl=shacl_graph,
             presentation=read_presentation(shacl_graph),
             pattern_alternatives=[],
+            shown_with={},
             app=app,
             processed_shapes=set(),
         )
@@ -1160,6 +1163,7 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
             shacl=shacl_graph,
             presentation=read_presentation(shacl_graph),
             pattern_alternatives=[],
+            shown_with={},
             app=app,
             processed_shapes=set(),
         )
@@ -1526,6 +1530,7 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 self.condition_path = None
                 self.condition_value = None
                 self.name = None
+                self.description = None
                 self.editor = None
 
         # Create two rows with different entity types but same predicate
@@ -1574,6 +1579,7 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 shacl=shacl_graph,
                 presentation=read_presentation(shacl_graph),
                 pattern_alternatives=[],
+                shown_with={},
                 app=app,
                 processed_shapes=processed_shapes,
             )
@@ -1616,6 +1622,7 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 shacl=shacl_graph,
                 presentation=read_presentation(shacl_graph),
                 pattern_alternatives=[],
+                shown_with={},
                 app=app,
                 processed_shapes=processed_shapes,
             )

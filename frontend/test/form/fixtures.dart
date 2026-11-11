@@ -61,6 +61,7 @@ const List<Object> _rawArticleFormFields = [
       {
         'uri': title,
         'displayName': 'Title',
+        'description': 'The title as printed on the article.',
         'entityType': article,
         'subjectShape': articleShape,
         'datatypes': [xsdString],

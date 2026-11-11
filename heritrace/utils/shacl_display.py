@@ -21,6 +21,7 @@ from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_patterns import (
     PatternAlternative,
     read_pattern_alternatives,
+    read_shown_with,
 )
 from heritrace.utils.shacl_presentation import (
     ShapesPresentation,
@@ -34,6 +35,7 @@ class ShaclProcessingContext:
     shacl: Graph
     presentation: ShapesPresentation
     pattern_alternatives: list[PatternAlternative]
+    shown_with: dict[tuple[str, str], list[str]]
     app: Flask
     processed_shapes: set[str]
 
@@ -57,6 +59,7 @@ class _ParsedRow:
     entity_key: tuple[str, str]
     node_shapes: list[str]
     name: str | None
+    description: str | None
     editor: str | None
     viewer: str | None
     composite: bool
@@ -68,7 +71,7 @@ COMMON_SPARQL_QUERY = prepareQuery(
     """
     SELECT ?shape ?type ?path ?inverse ?node_shape ?link_shape ?link_class ?datatype
            ?max_count ?min_count ?has_value ?object_class
-           ?name ?editor ?viewer ?composite ?hidden ?ordered_by
+           ?name ?description ?editor ?viewer ?composite ?hidden ?ordered_by
            (GROUP_CONCAT(?optional_value; separator=",")
             AS ?optional_values)
            (GROUP_CONCAT(?or_node; separator=",") AS ?or_nodes)
@@ -133,6 +136,10 @@ COMMON_SPARQL_QUERY = prepareQuery(
             ?list rdf:rest*/rdf:first ?optional_value .
         }
         OPTIONAL { ?property sh:name ?name . }
+        OPTIONAL {
+            ?property sh:description ?description .
+            FILTER (!BOUND(?name) || LANG(?description) = LANG(?name))
+        }
         OPTIONAL { ?property shui:editor ?editor . }
         OPTIONAL { ?property shui:viewer ?viewer . }
         OPTIONAL { ?property dash:composite ?composite . }
@@ -150,7 +157,7 @@ COMMON_SPARQL_QUERY = prepareQuery(
     }
     GROUP BY ?shape ?type ?path ?inverse ?node_shape ?link_shape ?link_class ?datatype
              ?max_count ?min_count ?has_value ?object_class
-             ?name ?editor ?viewer ?composite ?hidden ?ordered_by
+             ?name ?description ?editor ?viewer ?composite ?hidden ?ordered_by
 """,
     initNs={
         "sh": "http://www.w3.org/ns/shacl#",
@@ -203,6 +210,7 @@ def _parse_row(row: ResultRow) -> _ParsedRow:
         entity_key=(entity_type, subject_shape),
         node_shapes=node_shapes,
         name=str(row.name) if row.name else None,
+        description=str(row.description) if row.description else None,
         editor=str(row.editor) if row.editor else None,
         viewer=str(row.viewer) if row.viewer else None,
         composite=bool(row.composite),
@@ -333,12 +341,14 @@ def _process_single_row(
         "composite": parsed.composite,
         "hidden": parsed.hidden,
     }
-    if parsed.name is not None:
-        field_info["displayName"] = parsed.name
-    if parsed.detail_paths:
-        field_info["detailPaths"] = parsed.detail_paths
-    if parsed.ordered_by is not None:
-        field_info["orderedBy"] = parsed.ordered_by
+    declared = {
+        "displayName": parsed.name,
+        "description": parsed.description,
+        "detailPaths": parsed.detail_paths or None,
+        "orderedBy": parsed.ordered_by,
+        "shownWith": ctx.shown_with.get((parsed.subject_shape, parsed.predicate)),
+    }
+    field_info.update({key: value for key, value in declared.items() if value})
 
     if parsed.link_only:
         field_info["nestedShape"] = []
@@ -561,6 +571,7 @@ def extract_shacl_form_fields(
         shacl=shacl,
         presentation=presentation,
         pattern_alternatives=read_pattern_alternatives(shacl),
+        shown_with=read_shown_with(shacl),
         app=app,
         processed_shapes=set(),
     )

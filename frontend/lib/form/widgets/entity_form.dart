@@ -55,10 +55,12 @@ class EntityForm extends StatelessWidget {
                 child: card.first.def.isBoolean
                     ? BooleanFieldCard(
                         label: card.first.def.displayName,
+                        description: card.first.def.description,
                         value: card.first.isSwitchedOn,
                         onChanged: card.first.switchTo,
                       )
                     : AppCard(
+                        footer: card.first.def.description,
                         header: PropertyHeading(
                           label: card.first.def.displayName,
                           style: styles.groupHeader,

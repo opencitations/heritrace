@@ -10,6 +10,7 @@ import 'package:heritrace/form/form_model.dart';
 import 'package:heritrace/form/form_scope.dart';
 import 'package:heritrace/design/controls.dart';
 import 'package:heritrace/form/widgets/entity_autocomplete.dart';
+import 'package:heritrace/form/widgets/entity_form.dart';
 import 'package:heritrace/form/widgets/field_group_widget.dart';
 import 'package:heritrace/form/widgets/item_widgets.dart';
 import 'package:heritrace/i18n/translations.g.dart';
@@ -151,6 +152,47 @@ void main() {
     expect(find.text('Role'), findsNothing);
     expect(find.byType(EntityAutocompleteField), findsOneWidget);
   });
+
+  testWidgets('a field shows its description under it', (tester) async {
+    await pumpInForm(tester, EntityForm(node: root));
+
+    expect(find.text('The title as printed on the article.'), findsOneWidget);
+  });
+
+  testWidgets(
+    'a field with shownWith appears once a listed field has a value',
+    (tester) async {
+      const node = 'http://www.w3.org/ns/shacl#node';
+      final field = EntityNode(
+        entityType: 'http://www.w3.org/ns/shacl#PropertyShape',
+        entityShape: null,
+        fields: [
+          FieldDef.fromJson({
+            'uri': 'http://datashapes.org/dash#composite',
+            'displayName': 'Part of the entity',
+            'inputType': 'checkbox',
+            'max': 1,
+            'shownWith': [node],
+          }),
+          FieldDef.fromJson({
+            'uri': node,
+            'displayName': 'Nested resource type',
+            'min': 1,
+            'max': 1,
+          }),
+        ],
+        depth: 0,
+      );
+      addTearDown(field.dispose);
+
+      await pumpInForm(tester, EntityForm(node: field));
+      expect(find.text('Part of the entity'), findsNothing);
+
+      await tester.enterText(find.byType(CupertinoTextField), 'ex:AuthorShape');
+      await tester.pump();
+      expect(find.text('Part of the entity'), findsOneWidget);
+    },
+  );
 
   testWidgets('mandatory values show their label and an explanation', (
     tester,

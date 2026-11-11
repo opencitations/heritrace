@@ -479,6 +479,7 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
                                 else
                                   for (final group in _session.groups)
                                     if (group.group.isShown &&
+                                        _session.applies(group) &&
                                         (group.group.triples.isNotEmpty ||
                                             (group.group.field?.isBoolean ??
                                                 false) ||

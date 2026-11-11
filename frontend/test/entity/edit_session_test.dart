@@ -219,6 +219,77 @@ void main() {
     );
   });
 
+  test('removing the field that shows another one deletes its value', () {
+    const composite = 'http://datashapes.org/dash#composite';
+    const node = 'http://www.w3.org/ns/shacl#node';
+    const fieldShape = 'https://example.org/field';
+    Map<String, Object?> existingGroup(
+      String property,
+      Map<String, Object?> field,
+      String value,
+    ) => {
+      'display_name': property,
+      'property': property,
+      'object_shape': null,
+      'is_draggable': false,
+      'ordered_by': null,
+      'field': {'uri': property, 'max': 1, ...field},
+      'triples': [
+        {
+          'subject': fieldShape,
+          'predicate': property,
+          'value': value,
+          'object': value,
+          'external_entity': null,
+          'is_mandatory': false,
+          'label': null,
+        },
+      ],
+    };
+    final fieldSession = EditSession(
+      view: EntityView.fromJson({
+        'uri': fieldShape,
+        'label': 'A field',
+        'type': 'http://www.w3.org/ns/shacl#PropertyShape',
+        'type_label': 'Field',
+        'shape': null,
+        'classes': <String>[],
+        'is_deleted': false,
+        'has_history': true,
+        'shacl': true,
+        'has_form_fields': true,
+        'can_be_added': <String>[],
+        'can_be_deleted': [composite, node],
+        'datatypes': <String, dynamic>{},
+        'optional_values': <String, dynamic>{},
+        'groups': [
+          existingGroup(composite, {
+            'inputType': 'checkbox',
+            'shownWith': [node],
+          }, 'true'),
+          existingGroup(node, {}, 'https://example.org/nested'),
+        ],
+      }),
+      entityType: 'http://www.w3.org/ns/shacl#PropertyShape',
+      repository: EntityRepository(Dio(), EntityStore.dataset),
+      validationMessages: messages,
+      atLeastOnePropertyMessage: 'at least one',
+    );
+    addTearDown(fieldSession.dispose);
+
+    fieldSession.groups.last.existing.single.markForDeletion();
+
+    expect(
+      fieldSession.buildChanges().map(
+        (change) => (change['predicate'], change['action'], change['object']),
+      ),
+      [
+        (composite, 'delete', 'true'),
+        (node, 'delete', 'https://example.org/nested'),
+      ],
+    );
+  });
+
   test('stopping the edit session resets every group', () async {
     group(title).existing.single.setValue('Changed');
     group(documentContext).formGroup!.addItem();

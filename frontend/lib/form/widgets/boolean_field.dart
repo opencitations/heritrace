@@ -15,12 +15,14 @@ class BooleanFieldCard extends StatelessWidget {
   const BooleanFieldCard({
     required this.label,
     required this.value,
+    this.description,
     this.onChanged,
     super.key,
   });
 
   final String label;
   final bool value;
+  final String? description;
   final ValueChanged<bool>? onChanged;
 
   @override
@@ -28,6 +30,7 @@ class BooleanFieldCard extends StatelessWidget {
     final t = Translations.of(context);
     if (onChanged != null) {
       return AppSection(
+        footer: description,
         children: [
           AppListTile(
             title: TileText(label),
@@ -37,6 +40,7 @@ class BooleanFieldCard extends StatelessWidget {
       );
     }
     return AppCard(
+      footer: description,
       header: PropertyHeading(
         label: label,
         style: AppTextStyles.of(context).groupHeader,

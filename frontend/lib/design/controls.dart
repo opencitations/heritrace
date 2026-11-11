@@ -357,12 +357,19 @@ class RemoveButton extends StatelessWidget {
 }
 
 /// A rounded white group on the grey page background, as in iOS Settings,
-/// with its [header] above it, lined up with the group's content.
+/// with its [header] above it and its [footer] below, lined up with the
+/// group's content.
 class AppSection extends StatelessWidget {
-  const AppSection({required this.children, this.header, super.key});
+  const AppSection({
+    required this.children,
+    this.header,
+    this.footer,
+    super.key,
+  });
 
   final List<Widget> children;
   final Widget? header;
+  final String? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -372,17 +379,27 @@ class AppSection extends StatelessWidget {
       additionalDividerMargin: 0,
       children: children,
     );
-    if (header == null) {
+    if (header == null && footer == null) {
       return section;
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: appCardPadding, bottom: 6),
-          child: header,
-        ),
+        if (header != null)
+          Padding(
+            padding: const EdgeInsets.only(left: appCardPadding, bottom: 6),
+            child: header,
+          ),
         section,
+        if (footer != null)
+          Padding(
+            padding: const EdgeInsets.only(
+              left: appCardPadding,
+              right: appCardPadding,
+              top: 6,
+            ),
+            child: Text(footer!, style: AppTextStyles.of(context).caption),
+          ),
       ],
     );
   }
@@ -390,15 +407,17 @@ class AppSection extends StatelessWidget {
 
 /// [AppSection] with a single padded body.
 class AppCard extends StatelessWidget {
-  const AppCard({required this.child, this.header, super.key});
+  const AppCard({required this.child, this.header, this.footer, super.key});
 
   final Widget child;
   final Widget? header;
+  final String? footer;
 
   @override
   Widget build(BuildContext context) {
     return AppSection(
       header: header,
+      footer: footer,
       children: [
         SizedBox(
           width: double.infinity,

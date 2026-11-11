@@ -38,6 +38,35 @@ void main() {
     expect(group(root, documentContext).items, isEmpty);
   });
 
+  test('a field that does not apply is not collected', () {
+    const composite = 'http://datashapes.org/dash#composite';
+    const node = 'http://www.w3.org/ns/shacl#node';
+    final field = EntityNode(
+      entityType: 'http://www.w3.org/ns/shacl#PropertyShape',
+      entityShape: null,
+      fields: [
+        FieldDef.fromJson({
+          'uri': composite,
+          'inputType': 'checkbox',
+          'max': 1,
+          'shownWith': [node],
+        }),
+        FieldDef.fromJson({'uri': node, 'max': 1}),
+      ],
+      depth: 0,
+    );
+    addTearDown(field.dispose);
+
+    group(field, composite).switchTo(true);
+    expect(collectProperties(field), isEmpty);
+
+    (group(field, node).addItem() as LiteralItem).setValue('ex:NestedShape');
+    expect(collectProperties(field), {
+      composite: ['true'],
+      node: ['ex:NestedShape'],
+    });
+  });
+
   test('empty forms produce only the mandatory value', () {
     expect(collectProperties(root), {
       rdfType: [article],

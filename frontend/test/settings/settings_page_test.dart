@@ -424,7 +424,7 @@ void main() {
       _FakeSettingsRepository(const Saved(revision: 'r1', reloading: false)),
     );
 
-    await tester.tap(find.text('Entity types'));
+    await tester.tap(find.text('Resource types'));
     await tester.pump();
 
     expect(

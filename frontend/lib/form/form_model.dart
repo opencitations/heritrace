@@ -50,8 +50,18 @@ class EntityNode extends ChangeNotifier {
   /// The groups a form shows, limited to [paths] when given.
   Iterable<FieldGroup> shownGroups(List<String>? paths) => groups.where(
     (group) =>
-        !group.def.hidden && (paths == null || paths.contains(group.def.uri)),
+        !group.def.hidden &&
+        (paths == null || paths.contains(group.def.uri)) &&
+        applies(group),
   );
+
+  /// Whether [group] applies, given the values its `shownWith` fields hold.
+  bool applies(FieldGroup group) =>
+      group.def.shownWith.isEmpty ||
+      groups.any(
+        (other) =>
+            group.def.shownWith.contains(other.def.uri) && other.hasContent,
+      );
 
   @override
   void dispose() {
@@ -71,6 +81,8 @@ class FieldGroup extends ChangeNotifier {
   late EntityNode owner;
 
   bool get canAdd => def.max == null || items.length < def.max!;
+
+  bool get hasContent => items.any((item) => !item.isEmpty);
 
   bool canDelete(FormItem item) {
     if (def.hasValue != null) {

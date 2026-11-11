@@ -60,12 +60,14 @@ class EditableGroupWidget extends StatelessWidget {
         if (group.group.field?.isBoolean ?? false) {
           return BooleanFieldCard(
             label: group.group.displayName,
+            description: group.group.field?.description,
             value: group.isSwitchedOn,
             onChanged: editing && group.canSwitch ? group.switchTo : null,
           );
         }
         final draggable = editing && group.group.isDraggable;
         return AppCard(
+          footer: group.group.field?.description,
           header: PropertyHeading(
             label: group.group.displayName,
             style: AppTextStyles.of(context).groupHeader,

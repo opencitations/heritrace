@@ -111,6 +111,12 @@ class EditableGroup extends ChangeNotifier {
 
   bool get canSwitch => existing.isNotEmpty || formGroup != null;
 
+  bool get hasContent =>
+      existing.any(
+        (value) => !value.markedForDeletion && value.newValue.trim().isNotEmpty,
+      ) ||
+      (formGroup?.hasContent ?? false);
+
   void switchTo(bool on) {
     if (existing.isEmpty) {
       formGroup!.switchTo(on);
@@ -212,13 +218,25 @@ class EditSession extends ChangeNotifier {
 
   bool get showsCustomProperties => !view.shacl || !view.hasFormFields;
 
+  /// Whether [group] applies, given the values its `shownWith` fields hold.
+  bool applies(EditableGroup group) => switch (group.group.field) {
+    null => true,
+    final field =>
+      field.shownWith.isEmpty ||
+          groups.any(
+            (other) =>
+                field.shownWith.contains(other.group.property) &&
+                other.hasContent,
+          ),
+  };
+
   bool get hasChanges =>
       groups.any(
         (group) =>
             group.existing.any((v) => v.isModified || v.markedForDeletion) ||
             group.orderChanged,
       ) ||
-      collectProperties(root).isNotEmpty ||
+      _newProperties().isNotEmpty ||
       customProperties.hasAtLeastOneProperty;
 
   Future<LockResponse> startEditing(List<String> linkedResources) async {
@@ -289,8 +307,9 @@ class EditSession extends ChangeNotifier {
       'entity_shape': view.shape,
     };
     for (final group in groups) {
+      final dropped = !applies(group);
       for (final value in group.existing) {
-        if (value.markedForDeletion) {
+        if (dropped || value.markedForDeletion) {
           changes.add({
             ...base('delete', group),
             'object': value.triple.object,
@@ -304,7 +323,7 @@ class EditSession extends ChangeNotifier {
           });
         }
       }
-      if (group.orderChanged) {
+      if (!dropped && group.orderChanged) {
         changes.add({
           ...base('order', group),
           'object': group.currentOrder,
@@ -312,7 +331,7 @@ class EditSession extends ChangeNotifier {
         });
       }
     }
-    final properties = collectProperties(root)
+    final properties = _newProperties()
       ..addAll(collectCustomProperties(customProperties.properties));
     if (properties.isNotEmpty) {
       changes.add({
@@ -323,6 +342,14 @@ class EditSession extends ChangeNotifier {
     }
     return changes;
   }
+
+  /// The values added through the form, for the groups that apply. The
+  /// session decides, since the fields that show a group may hold only
+  /// existing values, which the form does not know.
+  Map<String, List<Object>> _newProperties() => collectGroups([
+    for (final group in groups)
+      if (group.formGroup != null && applies(group)) group.formGroup!,
+  ]);
 
   static List<Map<String, Object?>> deletionChanges(
     List<Map<String, Object?>> changes,

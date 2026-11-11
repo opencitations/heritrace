@@ -192,7 +192,7 @@ settings:
   lockedMessage: $name ($orcid) sta modificando le impostazioni di sistema. Riprova quando avrà finito.
   tabs:
     system: Sistema
-    types: Tipi di entità
+    types: Tipi di risorsa
   system:
     homePage: Pagina iniziale
     appTitle: Titolo grande

@@ -41,7 +41,7 @@ The lists above follow the W3C editor's drafts of the SHACL 1.2 family:
 
 ## Where the shapes live
 
-The shapes are part of the HERITRACE configuration, stored in `shacl.ttl` in the configuration folder. They are optional: without shapes, you edit the data with free properties, choosing classes, predicates and values yourself. You can add shapes at any time, starting from an empty configuration. You can edit them in the **Entity types** tab of the [configuration editor](../editor/), or write them in Turtle before the first start.
+The shapes are part of the HERITRACE configuration, stored in `shacl.ttl` in the configuration folder. They are optional: without shapes, you edit the data with free properties, choosing classes, predicates and values yourself. You can add shapes at any time, starting from an empty configuration. You can edit them in the **Resource types** tab of the [configuration editor](../editor/), or write them in Turtle before the first start.
 
 Example shapes are available in [`example_configurations/`](https://github.com/opencitations/heritrace/tree/main/example_configurations).
 
@@ -281,7 +281,21 @@ Add `dash:composite true` to a property shape when its values have a meaning onl
 
 Without `dash:composite`, removing a value removes only the link, and the linked entity stays.
 
-The term comes from [DASH](https://datashapes.org/dash.ttl).
+The **Points to a dependent resource** option of the [configuration editor](../editor/) sets this term on a field that links to another resource, through a **Nested resource type** (`sh:node`) or a **Class of the linked resource** (`sh:class`).
+
+<Aside type="note" title="A HERITRACE rule, not a DASH one">
+Although DASH declares `dash:composite` on any property shape, it does not require the values to be nodes or entities ([DASH, section "Composites"](https://datashapes.org/dash.html#composites)). However, the term has no meaning on a property that does not point to another entity. HERITRACE therefore adds the following restriction to the shapes of its configuration editor:
+
+```ttl
+sh:or (
+    [ sh:path dash:composite ; sh:in ( false ) ]
+    [ sh:path sh:node ; sh:minCount 1 ]
+    [ sh:path sh:class ; sh:minCount 1 ]
+) .
+```
+</Aside>
+
+The term comes from [DASH](https://datashapes.org/dash.html#composites).
 
 ## Presentation
 
@@ -323,6 +337,18 @@ sh:property [
 ```
 
 Without `sh:name`, HERITRACE derives a readable name from the IRI, so `hasPublicationDate` becomes "has publication date".
+
+### Descriptions (`sh:description`)
+
+A property shape can carry a `sh:description` that explains its field. HERITRACE shows it in smaller text under the field, both on the entity page and in the form.
+
+```ttl
+sh:property [
+    sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:description "A name given to the resource." ;
+] .
+```
 
 ### Order (`sh:order`)
 
@@ -393,7 +419,7 @@ schema:IdentifierShape
     dash:hidden true .
 ```
 
-The **Hidden** option of the [configuration editor](../editor/) sets this term on both fields and entity types.
+The **Hidden** option of the [configuration editor](../editor/) sets this term on both fields and resource types.
 
 <Aside type="note" title="dash:hidden on node shapes">
 Although DASH declares `sh:PropertyShape` as the domain of `dash:hidden`, TopQuadrant, which maintains DASH, [applies the term to classes as well](https://github.com/TopQuadrant/shacl/blob/master/src/main/resources/rdf/tosh.ttl). Since HERITRACE applies no RDFS inference to the shapes graph, the declared domain causes no problem here, and HERITRACE follows the same practice.

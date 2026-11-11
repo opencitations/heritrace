@@ -104,6 +104,76 @@ class TestShaclUtils:
             "http://example.org/pages": [(None, "number")],
         }
 
+    def test_field_description_follows_the_language_of_its_name(self) -> None:
+        app = Flask(__name__)
+        app.config["DATASET_DB_URL"] = "http://example.org/sparql"
+        shacl = Graph().parse(
+            data="""
+            @prefix sh: <http://www.w3.org/ns/shacl#> .
+            @prefix ex: <http://example.org/> .
+
+            ex:ArticleShape a sh:NodeShape ;
+              sh:targetClass ex:Article ;
+              sh:property [
+                sh:path ex:abstract ;
+                sh:name "Abstract"@en, "Riassunto"@it ;
+                sh:description "A summary of the article."@en,
+                  "Una sintesi dell'articolo."@it ;
+              ] .
+            """,
+            format="turtle",
+        )
+
+        form_fields = extract_shacl_form_fields(shacl, read_presentation(shacl), app)
+
+        [field] = form_fields[
+            ("http://example.org/Article", "http://example.org/ArticleShape")
+        ]["http://example.org/abstract"]
+        descriptions = {
+            "Abstract": "A summary of the article.",
+            "Riassunto": "Una sintesi dell'articolo.",
+        }
+        assert field["description"] == descriptions[str(field["displayName"])]
+
+    def test_a_boolean_restricted_by_sh_or_is_shown_with_its_alternatives(
+        self,
+    ) -> None:
+        app = Flask(__name__)
+        app.config["DATASET_DB_URL"] = "http://example.org/sparql"
+        shacl = Graph().parse(
+            data="""
+            @prefix sh: <http://www.w3.org/ns/shacl#> .
+            @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+            @prefix ex: <http://example.org/> .
+
+            ex:FieldShape a sh:NodeShape ;
+              sh:targetClass ex:Field ;
+              sh:or (
+                [ sh:path ex:composite ; sh:in ( false ) ]
+                [ sh:path ex:node ; sh:minCount 1 ]
+                [ sh:path ex:class ; sh:minCount 1 ]
+              ) ;
+              sh:property [ sh:path ex:composite ; sh:datatype xsd:boolean ] ;
+              sh:property [ sh:path ex:node ] .
+            """,
+            format="turtle",
+        )
+
+        form_fields = extract_shacl_form_fields(shacl, read_presentation(shacl), app)
+
+        fields = form_fields[
+            ("http://example.org/Field", "http://example.org/FieldShape")
+        ]
+        assert {
+            predicate: [details.get("shownWith") for details in details_list]
+            for predicate, details_list in fields.items()
+        } == {
+            "http://example.org/composite": [
+                ["http://example.org/class", "http://example.org/node"]
+            ],
+            "http://example.org/node": [None],
+        }
+
     def test_qualified_value_shapes_yield_mandatory_values(self) -> None:
         app = Flask(__name__)
         app.config["DATASET_DB_URL"] = "http://example.org/sparql"
@@ -231,6 +301,7 @@ class TestShaclUtils:
             link_class: object
             detail_paths: object
             name: object = None
+            description: object = None
             editor: object = None
             inverse: object = None
             viewer: object = None
@@ -276,6 +347,7 @@ class TestShaclUtils:
                 shacl=shacl,
                 presentation=read_presentation(shacl),
                 pattern_alternatives=[],
+                shown_with={},
                 app=app,
                 processed_shapes=processed_shapes,
             )
@@ -365,6 +437,7 @@ class TestShaclUtils:
             link_class: object
             detail_paths: object
             name: object = None
+            description: object = None
             editor: object = None
             inverse: object = None
             viewer: object = None
@@ -441,6 +514,7 @@ class TestShaclUtils:
                         message="message1",
                     )
                 ],
+                shown_with={},
                 app=app,
                 processed_shapes=processed_shapes,
             )

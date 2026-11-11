@@ -28,3 +28,7 @@ The configuration editor builds its pages from the meta-shapes and cannot edit R
 ## Narrow the link search by container
 
 A search on a link can match too many entities to browse: in OpenCitations Meta, 1,501,210 of the 7,614,242 issues have the number "1". Let users choose the journal first, then the volume, then the issue, with each list limited by the previous choice. The article still stores one `frbr:partOf` link, to the final choice. Decide how the shapes express these steps, since SHACL UI has no term for a field that depends on another.
+
+## Show names and descriptions in the language of the interface
+
+A shape can give `sh:name` and `sh:description` in several languages, but HERITRACE shows the first one in the file, whatever language the user has chosen. The frontend does not tell the backend which language is active. Let HERITRACE pick names and descriptions in the language of the interface, on entity pages, in forms and in the configuration editor.

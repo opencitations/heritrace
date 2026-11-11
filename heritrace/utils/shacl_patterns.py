@@ -66,3 +66,38 @@ def read_pattern_alternatives(shacl: Graph) -> list[PatternAlternative]:
         )
         for row in select_results(shacl.query(_ALTERNATIVES_QUERY))
     ]
+
+
+_SHOWN_WITH_QUERY = prepareQuery(
+    """
+    SELECT ?shape ?path ?trigger_path
+    WHERE {
+        ?shape sh:or ?alternatives .
+        ?alternatives rdf:rest*/rdf:first ?gated, ?trigger .
+        ?gated sh:path ?path ;
+               sh:in ( false ) .
+        ?trigger sh:path ?trigger_path ;
+                 sh:minCount 1 .
+    }
+    ORDER BY ?shape ?path ?trigger_path
+    """,
+    initNs={
+        "sh": "http://www.w3.org/ns/shacl#",
+        "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    },
+)
+
+
+def read_shown_with(shacl: Graph) -> dict[tuple[str, str], list[str]]:
+    """Map each (shape, path) to the paths that must have a value to show it.
+
+    A node shape declares that a boolean field applies only when one of some
+    other fields has a value with
+    sh:or ( [ sh:path P ; sh:in ( false ) ] [ sh:path Q ; sh:minCount 1 ] ... ).
+    """
+    shown_with: dict[tuple[str, str], list[str]] = {}
+    for row in select_results(shacl.query(_SHOWN_WITH_QUERY)):
+        shown_with.setdefault((str(row.shape), str(row.path)), []).append(
+            str(row.trigger_path)
+        )
+    return shown_with

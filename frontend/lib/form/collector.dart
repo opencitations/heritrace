@@ -7,10 +7,14 @@ import 'form_model.dart';
 import 'validator.dart';
 
 /// Builds the `properties` map accepted by the backend from the editable tree.
-/// Empty values are skipped, so an untouched nested entity contributes nothing.
-Map<String, List<Object>> collectProperties(EntityNode node) {
+/// Empty values and fields that do not apply are skipped, so an untouched
+/// nested entity contributes nothing.
+Map<String, List<Object>> collectProperties(EntityNode node) =>
+    collectGroups(node.groups.where(node.applies));
+
+Map<String, List<Object>> collectGroups(Iterable<FieldGroup> groups) {
   final data = <String, List<Object>>{};
-  for (final group in node.groups) {
+  for (final group in groups) {
     _collectGroup(group, data);
   }
   return data;
