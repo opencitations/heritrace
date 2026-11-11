@@ -129,6 +129,18 @@ sh:property [
 ] .
 ```
 
+### Numeric bounds (`sh:minInclusive`, `sh:maxInclusive`, `sh:minExclusive` and `sh:maxExclusive`)
+Limit a number to a range. With `sh:minInclusive` and `sh:maxInclusive` the range includes the bound value, while with `sh:minExclusive` and `sh:maxExclusive` the range excludes the bound value. HERITRACE compares numbers only: the property needs a numeric datatype, such as `xsd:integer` or `xsd:decimal`, and each bound must be an integer or a decimal. When a whole-number field cannot go below zero, the form also ignores the minus sign as the user types.
+
+```ttl
+# A book has at least one page
+sh:property [
+    sh:path schema:numberOfPages ;
+    sh:datatype xsd:integer ;
+    sh:minInclusive 1 ;
+] .
+```
+
 ### Value range (`sh:in` and `sh:hasValue`)
 Restrict property values to a specific set of options.
 

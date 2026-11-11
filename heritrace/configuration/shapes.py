@@ -46,9 +46,14 @@ class PropertyShape:
     path: str
     inverse: bool = False
     name: str | None = None
+    description: str | None = None
     order: int | None = None
     min_count: int | None = None
     max_count: int | None = None
+    min_inclusive: Literal | None = None
+    max_inclusive: Literal | None = None
+    min_exclusive: Literal | None = None
+    max_exclusive: Literal | None = None
     editor: str | None = None
     viewer: str | None = None
     composite: bool | None = None
@@ -99,6 +104,11 @@ def _integer(graph: Graph, subject: Node, predicate: URIRef) -> int | None:
     if isinstance(value, Literal) and isinstance(value.toPython(), int):
         return cast("int", value.toPython())
     return None
+
+
+def _literal(graph: Graph, subject: Node, predicate: URIRef) -> Literal | None:
+    value = graph.value(subject, predicate)
+    return value if isinstance(value, Literal) else None
 
 
 def _boolean(graph: Graph, subject: Node, predicate: URIRef) -> bool | None:
@@ -169,6 +179,7 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
         path=str(inverse_of or path),
         inverse=inverse_of is not None,
         name=_text(graph, property_shape, SH.name),
+        description=_text(graph, property_shape, SH.description),
         order=_integer(graph, property_shape, SH.order),
         editor=_iri(graph, property_shape, SHUI.editor),
         viewer=_iri(graph, property_shape, SHUI.viewer),
@@ -176,6 +187,10 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
         hidden=_boolean(graph, property_shape, DASH.hidden),
         ordered_by=_iri(graph, property_shape, HT.orderedBy),
         label=(property_shape, SHUI.propertyRole, SHUI.LabelRole) in graph,
+        min_inclusive=_literal(graph, property_shape, SH.minInclusive),
+        max_inclusive=_literal(graph, property_shape, SH.maxInclusive),
+        min_exclusive=_literal(graph, property_shape, SH.minExclusive),
+        max_exclusive=_literal(graph, property_shape, SH.maxExclusive),
     )
     if qualified_shape is not None:
         prop.qualified = True
@@ -344,10 +359,17 @@ def _add_property(graph: Graph, shape: URIRef, prop: PropertyShape) -> None:
     graph.add((shape, SH.property, node))
     _add_path(graph, node, prop)
     _add_widgets(graph, node, prop)
-    if prop.name is not None:
-        graph.add((node, SH.name, Literal(prop.name)))
-    if prop.order is not None:
-        graph.add((node, SH.order, Literal(prop.order)))
+    for predicate, value in (
+        (SH.name, prop.name),
+        (SH.description, prop.description),
+        (SH.order, prop.order),
+        (SH.minInclusive, prop.min_inclusive),
+        (SH.maxInclusive, prop.max_inclusive),
+        (SH.minExclusive, prop.min_exclusive),
+        (SH.maxExclusive, prop.max_exclusive),
+    ):
+        if value is not None:
+            graph.add((node, predicate, Literal(value)))
     if prop.label:
         graph.add((node, SHUI.propertyRole, SHUI.LabelRole))
     if prop.label_query is not None:

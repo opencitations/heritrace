@@ -293,6 +293,10 @@ class TestShaclUtils:
             object_class: object
             min_count: object
             max_count: object
+            min_inclusive: object
+            max_inclusive: object
+            min_exclusive: object
+            max_exclusive: object
             datatype: object
             optional_values: object
             or_nodes: object
@@ -320,6 +324,10 @@ class TestShaclUtils:
                 object_class="objectClass1",
                 min_count=0,
                 max_count=None,
+                min_inclusive=None,
+                max_inclusive=None,
+                min_exclusive=None,
+                max_exclusive=None,
                 datatype=None,
                 optional_values="",
                 or_nodes="orNode1",  # Questo è importante: specifica un orNode
@@ -429,6 +437,10 @@ class TestShaclUtils:
             object_class: object
             min_count: object
             max_count: object
+            min_inclusive: object
+            max_inclusive: object
+            min_exclusive: object
+            max_exclusive: object
             datatype: object
             optional_values: object
             or_nodes: object
@@ -457,6 +469,10 @@ class TestShaclUtils:
                 object_class="objectClass1",
                 min_count=0,
                 max_count=None,
+                min_inclusive=None,
+                max_inclusive=None,
+                min_exclusive=None,
+                max_exclusive=None,
                 datatype="http://www.w3.org/2001/XMLSchema#string",  # Primo datatype
                 optional_values="",
                 or_nodes="",  # Nessun orNode
@@ -477,6 +493,10 @@ class TestShaclUtils:
                 object_class="objectClass1",
                 min_count=0,
                 max_count=None,
+                min_inclusive=None,
+                max_inclusive=None,
+                min_exclusive=None,
+                max_exclusive=None,
                 datatype="http://www.w3.org/2001/XMLSchema#integer",  # Secondo datatype
                 optional_values="",
                 or_nodes="",  # Stesso orNodes (vuoto)

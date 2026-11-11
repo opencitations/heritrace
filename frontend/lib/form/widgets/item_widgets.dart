@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: ISC
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 
 import '../../design/app_theme.dart';
 import '../../design/controls.dart';
@@ -16,6 +17,26 @@ import 'entity_autocomplete.dart';
 import 'entity_form.dart';
 import 'field_group_widget.dart';
 import 'nested_dialog.dart';
+
+TextInputType valueKeyboardType(FieldDef def) => def.isInteger
+    ? TextInputType.numberWithOptions(signed: def.acceptsNegative)
+    : switch (def.inputType) {
+        'number' => const TextInputType.numberWithOptions(
+          decimal: true,
+          signed: true,
+        ),
+        'url' => TextInputType.url,
+        'textarea' => TextInputType.multiline,
+        _ => TextInputType.text,
+      };
+
+List<TextInputFormatter>? valueInputFormatters(FieldDef def) => def.isInteger
+    ? [
+        def.acceptsNegative
+            ? FilteringTextInputFormatter.allow(RegExp(r'^-|\d'))
+            : FilteringTextInputFormatter.digitsOnly,
+      ]
+    : null;
 
 class ItemWidget extends StatelessWidget {
   const ItemWidget({required this.item, super.key});
@@ -102,15 +123,8 @@ class _LiteralFieldState extends State<LiteralField> {
       controller: _controller,
       focusNode: widget.item.focusNode,
       maxLines: multiline ? 5 : 1,
-      keyboardType: switch (def.inputType) {
-        'number' => const TextInputType.numberWithOptions(
-          decimal: true,
-          signed: true,
-        ),
-        'url' => TextInputType.url,
-        'textarea' => TextInputType.multiline,
-        _ => TextInputType.text,
-      },
+      keyboardType: valueKeyboardType(def),
+      inputFormatters: valueInputFormatters(def),
       placeholder: def.displayName,
       errorText: itemErrorText(context, widget.item),
       onChanged: widget.item.setValue,

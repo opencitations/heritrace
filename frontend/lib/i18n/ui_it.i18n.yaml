@@ -87,6 +87,10 @@ form:
   invalidInput: Valore non valido. Atteso $expected.
   tooMany: La proprietà "$name" ha troppi valori ($count). Il massimo consentito è $max.
   tooFew: La proprietà "$name" ha troppo pochi valori ($count). Il minimo richiesto è $min.
+  atLeast: Inserisci un valore maggiore o uguale a $limit.
+  atMost: Inserisci un valore minore o uguale a $limit.
+  greaterThan: Inserisci un valore maggiore di $limit.
+  lessThan: Inserisci un valore minore di $limit.
   atLeastOneProperty: Compila almeno una proprietà
   atLeastOneCustomProperty: Indica almeno una proprietà con un valore
 primarySource:

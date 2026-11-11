@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: ISC
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 
 import 'app_theme.dart';
 import 'spacing.dart';
@@ -167,6 +168,7 @@ class AppTextField extends StatelessWidget {
     this.errorText,
     this.maxLines = 1,
     this.keyboardType,
+    this.inputFormatters,
     this.onChanged,
     this.onSubmitted,
     this.suffix,
@@ -180,6 +182,7 @@ class AppTextField extends StatelessWidget {
   final String? errorText;
   final int maxLines;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final Widget? suffix;
@@ -195,6 +198,7 @@ class AppTextField extends StatelessWidget {
         placeholder: placeholder,
         maxLines: maxLines,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         onChanged: onChanged,
         onSubmitted: onSubmitted,
         suffix: suffix,

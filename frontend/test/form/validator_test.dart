@@ -15,7 +15,19 @@ const messages = ValidationMessages(
   invalidInput: _invalidInput,
   tooMany: _tooMany,
   tooFew: _tooFew,
+  atLeast: _atLeast,
+  atMost: _atMost,
+  greaterThan: _greaterThan,
+  lessThan: _lessThan,
 );
+
+String _atLeast(num limit) => 'at least $limit';
+
+String _atMost(num limit) => 'at most $limit';
+
+String _greaterThan(num limit) => 'greater than $limit';
+
+String _lessThan(num limit) => 'less than $limit';
 
 String _invalidInput(String expected) => 'expected $expected';
 
@@ -160,6 +172,59 @@ void main() {
       ).map((e) => e.fullMessage),
       ['Title too many 2/1'],
     );
+  });
+
+  List<String> Function(String) boundMessages(Map<String, num> bounds) {
+    const count = 'http://example.org/count';
+    final node = EntityNode(
+      entityType: article,
+      entityShape: articleShape,
+      depth: 0,
+      fields: parseFormFields([
+        [
+          count,
+          [
+            {
+              'uri': count,
+              'displayName': 'Count',
+              'entityType': article,
+              'subjectShape': articleShape,
+              'datatypes': ['http://www.w3.org/2001/XMLSchema#integer'],
+              'min': 1,
+              'max': 1,
+              ...bounds,
+            },
+          ],
+        ],
+      ]),
+    );
+    addTearDown(node.dispose);
+    final item = group(node, count).items.single as LiteralItem;
+    return (value) {
+      item.setValue(value);
+      return validateEntity(
+        node,
+        messages,
+        path: ['Article'],
+      ).map((e) => e.fullMessage).toList();
+    };
+  }
+
+  test('numeric values outside the inclusive bounds are reported', () {
+    final messagesFor = boundMessages({'minInclusive': 0, 'maxInclusive': 10});
+
+    expect(messagesFor('-1'), ['Count: at least 0']);
+    expect(messagesFor('11'), ['Count: at most 10']);
+    expect(messagesFor('10'), isEmpty);
+    expect(messagesFor('x'), ['Count: expected whole number']);
+  });
+
+  test('numeric values outside the exclusive bounds are reported', () {
+    final messagesFor = boundMessages({'minExclusive': 0, 'maxExclusive': 10});
+
+    expect(messagesFor('0'), ['Count: greater than 0']);
+    expect(messagesFor('10'), ['Count: less than 10']);
+    expect(messagesFor('9'), isEmpty);
   });
 
   test('datatype rules accept and reject representative values', () {

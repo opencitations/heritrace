@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../design/app_theme.dart';
 import '../design/controls.dart';
 import '../design/spacing.dart';
+import '../form/field_def.dart';
 import '../form/form_model.dart';
 import '../form/widgets/boolean_field.dart';
 import '../form/widgets/field_group_widget.dart';
@@ -246,7 +247,7 @@ class _ValueBody extends StatelessWidget {
             ),
             const SizedBox(width: appInputSpacing),
           ],
-          Expanded(child: _TextValueField(value: value, multiline: false)),
+          Expanded(child: _TextValueField(value: value, field: null)),
         ],
       );
     }
@@ -254,10 +255,7 @@ class _ValueBody extends StatelessWidget {
       (g) => g.property == triple.predicate && g.field != null,
       orElse: () => value.group,
     )).field;
-    return _TextValueField(
-      value: value,
-      multiline: field?.inputType == 'textarea',
-    );
+    return _TextValueField(value: value, field: field);
   }
 }
 
@@ -304,10 +302,10 @@ class _Details extends StatelessWidget {
 }
 
 class _TextValueField extends StatefulWidget {
-  const _TextValueField({required this.value, required this.multiline});
+  const _TextValueField({required this.value, required this.field});
 
   final ExistingValue value;
-  final bool multiline;
+  final FieldDef? field;
 
   @override
   State<_TextValueField> createState() => _TextValueFieldState();
@@ -339,9 +337,12 @@ class _TextValueFieldState extends State<_TextValueField> {
 
   @override
   Widget build(BuildContext context) {
+    final field = widget.field;
     return AppTextField(
       controller: _controller,
-      maxLines: widget.multiline ? 5 : 1,
+      maxLines: field?.inputType == 'textarea' ? 5 : 1,
+      keyboardType: field == null ? null : valueKeyboardType(field),
+      inputFormatters: field == null ? null : valueInputFormatters(field),
       onChanged: widget.value.setValue,
     );
   }

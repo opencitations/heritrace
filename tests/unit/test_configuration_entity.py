@@ -302,6 +302,120 @@ def test_an_invalid_configuration_is_not_saved(
     assert [path.read_bytes() for path in files] == before
 
 
+def _add(
+    client: FlaskClient, subject: URIRef, values: dict[URIRef, str]
+) -> tuple[int, dict]:
+    response = client.post(
+        "/api/configuration/apply_changes",
+        json=[
+            {
+                "action": "create",
+                "subject": str(subject),
+                "data": {
+                    "properties": {
+                        str(predicate): [value] for predicate, value in values.items()
+                    }
+                },
+                "primary_source": "",
+            }
+        ],
+    )
+    return response.status_code, response.get_json()
+
+
+def _numeric_property(client: FlaskClient, app: Flask) -> URIRef:
+    field = _literal_property(_data(app))
+    assert (
+        _update(client, field, SH.datatype, str(XSD.string), str(XSD.decimal))[0] == 200
+    )
+    return field
+
+
+def test_a_field_takes_a_description_and_value_bounds(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    field = _numeric_property(admin_client, config_app)
+
+    status, _ = _add(
+        admin_client,
+        field,
+        {
+            SH.description: "Shown under the field",
+            SH.minInclusive: "1",
+            SH.maxInclusive: "2.5",
+            SH.minExclusive: "0",
+            SH.maxExclusive: "3",
+        },
+    )
+
+    data = _data(config_app)
+    assert status == 200
+    assert set(data.objects(field, SH.description)) == {
+        Literal("Shown under the field")
+    }
+    assert set(data.objects(field, SH.minInclusive)) == {
+        Literal("1", datatype=XSD.integer)
+    }
+    assert set(data.objects(field, SH.maxInclusive)) == {
+        Literal("2.5", datatype=XSD.decimal)
+    }
+    assert set(data.objects(field, SH.minExclusive)) == {
+        Literal("0", datatype=XSD.integer)
+    }
+    assert set(data.objects(field, SH.maxExclusive)) == {
+        Literal("3", datatype=XSD.integer)
+    }
+
+
+def test_a_minimum_value_above_the_maximum_is_not_saved(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    field = _numeric_property(admin_client, config_app)
+
+    assert _add(admin_client, field, {SH.minInclusive: "5", SH.maxInclusive: "1"}) == (
+        422,
+        {
+            "errors": [
+                "shapes.10.properties.2.maxInclusive:"
+                " The maximum is lower than the minimum"
+            ],
+            "status": "error",
+        },
+    )
+
+
+def test_bounds_on_a_text_field_are_not_saved(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    field = _literal_property(_data(config_app))
+
+    assert _add(admin_client, field, {SH.minInclusive: "1"}) == (
+        422,
+        {
+            "errors": [
+                "shapes.10.properties.2.minInclusive: Bounds need a numeric datatype"
+            ],
+            "status": "error",
+        },
+    )
+
+
+def test_a_negative_number_of_values_is_rejected(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    field = _literal_property(_data(config_app))
+
+    assert _update(admin_client, field, SH.minCount, "1", "-1") == (
+        400,
+        {
+            "error_type": "validation",
+            "message": "'-1' is not a valid value. The 'Minimum number of values'"
+            " property requires a value of at least 0",
+            "status": "error",
+        },
+    )
+
+
 def test_entity_types_can_be_created_without_any_shapes(
     empty_config_app: Flask,
 ) -> None:

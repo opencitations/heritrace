@@ -27,6 +27,12 @@ from heritrace.utils.sparql_utils import (
     get_triples_from_graph,
 )
 from heritrace.utils.uri_utils import is_valid_url
+from heritrace.utils.value_bounds import (
+    BOUND_NAMES,
+    Bound,
+    bound_number,
+    bound_requirement,
+)
 
 if TYPE_CHECKING:
     from heritrace.utils.filters import Filter
@@ -240,6 +246,7 @@ def _query_shacl_constraints(
     query = f"""
         PREFIX sh: <http://www.w3.org/ns/shacl#>
         SELECT DISTINCT ?path ?datatype ?a_class ?maxCount ?minCount ?shape
+            ?minInclusive ?maxInclusive ?minExclusive ?maxExclusive
             (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS
             ?optionalValues)
         WHERE {{
@@ -261,6 +268,10 @@ def _query_shacl_constraints(
                 {{?propertyShape sh:qualifiedMinCount ?minCount .}}
             }}
             OPTIONAL {{?propertyShape sh:class ?a_class .}}
+            OPTIONAL {{?propertyShape sh:minInclusive ?minInclusive .}}
+            OPTIONAL {{?propertyShape sh:maxInclusive ?maxInclusive .}}
+            OPTIONAL {{?propertyShape sh:minExclusive ?minExclusive .}}
+            OPTIONAL {{?propertyShape sh:maxExclusive ?maxExclusive .}}
             OPTIONAL {{
                 ?propertyShape sh:or ?orList .
                 ?orList rdf:rest*/rdf:first ?orConstraint .
@@ -273,6 +284,7 @@ def _query_shacl_constraints(
             }}
         }}
         GROUP BY ?path ?datatype ?a_class ?maxCount ?minCount ?shape
+            ?minInclusive ?maxInclusive ?minExclusive ?maxExclusive
     """
     shacl = get_shacl_graph()
     results = shacl.query(query)
@@ -388,15 +400,41 @@ def _validate_class_constraint(
     return valid_value, ctx.old_value, ""
 
 
+def _bound(results_list: list[ResultRow], name: str) -> Bound:
+    return next(
+        (
+            bound_number(getattr(row, name))
+            for row in results_list
+            if getattr(row, name) is not None
+        ),
+        None,
+    )
+
+
 def _validate_datatype_constraint(
     new_value: str | URIRef | None,
     ctx: ValidationContext,
     datatypes: list[URIRef],
+    results_list: list[ResultRow],
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
     valid_value = convert_to_matching_literal(new_value, datatypes)
     if valid_value is None:
         datatype_labels = ", ".join(f"'{get_datatype_label(dt)}'" for dt in datatypes)
         return None, ctx.old_value, _type_error(new_value, ctx, datatype_labels)
+    requirement = bound_requirement(
+        str(valid_value),
+        {name: _bound(results_list, name) for name in BOUND_NAMES},
+    )
+    if requirement:
+        predicate_label = ctx.custom_filter.human_readable_predicate(
+            str(ctx.predicate), ctx.entity_key
+        )
+        return (
+            None,
+            ctx.old_value,
+            f"'{valid_value}' is not a valid value. The '{predicate_label}' property"
+            f" requires a value of {requirement}",
+        )
     return valid_value, ctx.old_value, ""
 
 
@@ -548,7 +586,7 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
             new_value, ctx, classes, s_types, current_shape
         )
     if datatypes:
-        return _validate_datatype_constraint(new_value, ctx, datatypes)
+        return _validate_datatype_constraint(new_value, ctx, datatypes, results_list)
     return _infer_value_type(new_value, old_value)
 
 

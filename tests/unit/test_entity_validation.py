@@ -9,6 +9,7 @@ These tests focus on validating entity data against form fields and SHACL shapes
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 from rdflib import XSD
 
 from heritrace.routes.entity import validate_entity_data
@@ -252,3 +253,55 @@ def test_validate_entity_data_with_shape(
     # Should have one error about missing required property
     assert len(errors) == 1
     assert "residential" in str(errors[0]) or "required" in str(errors[0])
+
+
+@pytest.mark.parametrize(
+    ("bounds", "values", "errors"),
+    [
+        (
+            {"minInclusive": 0, "maxInclusive": 10},
+            ["-1", "0", "10", "11"],
+            [
+                'Value "-1" for property Count must be at least 0',
+                'Value "11" for property Count must be at most 10',
+            ],
+        ),
+        (
+            {"minExclusive": 0, "maxExclusive": 2.5},
+            ["0", "1", "2.5"],
+            [
+                'Value "0" for property Count must be greater than 0',
+                'Value "2.5" for property Count must be less than 2.5',
+            ],
+        ),
+    ],
+)
+@patch("heritrace.routes.entity._validation.get_custom_filter")
+@patch("heritrace.routes.entity._validation.get_form_fields")
+def test_validate_entity_data_values_outside_bounds(
+    mock_get_form_fields,
+    mock_get_custom_filter,
+    bounds: dict[str, float],
+    values: list[str],
+    errors: list[str],
+) -> None:
+    mock_filter = MagicMock(spec=Filter)
+    mock_get_custom_filter.return_value = mock_filter
+    mock_filter.human_readable_predicate.return_value = "Count"
+    mock_get_form_fields.return_value = {
+        ("http://example.org/Document", None): {
+            "http://example.org/count": [
+                {"datatypes": [str(XSD.decimal)], "min": 0, **bounds}
+            ],
+        }
+    }
+
+    assert (
+        validate_entity_data(
+            {
+                "entity_type": "http://example.org/Document",
+                "properties": {"http://example.org/count": values},
+            }
+        )
+        == errors
+    )

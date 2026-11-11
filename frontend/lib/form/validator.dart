@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: ISC
 
+import 'field_def.dart';
 import 'form_model.dart';
 
 const _xsd = 'http://www.w3.org/2001/XMLSchema#';
@@ -262,6 +263,10 @@ class ValidationMessages {
     required this.invalidInput,
     required this.tooMany,
     required this.tooFew,
+    required this.atLeast,
+    required this.atMost,
+    required this.greaterThan,
+    required this.lessThan,
   });
 
   final String required;
@@ -269,6 +274,10 @@ class ValidationMessages {
   final String Function(String expected) invalidInput;
   final String Function(String name, int count, int max) tooMany;
   final String Function(String name, int count, int min) tooFew;
+  final String Function(num limit) atLeast;
+  final String Function(num limit) atMost;
+  final String Function(num limit) greaterThan;
+  final String Function(num limit) lessThan;
 }
 
 List<ValidationError> validateEntity(
@@ -382,10 +391,13 @@ void _validateItem(
       }
       final datatypes = item is DateItem ? [item.datatype] : def.datatypes;
       final expected = datatypeProblem(value, datatypes);
-      if (expected != null) {
+      final boundProblem = expected == null
+          ? _boundProblem(value, def, messages)
+          : null;
+      if (expected != null || boundProblem != null) {
         errors.add(
           ValidationError(
-            message: messages.invalidInput(expected),
+            message: boundProblem ?? messages.invalidInput(expected!),
             path: path,
             item: item,
             fieldName: def.displayName,
@@ -407,6 +419,23 @@ void _validateItem(
         }
       }
   }
+}
+
+String? _boundProblem(String value, FieldDef def, ValidationMessages messages) {
+  num number() => num.parse(value);
+  if (def.minInclusive case final limit? when number() < limit) {
+    return messages.atLeast(limit);
+  }
+  if (def.maxInclusive case final limit? when number() > limit) {
+    return messages.atMost(limit);
+  }
+  if (def.minExclusive case final limit? when number() <= limit) {
+    return messages.greaterThan(limit);
+  }
+  if (def.maxExclusive case final limit? when number() >= limit) {
+    return messages.lessThan(limit);
+  }
+  return null;
 }
 
 String? _siblingValue(EntityNode node, String predicate) {

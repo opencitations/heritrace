@@ -28,6 +28,7 @@ from heritrace.utils.shacl_presentation import (
     inverse_path_key,
     inverse_predicate,
 )
+from heritrace.utils.value_bounds import Bound, bound_number
 
 
 @dataclass(slots=True)
@@ -50,6 +51,7 @@ class _ParsedRow:
     object_class: str | None
     min_count: int
     max_count: int | None
+    bounds: dict[str, Bound]
     datatype: str | None
     optional_values: list[str]
     or_nodes: list[str]
@@ -67,10 +69,18 @@ class _ParsedRow:
     ordered_by: str | None
 
 
+_BOUND_VARIABLES = {
+    "minInclusive": "min_inclusive",
+    "maxInclusive": "max_inclusive",
+    "minExclusive": "min_exclusive",
+    "maxExclusive": "max_exclusive",
+}
+
 COMMON_SPARQL_QUERY = prepareQuery(
     """
     SELECT ?shape ?type ?path ?inverse ?node_shape ?link_shape ?link_class ?datatype
-           ?max_count ?min_count ?has_value ?object_class
+           ?max_count ?min_count ?min_inclusive ?max_inclusive ?min_exclusive
+           ?max_exclusive ?has_value ?object_class
            ?name ?description ?editor ?viewer ?composite ?hidden ?ordered_by
            (GROUP_CONCAT(?optional_value; separator=",")
             AS ?optional_values)
@@ -126,6 +136,10 @@ COMMON_SPARQL_QUERY = prepareQuery(
             UNION
             { ?property sh:qualifiedMinCount ?min_count . }
         }
+        OPTIONAL { ?property sh:minInclusive ?min_inclusive . }
+        OPTIONAL { ?property sh:maxInclusive ?max_inclusive . }
+        OPTIONAL { ?property sh:minExclusive ?min_exclusive . }
+        OPTIONAL { ?property sh:maxExclusive ?max_exclusive . }
         OPTIONAL {
             { ?property sh:hasValue ?has_value . }
             UNION
@@ -156,7 +170,8 @@ COMMON_SPARQL_QUERY = prepareQuery(
         FILTER NOT EXISTS { ?property sh:values ?computed . }
     }
     GROUP BY ?shape ?type ?path ?inverse ?node_shape ?link_shape ?link_class ?datatype
-             ?max_count ?min_count ?has_value ?object_class
+             ?max_count ?min_count ?min_inclusive ?max_inclusive ?min_exclusive
+             ?max_exclusive ?has_value ?object_class
              ?name ?description ?editor ?viewer ?composite ?hidden ?ordered_by
 """,
     initNs={
@@ -201,6 +216,10 @@ def _parse_row(row: ResultRow) -> _ParsedRow:
         object_class=object_class,
         min_count=min_count,
         max_count=max_count,
+        bounds={
+            name: bound_number(getattr(row, variable))
+            for name, variable in _BOUND_VARIABLES.items()
+        },
         datatype=datatype,
         optional_values=optional_values,
         or_nodes=or_nodes,
@@ -330,6 +349,7 @@ def _process_single_row(
         "datatypes": [parsed.datatype] if parsed.datatype else [],
         "min": parsed.min_count,
         "max": parsed.max_count,
+        **parsed.bounds,
         "hasValue": parsed.has_value,
         "objectClass": parsed.object_class,
         "optionalValues": parsed.optional_values,

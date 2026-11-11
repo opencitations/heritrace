@@ -1428,6 +1428,10 @@ def test_validate_new_triple_with_literal_conversion(
                 self.a_class = None
                 self.maxCount = None
                 self.minCount = None
+                self.minInclusive = None
+                self.maxInclusive = None
+                self.minExclusive = None
+                self.maxExclusive = None
                 self.optionalValues = ""
                 self.shape = URIRef("http://example.org/TestShape")
 
@@ -1518,6 +1522,10 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 self.max_count = (
                     Literal(max_count, datatype=XSD.integer) if max_count else None
                 )
+                self.min_inclusive = None
+                self.max_inclusive = None
+                self.min_exclusive = None
+                self.max_exclusive = None
                 self.has_value = None
                 self.object_class = None
                 self.datatype = None

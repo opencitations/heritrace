@@ -15,6 +15,7 @@ from heritrace.configuration.shapes import (
     PropertyShape,
     Shapes,
 )
+from heritrace.utils.value_bounds import NUMERIC_DATATYPES
 
 _PREFIX = re.compile(r"^[A-Za-z][\w.-]*$")
 
@@ -65,6 +66,35 @@ def validate_settings(settings: Settings) -> list[Issue]:
     return issues
 
 
+def _validate_bounds(issues: list[Issue], location: str, prop: PropertyShape) -> None:
+    bounds = {
+        "minInclusive": prop.min_inclusive,
+        "maxInclusive": prop.max_inclusive,
+        "minExclusive": prop.min_exclusive,
+        "maxExclusive": prop.max_exclusive,
+    }
+    numeric = prop.kind == "datatype" and all(
+        datatype in NUMERIC_DATATYPES for datatype in prop.values
+    )
+    if not numeric:
+        issues.extend(
+            Issue(f"{location}.{key}", "Bounds need a numeric datatype")
+            for key, bound in bounds.items()
+            if bound is not None
+        )
+        return
+    lowers = [bounds["minInclusive"], bounds["minExclusive"]]
+    issues.extend(
+        Issue(f"{location}.{key}", "The maximum is lower than the minimum")
+        for key in ("maxInclusive", "maxExclusive")
+        if (upper := bounds[key]) is not None
+        and any(
+            lower is not None and lower.toPython() > upper.toPython()
+            for lower in lowers
+        )
+    )
+
+
 def _validate_property(issues: list[Issue], location: str, prop: PropertyShape) -> None:
     _check_iri(issues, f"{location}.path", prop.path)
     _check_iri(issues, f"{location}.orderedBy", prop.ordered_by)
@@ -79,6 +109,7 @@ def _validate_property(issues: list[Issue], location: str, prop: PropertyShape) 
         issues.append(
             Issue(f"{location}.maxCount", "The maximum is lower than the minimum")
         )
+    _validate_bounds(issues, location, prop)
     if prop.editor is not None and prop.editor not in EDITORS:
         issues.append(Issue(f"{location}.editor", "Unknown editor"))
     if prop.viewer is not None and prop.viewer not in VIEWERS:

@@ -90,7 +90,13 @@ const messages = ValidationMessages(
   invalidInput: _echo,
   tooMany: _ignore,
   tooFew: _ignore,
+  atLeast: _ignoreBound,
+  atMost: _ignoreBound,
+  greaterThan: _ignoreBound,
+  lessThan: _ignoreBound,
 );
+
+String _ignoreBound(num bound) => '';
 
 String _echo(String expected) => expected;
 

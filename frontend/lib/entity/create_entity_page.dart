@@ -35,6 +35,10 @@ ValidationMessages validationMessages(Translations t) => ValidationMessages(
       t.ui.form.tooMany(name: name, count: count, max: max),
   tooFew: (name, count, min) =>
       t.ui.form.tooFew(name: name, count: count, min: min),
+  atLeast: (limit) => t.ui.form.atLeast(limit: limit),
+  atMost: (limit) => t.ui.form.atMost(limit: limit),
+  greaterThan: (limit) => t.ui.form.greaterThan(limit: limit),
+  lessThan: (limit) => t.ui.form.lessThan(limit: limit),
 );
 
 class CreateEntityPage extends ConsumerStatefulWidget {

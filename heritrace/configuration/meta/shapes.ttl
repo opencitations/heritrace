@@ -197,6 +197,16 @@ meta:PropertyShapeShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path sh:description ;
+    sh:name "Description"@en, "Descrizione"@it ;
+    sh:description "Text shown under the field to help fill it in."@en,
+      "Testo mostrato sotto il campo per aiutare a compilarlo."@it ;
+    sh:order 3 ;
+    sh:datatype xsd:string ;
+    shui:editor shui:TextAreaEditor ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
     sh:path sh:order ;
     dash:hidden true ;
     sh:datatype xsd:integer ;
@@ -205,15 +215,21 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:minCount ;
     sh:name "Minimum number of values"@en, "Numero minimo di valori"@it ;
+    sh:description "Enter a whole number greater than or equal to 0."@en,
+      "Inserisci un numero intero maggiore o uguale a 0."@it ;
     sh:order 4 ;
     sh:datatype xsd:integer ;
+    sh:minInclusive 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path sh:maxCount ;
     sh:name "Maximum number of values"@en, "Numero massimo di valori"@it ;
+    sh:description "Enter a whole number greater than or equal to 0. Without it, there is no limit."@en,
+      "Inserisci un numero intero maggiore o uguale a 0. Senza questo valore non c'è limite."@it ;
     sh:order 5 ;
     sh:datatype xsd:integer ;
+    sh:minInclusive 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
@@ -224,30 +240,66 @@ meta:PropertyShapeShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path sh:minInclusive ;
+    sh:name "Minimum value (included)"@en, "Valore minimo (incluso)"@it ;
+    sh:description "The smallest value accepted."@en,
+      "Il valore più piccolo accettato."@it ;
+    sh:order 7 ;
+    sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:decimal ] ) ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:maxInclusive ;
+    sh:name "Maximum value (included)"@en, "Valore massimo (incluso)"@it ;
+    sh:description "The largest value accepted."@en,
+      "Il valore più grande accettato."@it ;
+    sh:order 8 ;
+    sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:decimal ] ) ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:minExclusive ;
+    sh:name "Minimum value (excluded)"@en, "Valore minimo (escluso)"@it ;
+    sh:description "Accepted values are greater than this number."@en,
+      "I valori accettati sono maggiori di questo numero."@it ;
+    sh:order 9 ;
+    sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:decimal ] ) ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:maxExclusive ;
+    sh:name "Maximum value (excluded)"@en, "Valore massimo (escluso)"@it ;
+    sh:description "Accepted values are less than this number."@en,
+      "I valori accettati sono minori di questo numero."@it ;
+    sh:order 10 ;
+    sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:decimal ] ) ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
     sh:path sh:node ;
     sh:name "Nested resource type"@en, "Tipo di risorsa annidata"@it ;
-    sh:order 7 ;
+    sh:order 11 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path sh:class ;
     sh:name "Class of the linked resource"@en, "Classe della risorsa collegata"@it ;
-    sh:order 8 ;
+    sh:order 12 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path shui:editor ;
     sh:name "Editor"@en, "Editor"@it ;
-    sh:order 9 ;
+    sh:order 13 ;
     sh:in ( shui:TextFieldEditor shui:TextAreaEditor shui:AutoCompleteEditor shui:DetailsEditor ) ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path shui:viewer ;
     sh:name "Viewer"@en, "Visualizzatore"@it ;
-    sh:order 10 ;
+    sh:order 14 ;
     sh:in ( shui:DetailsViewer ) ;
     sh:maxCount 1 ;
   ] ;
@@ -256,7 +308,7 @@ meta:PropertyShapeShape
     sh:name "Points to a dependent resource"@en, "Punta a una risorsa dipendente"@it ;
     sh:description "A resource reached through this property has no meaning without this link. The Dependent resources setting decides what happens when the link is removed."@en,
       "Una risorsa raggiunta tramite questa proprietà non ha senso senza questo collegamento. Cosa succede quando il collegamento viene rimosso lo decide l'impostazione Risorse dipendenti."@it ;
-    sh:order 11 ;
+    sh:order 15 ;
     sh:datatype xsd:boolean ;
     sh:maxCount 1 ;
   ] ;
@@ -265,7 +317,7 @@ meta:PropertyShapeShape
     sh:name "Hidden"@en, "Nascosto"@it ;
     sh:description "The field does not appear in forms or on resource pages. Its values are still validated."@en,
       "Il campo non compare nei form e nelle pagine delle risorse, ma i suoi valori vengono comunque validati."@it ;
-    sh:order 12 ;
+    sh:order 16 ;
     sh:datatype xsd:boolean ;
     sh:maxCount 1 ;
   ] ;
@@ -274,7 +326,7 @@ meta:PropertyShapeShape
     sh:name "Link to the next value"@en, "Collegamento al valore successivo"@it ;
     sh:description "The property that links each value to the next one. Values appear in this order and can be dragged into a new one."@en,
       "La proprietà che collega ogni valore al successivo. I valori compaiono in quest'ordine e si possono trascinare in un ordine nuovo."@it ;
-    sh:order 13 ;
+    sh:order 17 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
   ] ;
@@ -283,7 +335,7 @@ meta:PropertyShapeShape
     sh:name "Fields shown in place"@en, "Campi mostrati sul posto"@it ;
     sh:description "The fields of the nested resource that appear inside this resource. When the list is empty, all of them appear."@en,
       "I campi della risorsa annidata che compaiono dentro questa risorsa. Se l'elenco è vuoto, compaiono tutti."@it ;
-    sh:order 14 ;
+    sh:order 18 ;
     sh:node meta:DetailFieldShape ;
   ] .
 

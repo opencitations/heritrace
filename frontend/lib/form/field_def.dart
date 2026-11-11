@@ -8,6 +8,26 @@ const xsdGYearMonth = 'http://www.w3.org/2001/XMLSchema#gYearMonth';
 const xsdGYear = 'http://www.w3.org/2001/XMLSchema#gYear';
 const xsdString = 'http://www.w3.org/2001/XMLSchema#string';
 
+const _xsd = 'http://www.w3.org/2001/XMLSchema#';
+const _unsignedIntegerDatatypes = {
+  '${_xsd}nonNegativeInteger',
+  '${_xsd}positiveInteger',
+  '${_xsd}unsignedLong',
+  '${_xsd}unsignedInt',
+  '${_xsd}unsignedShort',
+  '${_xsd}unsignedByte',
+};
+const _integerDatatypes = {
+  ..._unsignedIntegerDatatypes,
+  '${_xsd}integer',
+  '${_xsd}int',
+  '${_xsd}long',
+  '${_xsd}short',
+  '${_xsd}byte',
+  '${_xsd}negativeInteger',
+  '${_xsd}nonPositiveInteger',
+};
+
 class FieldCondition {
   const FieldCondition({
     required this.path,
@@ -46,6 +66,10 @@ class FieldDef {
     required this.datatypes,
     required this.min,
     required this.max,
+    required this.minInclusive,
+    required this.maxInclusive,
+    required this.minExclusive,
+    required this.maxExclusive,
     required this.hasValue,
     required this.hasValueLabel,
     required this.optionalValues,
@@ -80,6 +104,10 @@ class FieldDef {
           .toList(),
       min: (json['min'] as num?)?.toInt() ?? 0,
       max: (json['max'] as num?)?.toInt(),
+      minInclusive: json['minInclusive'] as num?,
+      maxInclusive: json['maxInclusive'] as num?,
+      minExclusive: json['minExclusive'] as num?,
+      maxExclusive: json['maxExclusive'] as num?,
       hasValue: json['hasValue'] as String?,
       hasValueLabel: json['hasValueLabel'] as String?,
       optionalValues: optionalValues,
@@ -120,6 +148,10 @@ class FieldDef {
   final List<String> datatypes;
   final int min;
   final int? max;
+  final num? minInclusive;
+  final num? maxInclusive;
+  final num? minExclusive;
+  final num? maxExclusive;
   final String? hasValue;
   final String? hasValueLabel;
   final List<String> optionalValues;
@@ -146,6 +178,14 @@ class FieldDef {
   bool get isRequired => min > 0 && hasValue == null;
 
   bool get isBoolean => inputType == 'checkbox';
+
+  bool get isInteger =>
+      datatypes.isNotEmpty && datatypes.every(_integerDatatypes.contains);
+
+  bool get acceptsNegative =>
+      !datatypes.every(_unsignedIntegerDatatypes.contains) &&
+      (minInclusive == null || minInclusive! < 0) &&
+      (minExclusive == null || minExclusive! < -1);
 
   bool get isDate =>
       datatypes.contains(xsdDate) ||

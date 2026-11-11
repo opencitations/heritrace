@@ -227,4 +227,44 @@ void main() {
     expect(find.text('Fill in the details'), findsOneWidget);
     expect(find.text('Add Issue'), findsNothing);
   });
+
+  Future<LiteralItem> typeInto(
+    WidgetTester tester,
+    Map<String, Object> bounds,
+  ) async {
+    final item = LiteralItem(
+      def: FieldDef.fromJson({
+        'uri': 'http://example.org/count',
+        'datatypes': ['http://www.w3.org/2001/XMLSchema#integer'],
+        ...bounds,
+      }),
+      depth: 0,
+    );
+    addTearDown(item.dispose);
+    await pumpInForm(tester, ItemWidget(item: item));
+    await tester.enterText(find.byType(CupertinoTextField), '-1a2.5');
+    return item;
+  }
+
+  testWidgets('an integer field keeps only digits when its minimum is zero', (
+    tester,
+  ) async {
+    final item = await typeInto(tester, {'minInclusive': 0});
+    expect(item.value, '125');
+  });
+
+  testWidgets(
+    'an integer field above an exclusive minimum of -1 keeps digits',
+    (tester) async {
+      final item = await typeInto(tester, {'minExclusive': -1});
+      expect(item.value, '125');
+    },
+  );
+
+  testWidgets('an integer field keeps a leading minus without a minimum', (
+    tester,
+  ) async {
+    final item = await typeInto(tester, {});
+    expect(item.value, '-125');
+  });
 }

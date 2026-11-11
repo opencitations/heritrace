@@ -11,6 +11,7 @@ from heritrace.utils.datatypes import DATATYPE_MAPPING
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_presentation import is_inverse_path
 from heritrace.utils.shacl_utils import find_matching_form_field
+from heritrace.utils.value_bounds import BOUND_NAMES, bound_requirement
 
 
 def _plural(noun: str, count: int) -> str:
@@ -90,6 +91,19 @@ def _validate_property_values(
                         f'Value "{value}" for property {prop_label}'
                         f" is not of expected type {expected_types}"
                     )
+                else:
+                    requirement = bound_requirement(
+                        str(value),
+                        {
+                            name: prop_input.matching_field_def.get(name)
+                            for name in BOUND_NAMES
+                        },
+                    )
+                    if requirement:
+                        errors.append(
+                            f'Value "{value}" for property {prop_label}'
+                            f" must be {requirement}"
+                        )
 
             optional_values = prop_input.matching_field_def.get("optionalValues", [])
             if optional_values and value not in optional_values:

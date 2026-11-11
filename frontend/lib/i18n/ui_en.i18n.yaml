@@ -87,6 +87,10 @@ form:
   invalidInput: Invalid input. Expected $expected.
   tooMany: The property "$name" has too many values ($count). Maximum allowed is $max.
   tooFew: The property "$name" has too few values ($count). Minimum required is $min.
+  atLeast: Enter a value greater than or equal to $limit.
+  atMost: Enter a value less than or equal to $limit.
+  greaterThan: Enter a value greater than $limit.
+  lessThan: Enter a value less than $limit.
   atLeastOneProperty: Please fill out at least one property
   atLeastOneCustomProperty: Please provide at least one property with a value
 primarySource:
