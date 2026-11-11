@@ -1,5 +1,6 @@
 @prefix dash: <http://datashapes.org/dash#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ht: <https://w3id.org/heritrace#> .
 @prefix meta: <https://w3id.org/heritrace/meta/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -259,9 +260,16 @@ meta:PropertyShapeShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path ht:orderedBy ;
+    sh:name "Link to the next value"@en, "Collegamento al valore successivo"@it ;
+    sh:order 13 ;
+    sh:nodeKind sh:IRI ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
     sh:path sh:property ;
     sh:name "Fields shown in place"@en, "Campi mostrati sul posto"@it ;
-    sh:order 13 ;
+    sh:order 14 ;
     sh:node meta:DetailFieldShape ;
   ] .
 

@@ -91,7 +91,6 @@ services:
       - ../heritrace:/app/heritrace
       - ./meta-settings.json:/example/settings.json:ro
       - ../example_configurations/opencitations_meta/shacl.ttl:/example/shacl.ttl:ro
-      - ../example_configurations/opencitations_meta/display_rules.yaml:/example/display_rules.yaml:ro
       - ../meta_config:/config
 
   web:

@@ -13,10 +13,7 @@ from heritrace.routes.entity._types import (
     EntityRenderContext,
     HistoryContext,
 )
-from heritrace.utils.display_rules_utils import (
-    get_highest_priority_class,
-    get_predicate_ordering_info,
-)
+from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.shacl_utils import (
     determine_shape_for_entity_triples,
     get_entity_position_in_sequence,
@@ -96,8 +93,8 @@ def _build_predicate_shape_groups(
         object_shape_uri = object_shapes_cache.get(object_value)
 
         if predicate not in predicate_ordering_cache:
-            predicate_ordering_cache[predicate] = get_predicate_ordering_info(
-                predicate, identity.highest_priority_class, identity.entity_shape
+            predicate_ordering_cache[predicate] = get_presentation().ordered_by(
+                identity.entity_shape, predicate
             )
 
         order_property = predicate_ordering_cache[predicate]

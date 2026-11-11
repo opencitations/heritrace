@@ -397,6 +397,42 @@ The **Hidden** option of the [configuration editor](../editor/) sets this term o
 Although DASH declares `sh:PropertyShape` as the domain of `dash:hidden`, TopQuadrant, which maintains DASH, [applies the term to classes as well](https://github.com/TopQuadrant/shacl/blob/master/src/main/resources/rdf/tosh.ttl). Since HERITRACE applies no RDFS inference to the shapes graph, the declared domain causes no problem here, and HERITRACE follows the same practice.
 </Aside>
 
+### Order of values (`ht:orderedBy`)
+
+Some properties hold values whose order matters, such as the authors of an article. SHACL UI leaves this order open: "The order of the values within a single shape is left to the implementation" ([SHACL 1.2 User Interfaces](https://w3c.github.io/data-shapes/shacl12-ui/#property-roles)). Neither SHACL nor DASH has a term that names the property linking each value to the next one, so HERITRACE defines `ht:orderedBy` in its own namespace:
+
+```ttl
+@prefix ht: <https://w3id.org/heritrace#> .
+```
+
+On a property shape, `ht:orderedBy` names the property that links each value to the next one. HERITRACE shows the values in the order of that chain, and users can drag them into a new order. Here the authors of an article follow `oco:hasNext`:
+
+```ttl
+sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AuthorShape ;
+    ht:orderedBy oco:hasNext ;
+] .
+```
+
+![Drag handles allow users to reorder items.](../../../assets/ordered_by.png)
+
+When users save a new order, HERITRACE rewrites the chain. The first value has no predecessor, and the last value has no next value:
+
+```ttl
+@prefix ex: <http://example.org/ontology/> .
+@prefix : <http://example.org/instance/> .
+
+# The order of the values in this triple carries no meaning.
+:myResource ex:hasItem :item1, :item2, :item3 .
+
+# ex:hasNext, named by ht:orderedBy, links each item to the next one.
+:item1 ex:hasNext :item2 .
+:item2 ex:hasNext :item3 .
+```
+
+The **Link to the next value** option of the [configuration editor](../editor/) sets this term on a field.
+
 ### Entity labels (`shui:LabelRole`)
 
 Each entity is identified by an IRI, such as `https://w3id.org/oc/meta/ra/0601`, which people cannot read. Its label is the text that HERITRACE shows in place of the IRI, such as "Maltezou, Helen C.". To define it, mark one property shape of the node shape with `shui:propertyRole shui:LabelRole`. Without it, HERITRACE shows the IRI.

@@ -4,7 +4,6 @@
 
 from pathlib import Path
 
-import yaml
 from flask import Flask
 from rdflib import Graph
 
@@ -19,14 +18,13 @@ ARTICLE = "http://purl.org/spar/fabio/JournalArticle"
 PART_OF = "http://purl.org/vocab/frbr/core#partOf"
 ROLE = "http://purl.org/spar/pro/isDocumentContextFor"
 HELD_BY = "http://purl.org/spar/pro/isHeldBy"
+HAS_NEXT = "https://w3id.org/oc/ontology/hasNext"
 _SH_CLASS = SH["class"]
 
 
 def _form_fields() -> dict:
     shapes = Graph().parse(CONFIGURATION / "shacl.ttl", format="turtle")
-    with (CONFIGURATION / "display_rules.yaml").open() as rules_file:
-        rules = yaml.safe_load(rules_file)["rules"]
-    return get_form_fields_from_shacl(shapes, rules, Flask(__name__))
+    return get_form_fields_from_shacl(shapes, Flask(__name__))
 
 
 def _article_field(predicate: str) -> dict:
@@ -46,6 +44,10 @@ def test_a_role_shows_its_fields_in_place() -> None:
     assert role["detailsEditor"] is True
     assert role["detailsViewer"] is True
     assert HELD_BY in {nested["uri"] for nested in role["nestedShape"]}
+
+
+def test_a_role_follows_the_order_set_in_its_shape() -> None:
+    assert _article_field(ROLE)["orderedBy"] == HAS_NEXT
 
 
 def test_the_classes_of_a_link_survive_the_shape_model() -> None:

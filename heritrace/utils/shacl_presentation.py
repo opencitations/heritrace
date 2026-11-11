@@ -15,7 +15,7 @@ from rdflib.plugins.sparql.parser import parseQuery
 from rdflib.term import Node
 
 from heritrace.configuration.shapes import read_duplicate_keys
-from heritrace.configuration.vocabulary import DASH, SH, SHUI
+from heritrace.configuration.vocabulary import DASH, HT, SH, SHUI
 
 _THIS_VARIABLE = re.compile(r"[?$]this\b")
 
@@ -45,6 +45,7 @@ class PropertyPresentation:
     name: str | None
     order: Decimal | None
     editor: str | None
+    ordered_by: str | None
     identifier: str
 
 
@@ -88,6 +89,12 @@ class ShapesPresentation:
     ) -> str | None:
         prop = self.property_presentation(shape, predicate, object_shape)
         return prop.name if prop else None
+
+    def ordered_by(self, shape: str | None, predicate: str) -> str | None:
+        for prop in self.shape_properties(shape):
+            if prop.path == predicate and prop.ordered_by is not None:
+                return prop.ordered_by
+        return None
 
     def predicate_order(self, shape: str | None) -> list[str]:
         ordered: list[str] = []
@@ -155,12 +162,14 @@ def _property_presentation(
     order = graph.value(property_shape, SH.order)
     node = graph.value(property_shape, SH.node)
     editor = graph.value(property_shape, SHUI.editor)
+    ordered_by = graph.value(property_shape, HT.orderedBy)
     return PropertyPresentation(
         path=path,
         node=str(node) if isinstance(node, URIRef) else None,
         name=_literal_text(graph, property_shape, SH.name),
         order=Decimal(str(order)) if isinstance(order, Literal) else None,
         editor=str(editor) if editor else None,
+        ordered_by=str(ordered_by) if ordered_by else None,
         identifier=str(property_shape),
     )
 

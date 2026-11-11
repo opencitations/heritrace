@@ -67,6 +67,7 @@ def validate_settings(settings: Settings) -> list[Issue]:
 
 def _validate_property(issues: list[Issue], location: str, prop: PropertyShape) -> None:
     _check_iri(issues, f"{location}.path", prop.path)
+    _check_iri(issues, f"{location}.orderedBy", prop.ordered_by)
     for key, count in (("minCount", prop.min_count), ("maxCount", prop.max_count)):
         if count is not None and count < 0:
             issues.append(Issue(f"{location}.{key}", "The value cannot be negative"))

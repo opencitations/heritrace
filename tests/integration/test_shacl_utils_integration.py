@@ -243,7 +243,7 @@ def test_get_form_fields_from_shacl_journal_article(
     """Test form field extraction for JournalArticle with real SHACL data."""
     with app.app_context():
         # Test with JournalArticle class
-        form_fields = get_form_fields_from_shacl(shacl_graph, None, app)
+        form_fields = get_form_fields_from_shacl(shacl_graph, app)
 
         # Find the key for JournalArticle in the tuple-based keys
         journal_article_key = None
@@ -588,50 +588,26 @@ def test_validate_new_triple_with_datatype_conversion(
             assert str(valid_value) == value
 
 
-def test_get_form_fields_with_display_rules(app: Flask, shacl_graph: Graph) -> None:
-    """Names come from the shapes and visibility from the display rules."""
+def test_form_fields_take_names_and_order_from_the_shapes(
+    app: Flask, shacl_graph: Graph
+) -> None:
     with app.app_context():
-        # Update display rules to include both class and shape
-        journal_article_shape = "http://schema.org/JournalArticleShape"
-        display_rules = [
-            {
-                "target": {
-                    "class": "http://purl.org/spar/fabio/JournalArticle",
-                    "shape": journal_article_shape,
-                },
-                "displayProperties": [
-                    {
-                        "property": "http://purl.org/dc/terms/abstract",
-                        "orderedBy": "http://example.org/next",
-                    },
-                ],
-            }
-        ]
+        form_fields = get_form_fields_from_shacl(shacl_graph, app)
 
-        form_fields = get_form_fields_from_shacl(shacl_graph, display_rules, app)
+    article_fields = form_fields[
+        (
+            "http://purl.org/spar/fabio/JournalArticle",
+            "http://schema.org/JournalArticleShape",
+        )
+    ]
+    title_field = article_fields["http://purl.org/dc/terms/title"][0]
+    role_fields = article_fields["http://purl.org/spar/pro/isDocumentContextFor"]
 
-        # Find the key for JournalArticle in the tuple-based keys
-        journal_article_key = None
-        for key in form_fields:
-            if (
-                isinstance(key, tuple)
-                and key[0] == "http://purl.org/spar/fabio/JournalArticle"
-            ):
-                journal_article_key = key
-                break
-
-        # Check that we found a key for JournalArticle
-        assert journal_article_key is not None, "No key found for JournalArticle"
-        article_fields = form_fields[journal_article_key]
-
-        # Check that display rules were applied
-        title_field = article_fields["http://purl.org/dc/terms/title"][0]
-        abstract_field = article_fields["http://purl.org/dc/terms/abstract"][0]
-
-        assert title_field["displayName"] == "Title"
-        assert abstract_field["displayName"] == "Abstract"
-        assert "orderedBy" not in title_field
-        assert abstract_field["orderedBy"] == "http://example.org/next"
+    assert title_field["displayName"] == "Title"
+    assert "orderedBy" not in title_field
+    assert {field["orderedBy"] for field in role_fields} == {
+        "https://w3id.org/oc/ontology/hasNext"
+    }
 
 
 def test_validate_new_triple_with_delete_action(
@@ -741,7 +717,7 @@ def test_get_form_fields_with_nested_shapes(app: Flask, shacl_graph: Graph) -> N
     """Test form field extraction with nested shapes."""
     with app.app_context():
         # Test with JournalArticle class that has nested shapes (e.g., for authors)
-        form_fields = get_form_fields_from_shacl(shacl_graph, None, app)
+        form_fields = get_form_fields_from_shacl(shacl_graph, app)
 
         # Find the key for JournalArticle in the tuple-based keys
         journal_article_key = None
@@ -1093,7 +1069,6 @@ def test_process_nested_shapes_edge_cases(app: Flask, shacl_graph: Graph) -> Non
     with app.app_context():
         ctx = ShaclProcessingContext(
             shacl=shacl_graph,
-            display_rules=None,
             presentation=read_presentation(shacl_graph),
             pattern_alternatives=[],
             app=app,
@@ -1109,7 +1084,6 @@ def test_process_nested_shapes_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         # Test with already processed shape
         ctx2 = ShaclProcessingContext(
             shacl=shacl_graph,
-            display_rules=None,
             presentation=read_presentation(shacl_graph),
             pattern_alternatives=[],
             app=app,
@@ -1168,7 +1142,6 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
 
         ctx = ShaclProcessingContext(
             shacl=shacl_graph,
-            display_rules=None,
             presentation=read_presentation(shacl_graph),
             pattern_alternatives=[],
             app=app,
@@ -1185,7 +1158,6 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
 
         ctx = ShaclProcessingContext(
             shacl=shacl_graph,
-            display_rules=None,
             presentation=read_presentation(shacl_graph),
             pattern_alternatives=[],
             app=app,
@@ -1534,6 +1506,7 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 self.viewer = None
                 self.composite = None
                 self.hidden = None
+                self.ordered_by = None
                 self.node_shape = node_shape
                 self.min_count = (
                     Literal(min_count, datatype=XSD.integer) if min_count else None
@@ -1596,11 +1569,9 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 return_value={"nestedField": "nestedValue"},
             ),
         ):
-            display_rules = []
             processed_shapes = set()
             ctx = ShaclProcessingContext(
                 shacl=shacl_graph,
-                display_rules=display_rules,
                 presentation=read_presentation(shacl_graph),
                 pattern_alternatives=[],
                 app=app,
@@ -1640,11 +1611,9 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 return_value={"nestedField": "nestedValue"},
             ),
         ):
-            display_rules = []
             processed_shapes = {"http://example.org/orNode1"}
             ctx = ShaclProcessingContext(
                 shacl=shacl_graph,
-                display_rules=display_rules,
                 presentation=read_presentation(shacl_graph),
                 pattern_alternatives=[],
                 app=app,

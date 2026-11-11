@@ -5,9 +5,6 @@
 rules:
 - target:
     class: http://purl.org/spar/fabio/Expression
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -19,9 +16,6 @@ rules:
     - asc
 - target:
     class: http://purl.org/spar/fabio/Article
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -33,9 +27,6 @@ rules:
     - asc
 - target:
     class: http://purl.org/spar/fabio/Series
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -47,9 +38,6 @@ rules:
     - asc
 - target:
     class: http://purl.org/spar/fabio/Book
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -61,9 +49,6 @@ rules:
     - asc
 - target:
     class: http://purl.org/spar/fabio/JournalArticle
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -81,15 +66,7 @@ rules:
     - asc
     - desc
 - target:
-    shape: http://schema.org/SpecialIssueShape
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
-- target:
     class: http://purl.org/spar/fabio/ProceedingsPaper
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -101,9 +78,6 @@ rules:
     - asc
 - target:
     class: http://purl.org/spar/fabio/AcademicProceedings
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -115,9 +89,6 @@ rules:
     - asc
 - target:
     class: http://purl.org/spar/fabio/Review
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -129,9 +100,6 @@ rules:
     - asc
 - target:
     class: http://purl.org/spar/fabio/ReviewArticle
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -143,9 +111,6 @@ rules:
     - asc
 - target:
     class: http://purl.org/spar/fabio/ReferenceBook
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:
@@ -157,9 +122,6 @@ rules:
     - asc
 - target:
     class: http://purl.org/spar/fabio/Thesis
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:

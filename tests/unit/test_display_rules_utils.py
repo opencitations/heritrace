@@ -30,12 +30,6 @@ def mock_display_rules():
     return [
         {
             "target": {"class": "http://example.org/Person"},
-            "displayProperties": [
-                {
-                    "property": "http://example.org/knows",
-                    "orderedBy": "http://example.org/order",
-                },
-            ],
             "sortableBy": [
                 {
                     "property": "http://example.org/name",
@@ -44,7 +38,7 @@ def mock_display_rules():
         },
         {
             "target": {"class": "http://example.org/Document"},
-            "displayProperties": [
+            "sortableBy": [
                 {
                     "property": "http://example.org/title",
                 }
@@ -324,7 +318,6 @@ class TestGetSortableProperties:
             {
                 "target": {"class": "http://example.org/Person"},
                 "sortableBy": [{"property": "http://example.org/name"}],
-                "displayProperties": [{"property": "http://example.org/name"}],
             }
         ]
         mock_get_display_rules.return_value = modified_display_rules
@@ -345,7 +338,6 @@ class TestGetSortableProperties:
             {
                 "target": {"class": "http://example.org/Person"},
                 "sortableBy": [{"property": "http://example.org/unknown"}],
-                "displayProperties": [{"property": "http://example.org/unknown"}],
             }
         ]
 
@@ -540,9 +532,7 @@ class TestProcessOrdering:
     def test_process_ordering_with_sparql(self, mock_sparql) -> None:
         """Test processing ordering with SPARQL."""
         subject = "http://example.org/person1"
-        prop = {
-            "property": "http://example.org/knows",
-        }
+        predicate = "http://example.org/knows"
         order_property = "http://example.org/order"
         grouped_triples = {
             "Knows": {
@@ -601,7 +591,7 @@ class TestProcessOrdering:
             )
             process_ordering(
                 ctx,
-                prop,
+                predicate,
                 order_property,
                 display_name,
             )
@@ -621,9 +611,7 @@ class TestProcessOrdering:
     ) -> None:
         """Test processing ordering with historical snapshot."""
         subject = "http://example.org/person1"
-        prop = {
-            "property": "http://example.org/knows",
-        }
+        predicate = "http://example.org/knows"
         order_property = "http://example.org/order"
         grouped_triples = {
             "Knows": {
@@ -664,7 +652,7 @@ class TestProcessOrdering:
         )
         process_ordering(
             ctx,
-            prop,
+            predicate,
             order_property,
             display_name,
         )
@@ -702,18 +690,15 @@ class TestFindMatchingRule:
                     "class": "http://example.org/Document",
                     "shape": "http://example.org/DocumentShape",
                 },
-                "displayProperties": [],
             },
             {
                 "target": {
                     "class": "http://example.org/Person",
                     "shape": "http://example.org/PersonShape",
                 },
-                "displayProperties": [],
             },
             {
                 "target": {"class": "http://example.org/Person"},
-                "displayProperties": [],
             },
         ]
 

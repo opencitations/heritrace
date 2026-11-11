@@ -17,6 +17,7 @@
 @prefix prism: <http://prismstandard.org/namespaces/basic/2.0/> .
 @prefix pro: <http://purl.org/spar/pro/> .
 @prefix shui: <http://www.w3.org/ns/shacl-ui/> .
+@prefix ht: <https://w3id.org/heritrace#> .
 
 # Prefixes for the SPARQL queries in this shapes graph
 
@@ -782,6 +783,7 @@ schema:ExpressionShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:withRole ] , [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -1065,6 +1067,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -1076,6 +1079,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -1087,6 +1091,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -1258,6 +1263,7 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -1269,6 +1275,7 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -1280,6 +1287,7 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -1502,6 +1510,7 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -1513,6 +1522,7 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -1524,6 +1534,7 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -1680,6 +1691,7 @@ schema:ProceedingsShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -1691,6 +1703,7 @@ schema:ProceedingsShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -2077,6 +2090,7 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -2088,6 +2102,7 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -2099,6 +2114,7 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -2303,6 +2319,7 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -2315,6 +2332,7 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
@@ -2326,6 +2344,7 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;

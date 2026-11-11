@@ -512,9 +512,6 @@ rules:
   - target:
       class: "Class1"
     displayName: "Class 1"
-    displayProperties:
-      - property: "prop1"
-        displayName: "Property 1"
 """
     display_rules_path.write_text(display_rules_content)
 

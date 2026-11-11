@@ -47,35 +47,14 @@ class TestShaclUtils:
         app = Flask(__name__)
         app.config["DATASET_DB_URL"] = "http://example.org/sparql"
 
-        # Caso 1: Test get_form_fields_from_shacl con None
-        result = get_form_fields_from_shacl(None, [], app)
-        assert result == {}
-
-        # Caso 2: Test get_form_fields_from_shacl con empty Graph
         empty_graph = Graph()
-        result = get_form_fields_from_shacl(empty_graph, [], app)
-        assert result == {}
-
-        # Caso 3: Test get_form_fields_from_shacl con None e display rules
-        display_rules = [{"target": {"class": "http://example.org/Person"}}]
-        result = get_form_fields_from_shacl(None, display_rules, app)
-        assert result == {}
-
-        # Caso 4: Test extract_shacl_form_fields con None
-        result = extract_shacl_form_fields(None, [], read_presentation(Graph()), app)
-        assert result == {}
-
-        # Caso 5: Test extract_shacl_form_fields con empty Graph
-        result = extract_shacl_form_fields(
-            empty_graph, [], read_presentation(empty_graph), app
+        assert get_form_fields_from_shacl(None, app) == {}
+        assert get_form_fields_from_shacl(empty_graph, app) == {}
+        assert extract_shacl_form_fields(None, read_presentation(Graph()), app) == {}
+        assert (
+            extract_shacl_form_fields(empty_graph, read_presentation(empty_graph), app)
+            == {}
         )
-        assert result == {}
-
-        # Caso 6: Test extract_shacl_form_fields con None e display rules
-        result = extract_shacl_form_fields(
-            None, display_rules, read_presentation(Graph()), app
-        )
-        assert result == {}
 
     def test_shapes_give_field_names_and_widgets(self) -> None:
         app = Flask(__name__)
@@ -109,9 +88,7 @@ class TestShaclUtils:
             format="turtle",
         )
 
-        form_fields = extract_shacl_form_fields(
-            shacl, [], read_presentation(shacl), app
-        )
+        form_fields = extract_shacl_form_fields(shacl, read_presentation(shacl), app)
 
         fields = form_fields[
             ("http://example.org/Article", "http://example.org/ArticleShape")
@@ -169,9 +146,7 @@ class TestShaclUtils:
             format="turtle",
         )
 
-        form_fields = extract_shacl_form_fields(
-            shacl, [], read_presentation(shacl), app
-        )
+        form_fields = extract_shacl_form_fields(shacl, read_presentation(shacl), app)
         entity_key = ("http://example.org/Article", "http://example.org/ArticleShape")
         summary = sorted(
             (
@@ -202,10 +177,9 @@ class TestShaclUtils:
         ]
 
     @patch("heritrace.utils.shacl_utils.extract_shacl_form_fields")
-    @patch("heritrace.utils.shacl_utils.apply_display_rules")
     @patch("heritrace.utils.shacl_utils.order_form_fields")
     def test_get_form_fields_from_shacl_early_return(
-        self, mock_order, mock_apply, mock_extract
+        self, mock_order, mock_extract
     ) -> None:
         """
         Test that get_form_fields_from_shacl returns early when shacl is None without
@@ -215,12 +189,11 @@ class TestShaclUtils:
         app.config["DATASET_DB_URL"] = "http://example.org/sparql"
 
         # Call with None
-        result = get_form_fields_from_shacl(None, [], app)
+        result = get_form_fields_from_shacl(None, app)
 
         # Assert
         assert result == {}
         mock_extract.assert_not_called()
-        mock_apply.assert_not_called()
         mock_order.assert_not_called()
 
     @patch("heritrace.utils.shacl_display.get_shape_target_class")
@@ -263,6 +236,7 @@ class TestShaclUtils:
             viewer: object = None
             composite: object = None
             hidden: object = None
+            ordered_by: object = None
 
         # Crea un risultato con orNodes
         results = [
@@ -285,9 +259,8 @@ class TestShaclUtils:
             )
         ]
 
-        # Crea un grafo vuoto e display_rules vuoti
+        # Crea un grafo vuoto
         shacl = Graph()
-        display_rules = []
         processed_shapes = set()
         app = Flask(__name__)
         app.config["DATASET_DB_URL"] = "http://example.org/sparql"
@@ -301,7 +274,6 @@ class TestShaclUtils:
 
             ctx = ShaclProcessingContext(
                 shacl=shacl,
-                display_rules=display_rules,
                 presentation=read_presentation(shacl),
                 pattern_alternatives=[],
                 app=app,
@@ -335,7 +307,6 @@ class TestShaclUtils:
         ctx_arg = call_args[0][0]
         assert isinstance(ctx_arg, ShaclProcessingContext)
         assert ctx_arg.shacl is shacl
-        assert ctx_arg.display_rules is display_rules
         assert ctx_arg.app is app
         assert ctx_arg.processed_shapes is processed_shapes
         assert call_args[0][1] == "orNode1"
@@ -399,6 +370,7 @@ class TestShaclUtils:
             viewer: object = None
             composite: object = None
             hidden: object = None
+            ordered_by: object = None
 
         # Crea due risultati con lo stesso campo di base ma con datatype diversi
         # Il primo risultato crea il campo base
@@ -442,9 +414,8 @@ class TestShaclUtils:
             ),
         ]
 
-        # Crea un grafo vuoto e display_rules vuoti
+        # Crea un grafo vuoto
         shacl = Graph()
-        display_rules = []
         processed_shapes = set()
         app = Flask(__name__)
         app.config["DATASET_DB_URL"] = "http://example.org/sparql"
@@ -458,7 +429,6 @@ class TestShaclUtils:
 
             ctx = ShaclProcessingContext(
                 shacl=shacl,
-                display_rules=display_rules,
                 presentation=read_presentation(shacl),
                 pattern_alternatives=[
                     PatternAlternative(

@@ -23,7 +23,7 @@ The configuration pages do not offer to delete the configuration, an entity type
 
 ## Remove `display_rules.yaml`
 
-Keep the whole configuration in RDF, in the same document as the shapes. `orderedBy` and `sortableBy` still live in the YAML file. Choose the term that expresses each one.
+Keep the whole configuration in RDF, in the same document as the shapes. `sortableBy` still lives in the YAML file. Choose the term that expresses it.
 
 ## Edit RDF lists in the configuration editor
 

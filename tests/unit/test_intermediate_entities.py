@@ -5,7 +5,6 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import yaml
 from flask import Flask
 from rdflib import Graph
 
@@ -34,9 +33,7 @@ def _shapes() -> Graph:
 
 
 def _article_fields() -> dict:
-    with (CONFIGURATION / "display_rules.yaml").open() as rules_file:
-        rules = yaml.safe_load(rules_file)["rules"]
-    return get_form_fields_from_shacl(_shapes(), rules, Flask(__name__))[ARTICLE_KEY]
+    return get_form_fields_from_shacl(_shapes(), Flask(__name__))[ARTICLE_KEY]
 
 
 def _nested_uris(field: dict) -> set[str]:

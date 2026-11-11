@@ -15,7 +15,7 @@ from rdflib.plugins.sparql import prepareQuery
 from rdflib.plugins.sparql.sparql import Query
 from rdflib.query import Result, ResultRow
 
-from heritrace.configuration.vocabulary import DASH, SHUI
+from heritrace.configuration.vocabulary import DASH, HT, SHUI
 from heritrace.sparql import select_results
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_patterns import (
@@ -32,7 +32,6 @@ from heritrace.utils.shacl_presentation import (
 @dataclass(slots=True)
 class ShaclProcessingContext:
     shacl: Graph
-    display_rules: list[dict[str, object]] | None
     presentation: ShapesPresentation
     pattern_alternatives: list[PatternAlternative]
     app: Flask
@@ -62,13 +61,14 @@ class _ParsedRow:
     viewer: str | None
     composite: bool
     hidden: bool
+    ordered_by: str | None
 
 
 COMMON_SPARQL_QUERY = prepareQuery(
     """
     SELECT ?shape ?type ?path ?inverse ?node_shape ?link_shape ?link_class ?datatype
            ?max_count ?min_count ?has_value ?object_class
-           ?name ?editor ?viewer ?composite ?hidden
+           ?name ?editor ?viewer ?composite ?hidden ?ordered_by
            (GROUP_CONCAT(?optional_value; separator=",")
             AS ?optional_values)
            (GROUP_CONCAT(?or_node; separator=",") AS ?or_nodes)
@@ -137,18 +137,20 @@ COMMON_SPARQL_QUERY = prepareQuery(
         OPTIONAL { ?property shui:viewer ?viewer . }
         OPTIONAL { ?property dash:composite ?composite . }
         OPTIONAL { ?property dash:hidden ?hidden . }
+        OPTIONAL { ?property ht:orderedBy ?ordered_by . }
         OPTIONAL { ?property sh:property/sh:path ?detail_path . }
         FILTER (isURI(?path) || BOUND(?inverse))
         FILTER NOT EXISTS { ?property sh:values ?computed . }
     }
     GROUP BY ?shape ?type ?path ?inverse ?node_shape ?link_shape ?link_class ?datatype
              ?max_count ?min_count ?has_value ?object_class
-             ?name ?editor ?viewer ?composite ?hidden
+             ?name ?editor ?viewer ?composite ?hidden ?ordered_by
 """,
     initNs={
         "sh": "http://www.w3.org/ns/shacl#",
         "shui": str(SHUI),
         "dash": str(DASH),
+        "ht": str(HT),
         "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     },
 )
@@ -199,6 +201,7 @@ def _parse_row(row: ResultRow) -> _ParsedRow:
         viewer=str(row.viewer) if row.viewer else None,
         composite=bool(row.composite),
         hidden=bool(row.hidden),
+        ordered_by=str(row.ordered_by) if row.ordered_by else None,
     )
 
 
@@ -328,6 +331,8 @@ def _process_single_row(
         field_info["displayName"] = parsed.name
     if parsed.detail_paths:
         field_info["detailPaths"] = parsed.detail_paths
+    if parsed.ordered_by is not None:
+        field_info["orderedBy"] = parsed.ordered_by
 
     if parsed.link_only:
         field_info["nestedShape"] = []
@@ -386,8 +391,6 @@ def process_nested_shapes(
         depth=depth,
     )
 
-    if ctx.display_rules:
-        temp_form_fields = apply_display_rules(temp_form_fields, ctx.display_rules)
     temp_form_fields = order_form_fields(temp_form_fields, ctx.presentation)
 
     for entity_type in temp_form_fields:
@@ -435,65 +438,6 @@ def order_form_fields(
         (entity_key, _ordered_fields(fields, entity_key[1], presentation))
         for entity_key, fields in form_fields.items()
     )
-
-
-def apply_display_rules(
-    form_fields: dict[
-        tuple[str, str],
-        dict[str, list[dict[str, object]]],
-    ],
-    display_rules: list[dict[str, object]],
-) -> dict[
-    tuple[str, str],
-    dict[str, list[dict[str, object]]],
-]:
-    """
-    Applica le regole di visualizzazione ai campi del form.
-
-    Argomenti:
-        form_fields (dict): I campi del form iniziali estratti dalle shape SHACL.
-
-    Restituisce:
-        dict: I campi del form dopo aver applicato le regole di visualizzazione.
-    """
-    for rule in display_rules:
-        target = cast("dict[str, str]", rule.get("target", {}))
-        entity_class = target.get("class")
-        entity_shape = target.get("shape")
-
-        # Handle different cases based on available target information
-        # Case 1: Both class and shape are specified (exact match)
-        if entity_class and entity_shape:
-            entity_key = (entity_class, entity_shape)
-            if entity_key in form_fields:
-                apply_rule_to_entity(form_fields, entity_key, rule)
-        # Case 2: Only class is specified (apply to all matching classes)
-        elif entity_class:
-            for key in list(form_fields.keys()):
-                if key[0] == entity_class:  # Check if class part of tuple matches
-                    apply_rule_to_entity(form_fields, key, rule)
-        # Case 3: Only shape is specified (apply to all matching shapes)
-        elif entity_shape:
-            for key in list(form_fields.keys()):
-                if key[1] == entity_shape:  # Check if shape part of tuple matches
-                    apply_rule_to_entity(form_fields, key, rule)
-    return form_fields
-
-
-def apply_rule_to_entity(
-    form_fields: dict[
-        tuple[str, str],
-        dict[str, list[dict[str, object]]],
-    ],
-    entity_key: tuple[str, str],
-    rule: dict[str, object],
-) -> None:
-    display_props = cast("list[dict[str, object]]", rule.get("displayProperties", []))
-    for prop in display_props:
-        prop_uri = prop.get("property")
-        if prop_uri and prop_uri in form_fields[entity_key] and "orderedBy" in prop:
-            for field_info in form_fields[entity_key][str(prop_uri)]:
-                field_info["orderedBy"] = prop["orderedBy"]
 
 
 def determine_input_type(editor: str | None, datatype: str | None) -> str:
@@ -580,7 +524,6 @@ def get_object_class(shacl: Graph, shape_uri: str, predicate_uri: str) -> str | 
 
 def extract_shacl_form_fields(
     shacl: Graph | None,
-    display_rules: list[dict[str, object]] | None,
     presentation: ShapesPresentation,
     app: Flask,
 ) -> (
@@ -598,7 +541,6 @@ def extract_shacl_form_fields(
 
     Args:
         shacl: The SHACL graph
-        display_rules: The display rules configuration
         app: Flask application instance
 
     Returns:
@@ -611,7 +553,6 @@ def extract_shacl_form_fields(
 
     ctx = ShaclProcessingContext(
         shacl=shacl,
-        display_rules=display_rules,
         presentation=presentation,
         pattern_alternatives=read_pattern_alternatives(shacl),
         app=app,

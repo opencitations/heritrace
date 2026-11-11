@@ -363,14 +363,13 @@ def _property_shape_for_value(
     return presentations[0]
 
 
-def _group_shape_properties(ctx: GroupingContext, prop_configs: dict) -> None:
+def _group_shape_properties(ctx: GroupingContext) -> None:
     by_predicate: OrderedDict[str, list[PropertyPresentation]] = OrderedDict()
     for prop in get_presentation().shape_properties(ctx.highest_priority_shape):
         by_predicate.setdefault(prop.path, []).append(prop)
 
     for predicate, presentations in by_predicate.items():
         ctx.relevant_properties.add(predicate)
-        prop_config = prop_configs.get(predicate, {})
         group_names = {}
         for presentation in presentations:
             group_name = presentation.name or predicate
@@ -392,27 +391,24 @@ def _group_shape_properties(ctx: GroupingContext, prop_configs: dict) -> None:
             ctx.grouped_triples[group_name]["triples"].append(
                 _triple_data(ctx, triple, presentation.node)
             )
-        if "orderedBy" in prop_config:
-            for group_name in dict.fromkeys(group_names.values()):
-                _apply_ordering_to_group(
-                    ctx, prop_config, prop_config["orderedBy"], group_name
-                )
+        ordered_groups = {
+            group_names[presentation.identifier]: presentation.ordered_by
+            for presentation in presentations
+            if presentation.ordered_by is not None
+        }
+        for group_name, order_property in ordered_groups.items():
+            _apply_ordering_to_group(ctx, predicate, order_property, group_name)
 
 
 def _apply_ordering_to_group(
     ctx: GroupingContext,
-    current_prop_config: dict,
-    order_property: str | None,
+    predicate: str,
+    order_property: str,
     display_name: str,
 ) -> None:
     ctx.grouped_triples[display_name]["is_draggable"] = True
     ctx.grouped_triples[display_name]["ordered_by"] = order_property
-    process_ordering(
-        ctx,
-        current_prop_config,
-        order_property,
-        display_name,
-    )
+    process_ordering(ctx, predicate, order_property, display_name)
 
 
 def get_grouped_triples(
@@ -438,13 +434,7 @@ def get_grouped_triples(
         value_triples=value_triples,
     )
 
-    matching_rule = find_matching_rule(highest_priority_class, highest_priority_shape)
-    display_properties = (
-        matching_rule.get("displayProperties", []) if matching_rule else []
-    )
-    prop_configs = {prop["property"]: prop for prop in display_properties}
-
-    _group_shape_properties(ctx, prop_configs)
+    _group_shape_properties(ctx)
 
     for prop_uri in valid_predicates_info:
         if prop_uri not in ctx.relevant_properties:
@@ -529,8 +519,8 @@ def _add_inverse_values(
 
 def process_ordering(
     ctx: GroupingContext,
-    prop: dict,
-    order_property: str | None,
+    predicate: str,
+    order_property: str,
     display_name: str,
 ) -> None:
     def get_ordered_sequence(
@@ -567,7 +557,7 @@ def process_ordering(
     order_query = f"""
         SELECT ?orderedEntity (COALESCE(?next, "NONE") AS ?nextValue)
         WHERE {{
-            <{decoded_subject}> <{prop["property"]}> ?orderedEntity.
+            <{decoded_subject}> <{predicate}> ?orderedEntity.
             OPTIONAL {{
                 ?orderedEntity <{order_property}> ?next.
             }}
@@ -621,36 +611,3 @@ def process_default_property(
             "objectShape": None,
         }
         grouped_triples[display_name]["triples"].append(new_triple_data)
-
-
-def get_predicate_ordering_info(
-    predicate_uri: str,
-    highest_priority_class: str | None,
-    entity_shape: str | None = None,
-) -> str | None:
-    """
-    Check if a predicate is ordered and return its ordering property.
-
-    Args:
-        predicate_uri: URI of the predicate to check
-        highest_priority_class: The highest priority class for the subject entity
-        entity_shape: Optional shape for the subject entity
-
-    Returns:
-        The ordering property URI if the predicate is ordered, None otherwise
-    """
-    display_rules = get_display_rules()
-    if not display_rules:
-        return None
-
-    rule = find_matching_rule(highest_priority_class, entity_shape, display_rules)
-    if not rule:
-        return None
-
-    for prop in rule.get("displayProperties", []):
-        if not isinstance(prop, dict):
-            continue
-        if prop.get("property") == predicate_uri:
-            return prop.get("orderedBy")
-
-    return None

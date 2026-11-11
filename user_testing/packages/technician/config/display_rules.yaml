@@ -5,9 +5,6 @@
 rules:
 - target:
     class: http://purl.org/spar/fabio/JournalArticle
-  displayProperties:
-  - property: http://purl.org/spar/pro/isDocumentContextFor
-    orderedBy: https://w3id.org/oc/ontology/hasNext
   sortableBy:
   - property: http://purl.org/dc/terms/title
     sortOrder:

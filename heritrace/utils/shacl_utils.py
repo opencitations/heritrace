@@ -18,7 +18,6 @@ from heritrace.extensions import (
 from heritrace.sparql import get_sparql_bindings, select_results
 from heritrace.utils.filters import format_uri_as_readable
 from heritrace.utils.shacl_display import (
-    apply_display_rules,
     extract_shacl_form_fields,
     order_form_fields,
     remove_inverse_back_links,
@@ -36,15 +35,12 @@ _hasvalue_constraints_cache: WeakKeyDictionary[
 ] = WeakKeyDictionary()
 
 
-def get_form_fields_from_shacl(
-    shacl: Graph | None, display_rules: list[dict] | None, app: Flask
-) -> dict:
+def get_form_fields_from_shacl(shacl: Graph | None, app: Flask) -> dict:
     """
     Analyze SHACL shapes to extract form fields for each entity type.
 
     Args:
         shacl: The SHACL graph
-        display_rules: The display rules configuration
         app: Flask application instance
 
     Returns:
@@ -57,10 +53,7 @@ def get_form_fields_from_shacl(
 
     presentation = read_presentation(shacl)
 
-    form_fields = extract_shacl_form_fields(shacl, display_rules, presentation, app=app)
-
-    if display_rules:
-        form_fields = apply_display_rules(form_fields, display_rules)
+    form_fields = extract_shacl_form_fields(shacl, presentation, app=app)
 
     ensure_display_names(form_fields)
 

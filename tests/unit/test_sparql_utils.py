@@ -89,13 +89,6 @@ def mock_display_rules():
         mock_rules_data = [
             {
                 "target": {"class": "http://example.org/Person"},
-                "displayProperties": [
-                    {"displayName": "Name", "property": "http://example.org/name"},
-                    {
-                        "displayName": "Knows",
-                        "property": "http://example.org/knows",
-                    },
-                ],
                 "sortableBy": [
                     {"property": "http://example.org/name", "label": "Name"}
                 ],

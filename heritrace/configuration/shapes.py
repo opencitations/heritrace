@@ -12,7 +12,7 @@ from rdflib.collection import Collection
 from rdflib.compare import isomorphic
 from rdflib.term import Node
 
-from heritrace.configuration.vocabulary import DASH, SH, SHUI
+from heritrace.configuration.vocabulary import DASH, HT, SH, SHUI
 
 ValueKind = TypingLiteral["any", "datatype", "node", "value", "options", "class"]
 
@@ -53,6 +53,7 @@ class PropertyShape:
     viewer: str | None = None
     composite: bool | None = None
     hidden: bool | None = None
+    ordered_by: str | None = None
     kind: ValueKind = "any"
     values: list[str] = field(default_factory=list)
     node_classes: dict[str, str] = field(default_factory=dict)
@@ -173,6 +174,7 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
         viewer=_iri(graph, property_shape, SHUI.viewer),
         composite=_boolean(graph, property_shape, DASH.composite),
         hidden=_boolean(graph, property_shape, DASH.hidden),
+        ordered_by=_iri(graph, property_shape, HT.orderedBy),
         label=(property_shape, SHUI.propertyRole, SHUI.LabelRole) in graph,
     )
     if qualified_shape is not None:
@@ -329,6 +331,8 @@ def _add_widgets(graph: Graph, node: Node, prop: PropertyShape) -> None:
         graph.add((node, DASH.composite, Literal(prop.composite)))
     if prop.hidden is not None:
         graph.add((node, DASH.hidden, Literal(prop.hidden)))
+    if prop.ordered_by is not None:
+        graph.add((node, HT.orderedBy, URIRef(prop.ordered_by)))
     for detail_path in prop.details:
         detail = BNode()
         graph.add((node, SH.property, detail))

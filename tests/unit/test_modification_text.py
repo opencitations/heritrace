@@ -54,6 +54,7 @@ def _presentation(ordered: list[str], shape_order: list[str] | None = None):
     presentation = MagicMock()
     presentation.predicate_order.return_value = ordered
     presentation.node_order.return_value = shape_order or []
+    presentation.ordered_by.return_value = None
     return presentation
 
 
@@ -74,7 +75,6 @@ def test_build_modifications_additions_and_deletions(mock_custom_filter) -> None
     with patch.multiple(
         MODULE,
         get_presentation=MagicMock(return_value=_presentation([NAME, AGE])),
-        get_predicate_ordering_info=MagicMock(return_value=None),
     ):
         result = build_modifications(
             modifications,
@@ -100,7 +100,6 @@ def test_build_modifications_respects_property_order(mock_custom_filter) -> None
     with patch.multiple(
         MODULE,
         get_presentation=MagicMock(return_value=_presentation([AGE, NAME])),
-        get_predicate_ordering_info=MagicMock(return_value=None),
     ):
         result = build_modifications(
             modifications, _ctx(mock_custom_filter), Graph(), "2024-01-01T00:00:00"
@@ -133,7 +132,6 @@ def test_build_modifications_orders_groups_by_shape(mock_custom_filter) -> None:
                 [prop], ["http://example.org/ShapeA", "http://example.org/ShapeB"]
             )
         ),
-        get_predicate_ordering_info=MagicMock(return_value=None),
         determine_object_class_and_shape=MagicMock(
             side_effect=[
                 ("ClassA", "http://example.org/ShapeB"),

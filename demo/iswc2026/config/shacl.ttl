@@ -18,6 +18,8 @@
 @prefix pro: <http://purl.org/spar/pro/> .
 @prefix shui: <http://www.w3.org/ns/shacl-ui/> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ht: <https://w3id.org/heritrace#> .
+@prefix oco: <https://w3id.org/oc/ontology/> .
 
 # Prefixes for the SPARQL queries in this shapes graph
 
@@ -87,6 +89,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;

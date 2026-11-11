@@ -16,6 +16,7 @@
 @prefix oco: <https://w3id.org/oc/ontology/> .
 @prefix frbr: <http://purl.org/vocab/frbr/core#> .
 @prefix shui: <http://www.w3.org/ns/shacl-ui/> .
+@prefix ht: <https://w3id.org/heritrace#> .
 
 # Prefixes for the SPARQL queries in this shapes graph
 
@@ -86,6 +87,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    ht:orderedBy oco:hasNext ;
     shui:editor shui:DetailsEditor ;
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;

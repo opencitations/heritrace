@@ -448,9 +448,7 @@ def initialize_global_variables(
             )
 
             try:
-                form_fields_cache = get_form_fields_from_shacl(
-                    shacl_graph, display_rules, app=app
-                )
+                form_fields_cache = get_form_fields_from_shacl(shacl_graph, app=app)
             except ValueError as e:
                 app.logger.exception("Error initializing form fields from SHACL")
                 msg = f"Failed to initialize form fields: {e!s}"
