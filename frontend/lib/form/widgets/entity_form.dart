@@ -8,6 +8,7 @@ import '../../design/app_theme.dart';
 import '../../design/controls.dart';
 import '../../design/spacing.dart';
 import '../form_model.dart';
+import 'boolean_field.dart';
 import 'field_group_widget.dart';
 
 class EntityForm extends StatelessWidget {
@@ -51,20 +52,27 @@ class EntityForm extends StatelessWidget {
             for (final card in cards)
               Padding(
                 padding: const EdgeInsets.only(bottom: appSectionSpacing),
-                child: AppCard(
-                  header: PropertyHeading(
-                    label: card.first.def.displayName,
-                    style: styles.groupHeader,
-                    required: card.first.def.isRequired,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    spacing: appInputSpacing,
-                    children: [
-                      for (final group in card) FieldGroupWidget(group: group),
-                    ],
-                  ),
-                ),
+                child: card.first.def.isBoolean
+                    ? BooleanFieldCard(
+                        label: card.first.def.displayName,
+                        value: card.first.isSwitchedOn,
+                        onChanged: card.first.switchTo,
+                      )
+                    : AppCard(
+                        header: PropertyHeading(
+                          label: card.first.def.displayName,
+                          style: styles.groupHeader,
+                          required: card.first.def.isRequired,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          spacing: appInputSpacing,
+                          children: [
+                            for (final group in card)
+                              FieldGroupWidget(group: group),
+                          ],
+                        ),
+                      ),
               ),
           ],
         );

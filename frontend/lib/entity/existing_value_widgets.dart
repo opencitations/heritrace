@@ -9,6 +9,7 @@ import '../design/app_theme.dart';
 import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../form/form_model.dart';
+import '../form/widgets/boolean_field.dart';
 import '../form/widgets/field_group_widget.dart';
 import '../form/widgets/item_widgets.dart';
 import '../i18n/translations.g.dart';
@@ -56,6 +57,13 @@ class EditableGroupWidget extends StatelessWidget {
     return ListenableBuilder(
       listenable: group,
       builder: (context, _) {
+        if (group.group.field?.isBoolean ?? false) {
+          return BooleanFieldCard(
+            label: group.group.displayName,
+            value: group.isSwitchedOn,
+            onChanged: editing && group.canSwitch ? group.switchTo : null,
+          );
+        }
         final draggable = editing && group.group.isDraggable;
         return AppCard(
           header: PropertyHeading(

@@ -39,6 +39,7 @@ class SettingsPage extends ConsumerWidget {
     return AsyncView(
       value: ref.watch(storedSettingsProvider),
       onRetry: () => ref.invalidate(storedSettingsProvider),
+      header: const SettingsHeader(tab: SettingsTab.system),
       builder: (stored) => _SettingsEditor(stored: stored),
     );
   }

@@ -25,6 +25,7 @@ class AsyncView<T> extends StatelessWidget {
     required this.value,
     required this.builder,
     this.onRetry,
+    this.header,
     super.key,
   });
 
@@ -32,15 +33,35 @@ class AsyncView<T> extends StatelessWidget {
   final Widget Function(T data) builder;
   final VoidCallback? onRetry;
 
+  /// Stays in place while the data loads, where [builder] draws it again.
+  final Widget? header;
+
   @override
   Widget build(BuildContext context) {
-    return value.when(
-      data: builder,
+    final margin = pageMargin(context);
+    final pending = value.when(
+      data: (_) => null,
       loading: () => const Center(child: CupertinoActivityIndicator()),
       error: (error, _) => Padding(
-        padding: pageMargin(context),
+        padding: margin,
         child: ErrorView(error: error, onRetry: onRetry),
       ),
+    );
+    if (pending == null) {
+      return builder(value.requireValue);
+    }
+    if (header == null) {
+      return pending;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: margin.copyWith(bottom: appInputSpacing),
+          child: header,
+        ),
+        Expanded(child: pending),
+      ],
     );
   }
 }

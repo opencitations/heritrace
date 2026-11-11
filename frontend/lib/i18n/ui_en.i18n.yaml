@@ -57,6 +57,8 @@ recycleBin:
 form:
   required: This field is required
   mandatoryValue: This property has a mandatory value that cannot be modified
+  booleanTrue: "Yes"
+  booleanFalse: "No"
   addItem: Add $name
   addProperty: Add property
   selectOption: Select an option

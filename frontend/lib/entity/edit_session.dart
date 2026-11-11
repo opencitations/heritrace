@@ -103,6 +103,29 @@ class EditableGroup extends ChangeNotifier {
           (formGroup?.items.isNotEmpty ?? false) ||
           !listEquals(originalOrder, currentOrder));
 
+  bool get isSwitchedOn =>
+      existing.any(
+        (value) => !value.markedForDeletion && isTrueLiteral(value.newValue),
+      ) ||
+      (formGroup?.isSwitchedOn ?? false);
+
+  bool get canSwitch => existing.isNotEmpty || formGroup != null;
+
+  void switchTo(bool on) {
+    if (existing.isEmpty) {
+      formGroup!.switchTo(on);
+      return;
+    }
+    final value = existing.single;
+    if (isTrueLiteral(value.triple.value) == on) {
+      value.reset();
+    } else if (on) {
+      value.setValue('true');
+    } else {
+      value.markForDeletion();
+    }
+  }
+
   void move(int oldIndex, int newIndex) {
     final value = existing.removeAt(oldIndex);
     existing.insert(newIndex, value);

@@ -57,6 +57,8 @@ recycleBin:
 form:
   required: Campo obbligatorio
   mandatoryValue: Questa proprietà ha un valore obbligatorio che non si può modificare
+  booleanTrue: "Sì"
+  booleanFalse: "No"
   addItem: Aggiungi $name
   addProperty: Aggiungi proprietà
   selectOption: Scegli un'opzione

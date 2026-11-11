@@ -42,6 +42,7 @@ class EntityPage extends ConsumerWidget {
     return AsyncView(
       value: view,
       onRetry: () => ref.invalidate(entityViewProvider(uri)),
+      header: header,
       builder: (data) => switch (data.type) {
         null => _UntypedEntityBody(key: ValueKey(data), view: data),
         final type => _EntityBody(
@@ -479,6 +480,8 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
                                   for (final group in _session.groups)
                                     if (group.group.isShown &&
                                         (group.group.triples.isNotEmpty ||
+                                            (group.group.field?.isBoolean ??
+                                                false) ||
                                             (editing &&
                                                 view.canBeAdded.contains(
                                                   group.group.property,

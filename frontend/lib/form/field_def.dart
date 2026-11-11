@@ -134,6 +134,8 @@ class FieldDef {
 
   bool get isRequired => min > 0 && hasValue == null;
 
+  bool get isBoolean => inputType == 'checkbox';
+
   bool get isDate =>
       datatypes.contains(xsdDate) ||
       datatypes.contains(xsdGYearMonth) ||
@@ -168,6 +170,8 @@ class FieldDef {
   String optionalValueLabel(String value) =>
       optionalValueLabels[value] ?? value;
 }
+
+bool isTrueLiteral(String value) => value == 'true' || value == '1';
 
 String _readableUri(String uri) {
   final fragment = uri.contains('#')

@@ -98,6 +98,19 @@ class FieldGroup extends ChangeNotifier {
     return item;
   }
 
+  bool get isSwitchedOn =>
+      items.any((item) => isTrueLiteral(item.textValue ?? ''));
+
+  void switchTo(bool on) {
+    if (on) {
+      (addItem() as LiteralItem).setValue('true');
+    } else {
+      for (final item in [...items]) {
+        removeItem(item);
+      }
+    }
+  }
+
   void removeItem(FormItem item) {
     detachItem(item);
     item.dispose();
