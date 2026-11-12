@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 import pytest
 from rdflib import RDF, XSD, Literal, URIRef
 from rdflib_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
-from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
+from rdflib_ocdm.ocdm_graph import OCDMGraph
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 from heritrace.editor import Editor, TriplestoreBackend
@@ -86,19 +86,6 @@ def default_components_editor() -> Editor:
         cast("CounterHandler", counter_handler),
         URIRef("http://example.org/test-agent"),
     )
-
-
-@pytest.fixture(autouse=True)
-def reset_editor_after_test(editor: Editor):
-    """Reset editor state after each test."""
-    yield
-    # Reset editor state
-    editor.g_set = (
-        OCDMDataset(editor.counter_handler)
-        if editor.dataset_is_quadstore
-        else OCDMGraph(editor.counter_handler)
-    )
-    editor.dataset_is_quadstore = True
 
 
 def test_editor_initialization(editor: Editor, mock_counter_handler) -> None:

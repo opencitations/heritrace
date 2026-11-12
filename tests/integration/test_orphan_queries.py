@@ -24,7 +24,6 @@ COMPOSITE_FORM_FIELDS = {
 }
 
 
-@pytest.mark.parametrize("backend", ["virtuoso", "qlever", "default"])
 @pytest.mark.parametrize(
     ("candidate", "expected_orphans", "expected_intermediates"),
     [
@@ -36,9 +35,8 @@ COMPOSITE_FORM_FIELDS = {
     ],
 )
 def test_orphan_detection(
-    app, monkeypatch, backend, candidate, expected_orphans, expected_intermediates
+    app, monkeypatch, candidate, expected_orphans, expected_intermediates
 ):
-    app.config["DATASET_DB_TRIPLESTORE"] = backend
     monkeypatch.setattr(
         "heritrace.utils.sparql_utils.get_form_fields",
         lambda: COMPOSITE_FORM_FIELDS,

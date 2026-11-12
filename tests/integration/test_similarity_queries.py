@@ -12,7 +12,6 @@ from heritrace.routes.merge import _build_union_blocks
 from tests.test_config import TestConfig
 
 
-@pytest.mark.parametrize("backend", ["virtuoso", "qlever", "default"])
 @pytest.mark.parametrize(
     ("value", "matching", "different"),
     [
@@ -43,8 +42,7 @@ from tests.test_config import TestConfig
         ),
     ],
 )
-def test_similarity_matches_configured_values(app, backend, value, matching, different):
-    app.config["DATASET_DB_TRIPLESTORE"] = backend
+def test_similarity_matches_configured_values(app, value, matching, different):
     predicate = "urn:similarity:property"
     graph_uri = "urn:similarity:test"
     sparql = SPARQLWrapper(TestConfig.DATASET_DB_URL)

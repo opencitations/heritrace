@@ -69,6 +69,17 @@ class ChangeOperation:
 api_bp = Blueprint("api", __name__)
 
 
+# Every node of the configuration that a removed value leaves behind would make
+# the configuration invalid, so the configuration always deletes them.
+def _handling_strategies() -> tuple[OrphanHandlingStrategy, CompositeHandlingStrategy]:
+    if request.blueprint == "configuration_api":
+        return OrphanHandlingStrategy.DELETE, CompositeHandlingStrategy.DELETE
+    return (
+        current_app.config["ORPHAN_HANDLING_STRATEGY"],
+        current_app.config["COMPOSITE_HANDLING_STRATEGY"],
+    )
+
+
 @api_bp.route("/me")
 def me() -> Response:
     signed_in = current_user.is_authenticated
@@ -438,8 +449,7 @@ def _format_orphan_response(
 @login_required
 def check_orphans() -> Response | tuple[Response, int]:
     try:
-        orphan_strategy = current_app.config["ORPHAN_HANDLING_STRATEGY"]
-        composite_strategy = current_app.config["COMPOSITE_HANDLING_STRATEGY"]
+        orphan_strategy, composite_strategy = _handling_strategies()
 
         data = request.json
         if not data or "changes" not in data or "entity_type" not in data:
@@ -538,8 +548,7 @@ def _parse_change_request(
 
 
 def _affected_entity_will_be_deleted(entity: dict, *, delete_affected: bool) -> bool:
-    orphan_strategy = current_app.config["ORPHAN_HANDLING_STRATEGY"]
-    composite_strategy = current_app.config["COMPOSITE_HANDLING_STRATEGY"]
+    orphan_strategy, composite_strategy = _handling_strategies()
 
     if entity["is_composite"]:
         return delete_affected and composite_strategy in (
@@ -655,8 +664,7 @@ def _handle_affected_entities(
     graph_uri: URIRef | None,
     deleted_entities: set[URIRef],
 ) -> None:
-    orphan_strategy = current_app.config["ORPHAN_HANDLING_STRATEGY"]
-    composite_strategy = current_app.config["COMPOSITE_HANDLING_STRATEGY"]
+    orphan_strategy, composite_strategy = _handling_strategies()
     # Separiamo le operazioni di delete in due fasi:
     # 1. Prima eliminiamo tutte le entità orfane/intermedie
     # 2. Poi eliminiamo le triple specifiche

@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
+from collections.abc import Generator
 from unittest.mock import patch
 
 import pytest
@@ -17,6 +18,12 @@ from heritrace.apis.zenodo import (
     make_request_with_retry,
     zenodo_source,
 )
+
+
+@pytest.fixture(autouse=True)
+def _no_retry_delay() -> Generator[None, None, None]:
+    with patch("heritrace.apis.zenodo.sleep"):
+        yield
 
 
 class TestZenodoUrlFunctions:

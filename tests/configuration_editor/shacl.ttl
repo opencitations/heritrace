@@ -1,0 +1,480 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix dash: <http://datashapes.org/dash#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+@prefix datacite: <http://purl.org/spar/datacite/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix fabio: <http://purl.org/spar/fabio/> .
+@prefix frbr: <http://purl.org/vocab/frbr/core#> .
+@prefix literal: <http://www.essepuntato.it/2010/06/literalreification/> .
+@prefix pro: <http://purl.org/spar/pro/> .
+@prefix shui: <http://www.w3.org/ns/shacl-ui/> .
+
+[] a sh:ShapesGraph ;
+  sh:declare
+    [ sh:prefix "datacite" ; sh:namespace "http://purl.org/spar/datacite/"^^xsd:anyURI ] ,
+    [ sh:prefix "dcterms" ; sh:namespace "http://purl.org/dc/terms/"^^xsd:anyURI ] ,
+    [ sh:prefix "fabio" ; sh:namespace "http://purl.org/spar/fabio/"^^xsd:anyURI ] ,
+    [ sh:prefix "literal" ; sh:namespace "http://www.essepuntato.it/2010/06/literalreification/"^^xsd:anyURI ] ,
+    [ sh:prefix "pro" ; sh:namespace "http://purl.org/spar/pro/"^^xsd:anyURI ] .
+
+schema:IdentifierShape
+  a sh:NodeShape ;
+  sh:name "Identifier" ;
+  sh:targetClass datacite:Identifier ;
+  dash:hidden true ;
+  owl:hasKey
+    ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
+    sh:hasValue datacite:Identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:name "Literal Value" ;
+    sh:order 3 ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:usesIdentifierScheme ;
+    sh:name "Identifier Scheme" ;
+    sh:order 2 ;
+    sh:in ( datacite:doi datacite:pmid ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this datacite:usesIdentifierScheme ?scheme ;
+                literal:hasLiteralValue ?value .
+          BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
+        }
+      """ ;
+    ] ;
+  ] .
+
+schema:BookIdentifierShape
+  a sh:NodeShape ;
+  sh:name "Identifier" ;
+  sh:targetClass datacite:Identifier ;
+  dash:hidden true ;
+  owl:hasKey
+    ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
+    sh:hasValue datacite:Identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:name "Literal Value" ;
+    sh:order 3 ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:usesIdentifierScheme ;
+    sh:name "Identifier Scheme" ;
+    sh:order 2 ;
+    sh:in ( datacite:doi datacite:isbn ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this datacite:usesIdentifierScheme ?scheme ;
+                literal:hasLiteralValue ?value .
+          BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
+        }
+      """ ;
+    ] ;
+  ] .
+
+schema:AuthorShape
+  a sh:NodeShape ;
+  sh:name "Agent Role" ;
+  sh:targetClass pro:RoleInTime ;
+  dash:hidden true ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
+    sh:hasValue pro:RoleInTime ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:withRole ;
+    sh:name "Role" ;
+    sh:order 2 ;
+    sh:hasValue pro:author ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          BIND("author" AS ?display)
+        }
+      """ ;
+    ] ;
+  ] .
+
+schema:EditorShape
+  a sh:NodeShape ;
+  sh:name "Agent Role" ;
+  sh:targetClass pro:RoleInTime ;
+  dash:hidden true ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
+    sh:hasValue pro:RoleInTime ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:withRole ;
+    sh:name "Role" ;
+    sh:order 2 ;
+    sh:hasValue pro:editor ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          BIND("editor" AS ?display)
+        }
+      """ ;
+    ] ;
+  ] .
+
+schema:JournalShape
+  a sh:NodeShape ;
+  sh:name "Journal" ;
+  sh:targetClass fabio:Journal ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
+    sh:hasValue fabio:Journal ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this dcterms:title ?display .
+        }
+      """ ;
+    ] ;
+  ] .
+
+schema:VolumeShape
+  a sh:NodeShape ;
+  sh:name "Volume" ;
+  sh:targetClass fabio:JournalVolume ;
+  owl:hasKey
+    ( fabio:hasSequenceIdentifier frbr:partOf ) ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
+    sh:hasValue fabio:JournalVolume ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path fabio:hasSequenceIdentifier ;
+    sh:name "Number" ;
+    sh:order 2 ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:name "Journal" ;
+    sh:order 4 ;
+    sh:node schema:JournalShape ;
+    sh:class fabio:Journal ;
+    shui:editor shui:AutoCompleteEditor ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this fabio:hasSequenceIdentifier ?display .
+        }
+      """ ;
+    ] ;
+  ] .
+
+schema:JournalArticleShape
+  a sh:NodeShape ;
+  sh:name "Journal Article" ;
+  sh:targetClass fabio:JournalArticle ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
+    sh:hasValue fabio:JournalArticle ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    dash:composite true ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
+    sh:node schema:IdentifierShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this dcterms:title ?display .
+        }
+      """ ;
+    ] ;
+  ] .
+
+schema:BookShape
+  a sh:NodeShape ;
+  sh:name "Monograph" ;
+  sh:targetClass fabio:Book ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
+    sh:hasValue fabio:Book ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    dash:composite true ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
+    sh:node schema:BookIdentifierShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    dash:composite true ;
+    sh:name "Author" ;
+    sh:order 4 ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    dash:composite true ;
+    sh:name "Editor" ;
+    sh:order 5 ;
+    sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this dcterms:title ?display .
+        }
+      """ ;
+    ] ;
+  ] .
+
+schema:ReferenceBookShape
+  a sh:NodeShape ;
+  sh:name "Dictionary" ;
+  sh:targetClass fabio:ReferenceBook ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
+    sh:hasValue fabio:ReferenceBook ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    dash:composite true ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
+    sh:node schema:BookIdentifierShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    dash:composite true ;
+    sh:name "Author" ;
+    sh:order 4 ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this dcterms:title ?display .
+        }
+      """ ;
+    ] ;
+  ] .
+
+schema:ThesisShape
+  a sh:NodeShape ;
+  sh:name "Thesis" ;
+  sh:targetClass fabio:Thesis ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
+    sh:hasValue fabio:Thesis ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    dash:composite true ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
+    sh:node schema:BookIdentifierShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    dash:composite true ;
+    sh:name "Author" ;
+    sh:order 4 ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this dcterms:title ?display .
+        }
+      """ ;
+    ] ;
+  ] .

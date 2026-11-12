@@ -68,10 +68,11 @@ def cleanup_nonexistent_config():
 
 
 @pytest.fixture
-def lightweight_app():
+def lightweight_app(tmp_path: Path):
     app = Flask(__name__)
     app.config.update(
         TESTING=True,
+        CONFIG_DIR=tmp_path,
         SECRET_KEY="test",
         DATASET_DB_URL="http://localhost:9999/sparql",
         PROVENANCE_DB_URL="http://localhost:9999/sparql",
@@ -455,8 +456,9 @@ def test_initialize_counter_handler(app) -> None:
         mock_mark.assert_called_once_with(mock_redis)
 
 
-def test_initialize_lock_manager() -> None:
+def test_initialize_lock_manager(tmp_path: Path) -> None:
     app = Flask(__name__)
+    app.config["CONFIG_DIR"] = tmp_path
     mock_redis = MagicMock(spec=Redis)
 
     init_request_handlers(app, mock_redis)

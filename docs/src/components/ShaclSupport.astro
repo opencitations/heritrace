@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: ISC
 
 import { specifications } from '../data/shacl-support';
+import { termDefinitions } from '../data/term-definitions.mjs';
 ---
 
 <div class="shacl-support not-content">
@@ -23,10 +24,10 @@ import { specifications } from '../data/shacl-support';
           <h4>{set.title}</h4>
           <ul>
             {set.supported.map((term) => (
-              <li><code class="chip supported">{term}</code></li>
+              <li><a href={termDefinitions[term]}><code class="chip supported">{term}</code></a></li>
             ))}
             {set.unsupported.map((term) => (
-              <li><code class="chip unsupported">{term}</code></li>
+              <li><a href={termDefinitions[term]}><code class="chip unsupported">{term}</code></a></li>
             ))}
           </ul>
         </div>

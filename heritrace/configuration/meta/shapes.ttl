@@ -32,6 +32,15 @@ meta:ShapesGraphShape
     sh:name "Resource types"@en, "Tipi di risorsa"@it ;
     sh:order 1 ;
     sh:node meta:NodeShapeShape ;
+  ] ;
+  sh:property [
+    sh:path sh:declare ;
+    sh:name "Prefixes"@en, "Prefissi"@it ;
+    sh:description "Short names for namespaces, used to shorten the IRIs shown in this editor and in queries."@en,
+      "Nomi brevi per gli spazi dei nomi, usati per accorciare gli IRI mostrati in questo editor e nelle query."@it ;
+    sh:order 2 ;
+    dash:composite true ;
+    sh:node meta:PrefixDeclarationShape ;
   ] .
 
 meta:NodeShapeShape
@@ -353,6 +362,47 @@ meta:DetailFieldShape
     sh:path sh:path ;
     sh:name "Property"@en, "Proprietà"@it ;
     sh:nodeKind sh:IRI ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] .
+
+meta:PrefixDeclarationShape
+  a sh:NodeShape ;
+  sh:name "Prefix"@en, "Prefisso"@it ;
+  sh:targetClass sh:PrefixDeclaration ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue sh:PrefixDeclaration ;
+    dash:hidden true ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:prefixes meta:ShapesGraph ;
+      sh:select """
+        SELECT ?label WHERE {
+          $this sh:prefix ?label .
+        }
+        LIMIT 1
+      """ ;
+    ] ;
+  ] ;
+  sh:property [
+    sh:path sh:prefix ;
+    sh:name "Prefix"@en, "Prefisso"@it ;
+    sh:order 1 ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:namespace ;
+    sh:name "Namespace"@en, "Spazio dei nomi"@it ;
+    sh:order 2 ;
+    sh:datatype xsd:anyURI ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] .

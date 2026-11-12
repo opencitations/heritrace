@@ -4,18 +4,21 @@
 
 import json
 from collections import OrderedDict, defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from pathlib import Path
 from typing import cast
 
 from flask import Flask
 from rdflib import Graph, URIRef
+from rdflib.collection import Collection
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.plugins.sparql.sparql import Query
 from rdflib.query import Result, ResultRow
+from rdflib.term import Node
 
-from heritrace.configuration.vocabulary import DASH, HT, SHUI
+from heritrace.configuration.vocabulary import DASH, HT, SH, SHUI
 from heritrace.sparql import select_results
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_patterns import (
@@ -39,6 +42,7 @@ class ShaclProcessingContext:
     shown_with: dict[tuple[str, str], list[str]]
     app: Flask
     processed_shapes: set[str]
+    shape_rows: dict[str, list[ResultRow]] = dataclass_field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -417,14 +421,18 @@ def process_nested_shapes(
         return []
 
     ctx.processed_shapes.add(shape_uri)
-    init_bindings = {"shape": URIRef(shape_uri)}
-    nested_results = execute_shacl_query(ctx.shacl, COMMON_SPARQL_QUERY, init_bindings)
+    if shape_uri not in ctx.shape_rows:
+        ctx.shape_rows[shape_uri] = list(
+            select_results(
+                execute_shacl_query(
+                    ctx.shacl, COMMON_SPARQL_QUERY, {"shape": URIRef(shape_uri)}
+                )
+            )
+        )
     nested_fields = []
 
     temp_form_fields = process_query_results(
-        ctx,
-        select_results(nested_results),
-        depth=depth,
+        ctx, ctx.shape_rows[shape_uri], depth=depth
     )
 
     temp_form_fields = order_form_fields(temp_form_fields, ctx.presentation)
@@ -499,62 +507,27 @@ def determine_input_type(editor: str | None, datatype: str | None) -> str:
 
 
 def get_shape_target_class(shacl: Graph, shape_uri: str) -> str | None:
-    query = prepareQuery(
-        """
-        SELECT ?targetClass
-        WHERE {
-            ?shape sh:targetClass ?targetClass .
-        }
-    """,
-        initNs={"sh": "http://www.w3.org/ns/shacl#"},
-    )
-    results = execute_shacl_query(shacl, query, {"shape": URIRef(shape_uri)})
-    for row in select_results(results):
-        return str(row.targetClass)
-    return None
+    target_class = shacl.value(URIRef(shape_uri), SH.targetClass)
+    return str(target_class) if target_class else None
+
+
+def _target_classes(shacl: Graph, constraint: Node) -> Iterator[Node]:
+    for node_shape in shacl.objects(constraint, SH.node):
+        yield from shacl.objects(node_shape, SH.targetClass)
+    yield from shacl.objects(constraint, SH["class"])
 
 
 def get_object_class(shacl: Graph, shape_uri: str, predicate_uri: str) -> str | None:
-    query = prepareQuery(
-        """
-        SELECT DISTINCT ?targetClass
-        WHERE {
-            ?shape sh:property ?propertyShape .
-            ?propertyShape sh:path ?predicate .
-            {
-                # Caso 1: definizione diretta con sh:node
-                ?propertyShape sh:node ?nodeShape .
-                ?nodeShape sh:targetClass ?targetClass .
-            } UNION {
-                # Caso 2: definizione diretta con sh:class
-                ?propertyShape sh:class ?targetClass .
-            } UNION {
-                # Caso 3: definizione con sh:or che include node shapes
-                ?propertyShape sh:or ?orList .
-                ?orList rdf:rest*/rdf:first ?choice .
-                {
-                    ?choice sh:node ?nodeShape .
-                    ?nodeShape sh:targetClass ?targetClass .
-                } UNION {
-                    ?choice sh:class ?targetClass .
-                }
-            }
-        }
-    """,
-        initNs={
-            "sh": "http://www.w3.org/ns/shacl#",
-            "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-        },
-    )
-
-    results = execute_shacl_query(
-        shacl, query, {"shape": URIRef(shape_uri), "predicate": URIRef(predicate_uri)}
-    )
-
-    # Prendiamo il primo risultato valido
-    for row in select_results(results):
-        if row.targetClass:
-            return str(row.targetClass)
+    predicate = URIRef(predicate_uri)
+    for property_shape in shacl.objects(URIRef(shape_uri), SH.property):
+        if (property_shape, SH.path, predicate) not in shacl:
+            continue
+        for target_class in _target_classes(shacl, property_shape):
+            return str(target_class)
+        for alternatives in shacl.objects(property_shape, SH["or"]):
+            for choice in Collection(shacl, alternatives):
+                for target_class in _target_classes(shacl, choice):
+                    return str(target_class)
     return None
 
 

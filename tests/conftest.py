@@ -9,9 +9,10 @@ from pathlib import Path
 
 import pytest
 from flask import Flask
-from flask.testing import FlaskClient, FlaskCliRunner
+from flask.testing import FlaskClient
 from redis import Redis
 
+from heritrace import create_app
 from heritrace.scripts.seed_config import seed_config
 from tests.test_config import TestConfig, test_example_dir
 
@@ -49,7 +50,7 @@ def write_test_configuration() -> None:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def docker_services() -> Generator[None, None, None]:
+def docker_services() -> None:
     subprocess.run(
         ["docker", "compose", "-f", COMPOSE_FILE, "up", "-d", "--wait"],
         check=True,
@@ -57,21 +58,39 @@ def docker_services() -> Generator[None, None, None]:
     run_isql("tests-dataset-db-1", VIRTUOSO_GRANTS)
     run_isql("tests-provenance-db-1", VIRTUOSO_GRANTS)
     write_test_configuration()
-    yield
-    subprocess.run(
-        ["docker", "compose", "-f", COMPOSE_FILE, "down"],
-        check=True,
-    )
+
+
+@pytest.fixture(scope="session")
+def _shared_app(docker_services) -> Flask:
+    return create_app(TestConfig)
+
+
+@pytest.fixture
+def app(_shared_app: Flask) -> Generator[Flask, None, None]:
+    config = dict(_shared_app.config)
+    exts = dict(_shared_app.extensions)
+    login_mgr = getattr(_shared_app, "login_manager", None)
+    before_fns = {k: list(v) for k, v in _shared_app.before_request_funcs.items()}
+    teardown_fns = list(_shared_app.teardown_appcontext_funcs)
+
+    with _shared_app.app_context():
+        yield _shared_app
+
+    _shared_app.config.clear()
+    _shared_app.config.update(config)
+    _shared_app.extensions.clear()
+    _shared_app.extensions.update(exts)
+    if login_mgr is not None:
+        _shared_app.login_manager = login_mgr
+    _shared_app.before_request_funcs.clear()
+    _shared_app.before_request_funcs.update(before_fns)
+    _shared_app.teardown_appcontext_funcs[:] = teardown_fns
+    _shared_app._got_first_request = False  # noqa: SLF001
 
 
 @pytest.fixture
 def client(app: Flask) -> FlaskClient:
     return app.test_client()
-
-
-@pytest.fixture
-def runner(app: Flask) -> FlaskCliRunner:
-    return app.test_cli_runner()
 
 
 @pytest.fixture

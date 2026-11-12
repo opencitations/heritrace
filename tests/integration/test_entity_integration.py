@@ -111,6 +111,12 @@ def _make_editor(app: Flask) -> Editor:
     )
 
 
+# Snapshot timestamps have a resolution of one second, and restoring a version
+# needs the snapshots of consecutive saves to carry different timestamps.
+def _next_snapshot_second() -> None:
+    time.sleep(1)
+
+
 def _editor_with_preloaded(app: Flask, subjects: list[URIRef]) -> Editor:
     editor = _make_editor(app)
     for subject in subjects:
@@ -263,7 +269,7 @@ def test_restore_version_scoped_to_restored_entity(
         )
         editor.save()
 
-        time.sleep(1)
+        _next_snapshot_second()
 
         # Rebuild the ordered child list with new URIs, as order_logic does
         editor = _editor_with_preloaded(app, [parent, child1, child2])
@@ -279,7 +285,7 @@ def test_restore_version_scoped_to_restored_entity(
         editor.create(child3, _HAS_NEXT, child4, graph_uri)
         editor.save()
 
-        time.sleep(1)
+        _next_snapshot_second()
 
         editor = _editor_with_preloaded(app, [agent])
         editor.create(
@@ -352,7 +358,7 @@ def test_restore_version_resurrects_deleted_entity_with_incoming_link(
         )
         editor.save()
 
-        time.sleep(1)
+        _next_snapshot_second()
 
         editor = _editor_with_preloaded(app, [role, agent])
         editor.delete(agent, graph=graph_uri)
@@ -575,8 +581,6 @@ def test_restore_version(
             if p not in initial_properties:
                 initial_properties[p] = []
             initial_properties[p].append(o)
-
-        time.sleep(1)
 
         editor = Editor(
             get_app_state().backend,
@@ -858,9 +862,6 @@ def test_entity_modification_workflow(app: Flask) -> None:
         editor.preexisting_finished()
         editor.save()
 
-        # Attendi un momento per assicurarsi che le modifiche siano salvate
-        time.sleep(2)
-
         # 3. Modifica l'entità
 
         # Make sure we create a completely new editor instance
@@ -905,9 +906,6 @@ def test_entity_modification_workflow(app: Flask) -> None:
 
         # Ensure we save with the current timestamp
         editor.save()
-
-        # Attendi un momento più lungo per assicurarsi che le modifiche siano salvate
-        time.sleep(3)
 
         # 4. Verifica che l'entità sia stata aggiornata correttamente
         updated_graph = fetch_data_graph_for_subject(entity_uri)

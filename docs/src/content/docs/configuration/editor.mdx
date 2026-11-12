@@ -21,10 +21,13 @@ The configuration lives in the folder set by [`CONFIG_DIR`](../app-settings/#con
 | File | Content |
 |------|---------|
 | `shacl.ttl` | The resource types, as SHACL shapes in Turtle. It is optional |
+| `shacl-editor.ttl` | The resource types in the form the editor works on, in Turtle |
 | `shacl-provenance.trig` | The history of the resource types, as provenance snapshots in TriG |
 | `settings.db` | The system settings, in an SQLite database |
 
-HERITRACE reads the folder when it starts. Without `shacl.ttl`, it starts with no resource types and creates the file, so you can add resource types later in the **Resource types** tab. On the first start, `shacl-provenance.trig` does not exist yet: HERITRACE checks `shacl.ttl`, records its content as the first version of the resource types and creates the file. From then on, every change made in the app rewrites `shacl.ttl` and adds a snapshot to `shacl-provenance.trig`. Because of this rewrite, the comments and the layout of a `shacl.ttl` written by hand are lost on the first save.
+HERITRACE reads the folder when it starts. Without `shacl.ttl`, it starts with no resource types and creates the file, so you can add resource types later in the **Resource types** tab. On the first start, HERITRACE checks `shacl.ttl` and records its content as the first version of the resource types, leaving the file as it is.
+
+The editor needs a name for each part of the shapes, while SHACL leaves many of them as blank nodes. HERITRACE therefore keeps a copy of the shapes in `shacl-editor.ttl`, where every blank node has an IRI; the history in `shacl-provenance.trig` refers to these IRIs. HERITRACE keeps the two files in sync. A change made in the app updates the copy and the history, then rewrites `shacl.ttl` from it, turning those IRIs back into blank nodes; the rewrite drops the comments and layout of a hand-written file. The copy is also what allows editing `shacl.ttl` by hand: comparing the file with it tells HERITRACE what changed. HERITRACE then reloads, rebuilds the copy and records the new content as a version of the resource types, in which the parts written as blank nodes start a new history.
 
 ## Setup mode
 

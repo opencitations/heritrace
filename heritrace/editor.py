@@ -70,13 +70,14 @@ class TriplestoreBackend:
 
 # Keeps the data in a Turtle file and its provenance in a TriG file. Before
 # writing, check receives the data as it will be after the change and raises to
-# reject it. The caller holds a lock on the files for the whole change, from
-# reading the counters to storing.
+# reject it, and export receives it once accepted. The caller holds a lock on
+# the files for the whole change, from reading the counters to storing.
 @dataclass(frozen=True, slots=True)
 class FileBackend:
     data_path: Path
     provenance_path: Path
     check: Callable[[Graph], None]
+    export: Callable[[Graph], None]
     after_store: Callable[[], object]
     is_quadstore: bool = False
 
@@ -98,6 +99,7 @@ class FileBackend:
         self.check(candidate)
         draft = self.data_path.with_name(f".{self.data_path.name}.tmp")
         candidate.serialize(draft, format="turtle")
+        self.export(candidate)
         Storer(g_set.provenance).store_file(self.provenance_path)
         draft.replace(self.data_path)
         self.after_store()

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 import os
+import shutil
 import time
 from collections.abc import Generator
 from pathlib import Path
@@ -13,22 +14,30 @@ import pytest
 from filelock import Timeout
 from flask import Flask
 from flask.testing import FlaskClient
-from rdflib import DCTERMS, FOAF, XSD, Graph, Literal, URIRef
+from rdflib import DCTERMS, FOAF, OWL, PROV, RDF, XSD, Dataset, Graph, Literal, URIRef
+from rdflib.compare import isomorphic
 from rdflib_ocdm.counter_handler.in_memory_counter_handler import InMemoryCounterHandler
 
 from heritrace import create_app, extensions
 from heritrace.configuration.entity import (
+    EDITOR_FILE,
+    GENID,
     PROVENANCE_FILE,
     ROOT,
     SHAPE_NAMESPACE,
+    SYSTEM_AGENT,
+    canonical,
     configuration_lock,
+    ensure_configuration_entity,
+    read_shacl,
 )
-from heritrace.configuration.shapes import read_duplicate_keys
-from heritrace.configuration.vocabulary import DASH, SH
+from heritrace.configuration.shapes import read_duplicate_keys, read_shapes
+from heritrace.configuration.vocabulary import DASH, META, SH
 from heritrace.scripts.seed_config import seed_config
 from tests.test_config import TestConfig, test_example_dir
 
 ADMIN = "0000-0000-0000-0000"
+EDITOR_SHAPES = test_example_dir / "configuration_editor" / "shacl.ttl"
 IDENTIFIER_SHAPE = URIRef("http://schema.org/IdentifierShape")
 JOURNAL_ARTICLE_SHAPE = URIRef("http://schema.org/JournalArticleShape")
 HAS_IDENTIFIER = URIRef("http://purl.org/spar/datacite/hasIdentifier")
@@ -39,6 +48,7 @@ LITERAL_VALUE = URIRef(
 
 @pytest.fixture
 def config_app(tmp_path: Path) -> Generator[Flask, None, None]:
+    shutil.copyfile(EDITOR_SHAPES, tmp_path / "shacl.ttl")
     seed_config(tmp_path, test_example_dir)
     an_hour_ago = time.time() - 3600
     os.utime(tmp_path / "shacl.ttl", (an_hour_ago, an_hour_ago))
@@ -79,7 +89,7 @@ def admin_client(config_app: Flask) -> FlaskClient:
 
 
 def _data(app: Flask) -> Graph:
-    return Graph().parse(app.config["CONFIG_DIR"] / "shacl.ttl", format="turtle")
+    return Graph().parse(app.config["CONFIG_DIR"] / EDITOR_FILE, format="turtle")
 
 
 def _literal_property(graph: Graph) -> URIRef:
@@ -210,6 +220,9 @@ def test_editing_a_field_keeps_its_history(
     assert set(_data(config_app).objects(field, SH.name)) == {Literal("Value")}
 
     created = _history(admin_client, field)[0]["timestamp"]
+    # Snapshot timestamps have a resolution of one second: the restore must
+    # fall in a later second than the edit for the history to order them.
+    time.sleep(1)
     response = admin_client.post(
         f"/api/configuration/entity-restore/{quote(str(field), safe='')}/"
         f"{quote(created, safe='')}"
@@ -286,7 +299,7 @@ def test_an_invalid_configuration_is_not_saved(
     admin_client: FlaskClient, config_app: Flask
 ) -> None:
     config_dir = config_app.config["CONFIG_DIR"]
-    files = [config_dir / "shacl.ttl", config_dir / PROVENANCE_FILE]
+    files = [config_dir / name for name in ("shacl.ttl", EDITOR_FILE, PROVENANCE_FILE)]
     before = [path.read_bytes() for path in files]
     field = _literal_property(_data(config_app))
 
@@ -294,7 +307,7 @@ def test_an_invalid_configuration_is_not_saved(
         422,
         {
             "errors": [
-                "shapes.10.properties.2.maxCount: The maximum is lower than the minimum"
+                "shapes.4.properties.2.maxCount: The maximum is lower than the minimum"
             ],
             "status": "error",
         },
@@ -376,7 +389,7 @@ def test_a_minimum_value_above_the_maximum_is_not_saved(
         422,
         {
             "errors": [
-                "shapes.10.properties.2.maxInclusive:"
+                "shapes.4.properties.2.maxInclusive:"
                 " The maximum is lower than the minimum"
             ],
             "status": "error",
@@ -393,7 +406,7 @@ def test_bounds_on_a_text_field_are_not_saved(
         422,
         {
             "errors": [
-                "shapes.10.properties.2.minInclusive: Bounds need a numeric datatype"
+                "shapes.4.properties.2.minInclusive: Bounds need a numeric datatype"
             ],
             "status": "error",
         },
@@ -458,3 +471,188 @@ def test_configuration_routes_are_for_admins_but_preflights_pass(
 ) -> None:
     assert client.post("/api/configuration/check-lock").status_code == 401
     assert client.options("/api/configuration/check-lock").status_code == 200
+
+
+def test_a_new_prefix_is_declared(admin_client: FlaskClient, config_app: Flask) -> None:
+    status, _ = _add(
+        admin_client,
+        ROOT,
+        {
+            SH.declare: {
+                "entity_type": str(SH.PrefixDeclaration),
+                "entity_shape": str(META.PrefixDeclarationShape),
+                "properties": {
+                    str(SH.prefix): ["ex"],
+                    str(SH.namespace): ["http://example.org/"],
+                },
+            }
+        },
+    )
+
+    assert status == 200
+    shapes = read_shapes(read_shacl(config_app.config["CONFIG_DIR"]))
+    assert shapes.prefixes["ex"] == "http://example.org/"
+
+
+def test_the_first_start_leaves_the_shapes_file_as_written(config_app: Flask) -> None:
+    config_dir = config_app.config["CONFIG_DIR"]
+
+    assert (config_dir / "shacl.ttl").read_bytes() == EDITOR_SHAPES.read_bytes()
+    assert (config_dir / EDITOR_FILE).exists()
+
+
+def test_a_saved_configuration_is_plain_shacl(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    field = _literal_property(_data(config_app))
+
+    assert _update(admin_client, field, SH.name, "Literal Value", "Value")[0] == 200
+
+    text = (config_app.config["CONFIG_DIR"] / "shacl.ttl").read_text()
+    saved = Graph().parse(data=text, format="turtle")
+    assert isomorphic(saved, canonical(_data(config_app)))
+    assert GENID not in text
+    assert str(META) not in text
+    for predicate in (SH["in"], OWL.hasKey):
+        heads = set(saved.objects(None, predicate))
+        assert heads
+        assert all((head, RDF.first, None) in saved for head in heads)
+
+
+def _snapshot_agents(config_dir: Path, entity: URIRef) -> list[str]:
+    provenance = Dataset(default_union=True).parse(
+        config_dir / PROVENANCE_FILE, format="trig"
+    )
+    return [
+        str(provenance.value(snapshot, PROV.wasAttributedTo))
+        for snapshot in provenance.subjects(PROV.specializationOf, entity)
+    ]
+
+
+def test_a_restart_without_changes_adds_no_version(config_app: Flask) -> None:
+    config_dir = config_app.config["CONFIG_DIR"]
+    before = (config_dir / PROVENANCE_FILE).read_bytes()
+
+    ensure_configuration_entity(config_dir)
+
+    assert (config_dir / PROVENANCE_FILE).read_bytes() == before
+
+
+def test_a_restart_adds_no_version_when_shapes_share_a_blank_node(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "shacl.ttl").write_text(
+        EDITOR_SHAPES.read_text()
+        + """
+schema:JournalShape sh:property _:abstract .
+schema:ThesisShape sh:property _:abstract .
+_:abstract sh:path dcterms:abstract ; sh:name "Abstract" ; sh:datatype xsd:string .
+"""
+    )
+    ensure_configuration_entity(tmp_path)
+    before = (tmp_path / PROVENANCE_FILE).read_bytes()
+
+    ensure_configuration_entity(tmp_path)
+
+    assert (tmp_path / PROVENANCE_FILE).read_bytes() == before
+
+
+def test_a_shapes_file_edited_by_hand_becomes_a_new_version(
+    config_app: Flask,
+) -> None:
+    config_dir = config_app.config["CONFIG_DIR"]
+    shacl_path = config_dir / "shacl.ttl"
+    edited = Graph().parse(shacl_path, format="turtle")
+    field = next(
+        prop
+        for prop in edited.objects(IDENTIFIER_SHAPE, SH.property)
+        if (prop, SH.path, LITERAL_VALUE) in edited
+    )
+    edited.set((field, SH.name, Literal("Written by hand")))
+    edited.serialize(shacl_path, format="turtle")
+
+    ensure_configuration_entity(config_dir)
+
+    view = _data(config_app)
+    assert Literal("Written by hand") in {
+        view.value(prop, SH.name)
+        for prop in view.objects(IDENTIFIER_SHAPE, SH.property)
+    }
+    assert _snapshot_agents(config_dir, IDENTIFIER_SHAPE) == [
+        str(SYSTEM_AGENT),
+        str(SYSTEM_AGENT),
+    ]
+
+
+def _edit_by_hand(config_dir: Path) -> None:
+    shacl_path = config_dir / "shacl.ttl"
+    edited = Graph().parse(shacl_path, format="turtle")
+    edited.add((IDENTIFIER_SHAPE, SH.description, Literal("Written by hand")))
+    edited.serialize(shacl_path, format="turtle")
+
+
+def test_a_hand_edit_reloads_heritrace(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    _edit_by_hand(config_app.config["CONFIG_DIR"])
+
+    with patch("heritrace.extensions.request_reload", return_value=True) as reload:
+        admin_client.get("/api/me")
+        admin_client.get("/api/me")
+
+    reload.assert_called_once_with()
+
+
+def test_a_save_does_not_overwrite_a_hand_edit(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    config_dir = config_app.config["CONFIG_DIR"]
+    _edit_by_hand(config_dir)
+    files = [config_dir / name for name in ("shacl.ttl", EDITOR_FILE, PROVENANCE_FILE)]
+    before = [path.read_bytes() for path in files]
+    field = _literal_property(_data(config_app))
+
+    assert _update(admin_client, field, SH.name, "Literal Value", "Value") == (
+        422,
+        {
+            "errors": ["shacl.ttl changed on disk. Reload the page to see its content"],
+            "status": "error",
+        },
+    )
+    assert [path.read_bytes() for path in files] == before
+
+
+def test_removing_a_prefix_removes_its_declaration(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    data = _data(config_app)
+    declaration = next(data.objects(ROOT, SH.declare))
+    prefix = str(data.value(declaration, SH.prefix))
+    deletion = {
+        "action": "delete",
+        "subject": str(ROOT),
+        "predicate": str(SH.declare),
+        "object": str(declaration),
+    }
+    check = admin_client.post(
+        "/api/configuration/check_orphans",
+        json={"changes": [deletion], "entity_type": str(SH.ShapesGraph)},
+    ).get_json()
+    assert check["should_delete"] is True
+
+    response = admin_client.post(
+        "/api/configuration/apply_changes",
+        json=[
+            {
+                **deletion,
+                "affected_entities": check["affected_entities"],
+                "delete_affected": True,
+                "primary_source": "",
+            }
+        ],
+    )
+
+    assert response.status_code == 200
+    assert (declaration, None, None) not in _data(config_app)
+    shapes = read_shapes(read_shacl(config_app.config["CONFIG_DIR"]))
+    assert prefix not in shapes.prefixes

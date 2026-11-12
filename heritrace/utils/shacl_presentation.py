@@ -6,6 +6,7 @@ import logging
 import re
 from dataclasses import dataclass
 from decimal import Decimal
+from functools import cache
 from typing import cast
 
 from pyparsing.exceptions import ParseException
@@ -265,6 +266,7 @@ def read_presentation(graph: Graph) -> ShapesPresentation:
     )
 
 
+@cache
 def _binds_focus_node_as_object(query: str) -> bool:
     try:
         algebra = translateQuery(parseQuery(query)).algebra

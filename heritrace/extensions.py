@@ -9,6 +9,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
+from functools import partial
 from pathlib import Path
 from typing import cast
 from urllib.parse import urlparse, urlunparse
@@ -35,11 +36,15 @@ from time_agnostic_library.support import generate_config_file
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from heritrace.configuration.entity import (
+    EDITOR_FILE,
     META_SHAPES,
     PROVENANCE_FILE,
+    ConfigurationRejectedError,
     SkolemURIGenerator,
     check_configuration,
+    export_shacl,
     provenance_counter_handler,
+    shacl_mtime,
 )
 from heritrace.configuration.runtime import SetupRequiredError, request_reload
 from heritrace.configuration.store import SHACL_FILE
@@ -188,13 +193,28 @@ def init_extensions(
     app.extensions["redis_client"] = redis
 
 
+# A shacl.ttl edited by hand since this worker started has not reached the
+# editor's copy yet, and writing over it would lose the edit.
+def _export_shacl(app: Flask, view: Graph) -> None:
+    config_dir = app.config["CONFIG_DIR"]
+    if shacl_mtime(config_dir) != app.config["SHACL_MTIME"]:
+        msg = f"{SHACL_FILE} changed on disk. Reload the page to see its content"
+        raise ConfigurationRejectedError([msg])
+    export_shacl(config_dir, view)
+    app.config["SHACL_MTIME"] = shacl_mtime(config_dir)
+
+
 def build_configuration_state(app: Flask) -> AppState:
     config_dir = app.config["CONFIG_DIR"]
-    data_path = config_dir / SHACL_FILE
+    data_path = config_dir / EDITOR_FILE
     provenance_path = config_dir / PROVENANCE_FILE
     meta_shapes = load_rdf_file(META_SHAPES)
     backend = FileBackend(
-        data_path, provenance_path, check_configuration, request_reload
+        data_path,
+        provenance_path,
+        check_configuration,
+        partial(_export_shacl, app),
+        request_reload,
     )
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     placeholder = AppState(
@@ -471,6 +491,16 @@ def init_filters(
 
 
 def init_request_handlers(app: Flask, redis: Redis) -> None:
+    config_dir = app.config["CONFIG_DIR"]
+    app.config["SHACL_MTIME"] = shacl_mtime(config_dir)
+    app.config["SHACL_RELOAD_REQUESTED"] = False
+
+    @app.before_request
+    def reload_after_hand_edit() -> None:
+        changed = shacl_mtime(config_dir) != app.config["SHACL_MTIME"]
+        if changed and not app.config["SHACL_RELOAD_REQUESTED"]:
+            app.config["SHACL_RELOAD_REQUESTED"] = request_reload()
+
     @app.before_request
     def initialize_lock_manager() -> None:
         if not hasattr(g, "resource_lock_manager"):
