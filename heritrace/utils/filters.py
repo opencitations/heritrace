@@ -13,6 +13,7 @@ from SPARQLWrapper import JSON
 
 from heritrace.apis.orcid import is_orcid_url, orcid_agent
 from heritrace.apis.zenodo import is_zenodo_url, zenodo_source
+from heritrace.language import localize
 from heritrace.sparql import get_sparql_bindings, select_results
 from heritrace.utils.references import (
     AgentRef,
@@ -237,6 +238,13 @@ def format_uri_as_readable(uri: str) -> str:
 def field_with_labels(details: dict, custom_filter: Filter) -> dict:
     """Copy a form field adding the labels the client shows for fixed values."""
     field = dict(details)
+    for key in ("displayName", "description"):
+        if key in field:
+            field[key] = localize(field[key])
+    if "conditions" in field:
+        field["conditions"] = [
+            alternative.as_condition() for alternative in field["conditions"]
+        ]
     entity_key = (field.get("subjectClass"), field.get("subjectShape"))
     has_value = field.get("hasValue")
     if has_value:

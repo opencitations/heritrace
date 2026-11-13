@@ -247,7 +247,7 @@ class TestGetAvailableClasses:
         with (
             patch.dict(
                 get_app_state().class_counts,
-                {"available_classes": (cached_classes, time.monotonic(), "1")},
+                {"available_classes:en": (cached_classes, time.monotonic(), "1")},
                 clear=True,
             ),
             patch("heritrace.utils.sparql_utils._count_class_instances") as mock_count,
@@ -278,7 +278,7 @@ class TestGetAvailableClasses:
         with (
             patch.dict(
                 get_app_state().class_counts,
-                {"available_classes": stale_entry},
+                {"available_classes:en": stale_entry},
                 clear=True,
             ),
             patch(
@@ -299,7 +299,7 @@ class TestGetAvailableClasses:
             ),
         ):
             result = get_available_classes()
-            cached_value = get_app_state().class_counts["available_classes"]
+            cached_value = get_app_state().class_counts["available_classes:en"]
 
         mock_count.assert_called_once_with("http://example.org/Person", COUNT_LIMIT)
         assert result == [

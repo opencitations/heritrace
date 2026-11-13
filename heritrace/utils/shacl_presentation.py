@@ -17,8 +17,19 @@ from rdflib.term import Node
 
 from heritrace.configuration.shapes import read_duplicate_keys
 from heritrace.configuration.vocabulary import DASH, HT, SH, SHUI
+from heritrace.language import (
+    LANGUAGES,
+    LocalizedText,
+    localize,
+    localized_texts,
+    pick_text,
+    request_language,
+)
 
 _THIS_VARIABLE = re.compile(r"[?$]this\b")
+
+# A label query reads the language of the interface from $language.
+_LANGUAGE_VARIABLE = re.compile(r"\$language\b")
 
 _INVERSE_PROBE = URIRef("urn:heritrace:inverse-probe")
 
@@ -43,7 +54,7 @@ def is_inverse_path(path: str) -> bool:
 class PropertyPresentation:
     path: str
     node: str | None
-    name: str | None
+    names: LocalizedText
     order: Decimal | None
     editor: str | None
     ordered_by: str | None
@@ -53,8 +64,9 @@ class PropertyPresentation:
 
 @dataclass(frozen=True, slots=True)
 class ShapesPresentation:
-    shape_names: dict[str, str]
-    properties: dict[str, list[PropertyPresentation]]
+    shape_names: dict[str, LocalizedText]
+    # The properties of each shape, sorted for each language of the interface.
+    properties: dict[str, dict[str, list[PropertyPresentation]]]
     label_queries: dict[str, str]
     fixed_type_counts: dict[str, int]
     hidden_shapes: frozenset[str]
@@ -70,10 +82,12 @@ class ShapesPresentation:
         return self.fixed_type_counts.get(str(shape), 0)
 
     def shape_name(self, shape: str | None) -> str | None:
-        return self.shape_names.get(str(shape)) if shape else None
+        return localize(self.shape_names.get(str(shape), {})) if shape else None
 
     def shape_properties(self, shape: str | None) -> list[PropertyPresentation]:
-        return self.properties.get(str(shape), []) if shape else []
+        if not shape:
+            return []
+        return self.properties[request_language()].get(str(shape), [])
 
     def property_presentation(
         self, shape: str | None, predicate: str, object_shape: str | None
@@ -90,7 +104,7 @@ class ShapesPresentation:
         self, shape: str | None, predicate: str, object_shape: str | None
     ) -> str | None:
         prop = self.property_presentation(shape, predicate, object_shape)
-        return prop.name if prop else None
+        return localize(prop.names) if prop else None
 
     def ordering(
         self, shape: str | None, predicate: str
@@ -118,12 +132,10 @@ class ShapesPresentation:
         query = self.label_queries.get(str(shape)) if shape else None
         if query is None:
             return None
-        return _THIS_VARIABLE.sub(URIRef(focus_node).n3(), query)
-
-
-def _literal_text(graph: Graph, subject: Node, predicate: URIRef) -> str | None:
-    value = graph.value(subject, predicate)
-    return str(value) if isinstance(value, Literal) else None
+        return _LANGUAGE_VARIABLE.sub(
+            Literal(request_language()).n3(),
+            _THIS_VARIABLE.sub(URIRef(focus_node).n3(), query),
+        )
 
 
 def _prefix_block(graph: Graph, select_expression: Node) -> str:
@@ -179,7 +191,7 @@ def _property_presentation(
     return PropertyPresentation(
         path=path,
         node=str(node) if isinstance(node, URIRef) else None,
-        name=_literal_text(graph, property_shape, SH.name),
+        names=localized_texts(graph, property_shape, SH.name),
         order=Decimal(str(order)) if isinstance(order, Literal) else None,
         editor=str(editor) if editor else None,
         ordered_by=str(ordered_by) if ordered_by else None,
@@ -189,12 +201,12 @@ def _property_presentation(
 
 
 def _presentation_sort_key(
-    prop: PropertyPresentation,
+    prop: PropertyPresentation, language: str
 ) -> tuple[bool, Decimal, str, str]:
     return (
         prop.order is None,
         prop.order if prop.order is not None else Decimal(0),
-        prop.name or prop.path,
+        pick_text(prop.names, language) or prop.path,
         prop.identifier,
     )
 
@@ -211,8 +223,10 @@ def is_computed_property(graph: Graph, property_shape: Node) -> bool:
 
 
 def read_presentation(graph: Graph) -> ShapesPresentation:
-    shape_names: dict[str, str] = {}
-    properties: dict[str, list[PropertyPresentation]] = {}
+    shape_names: dict[str, LocalizedText] = {}
+    properties: dict[str, dict[str, list[PropertyPresentation]]] = {
+        language: {} for language in LANGUAGES
+    }
     label_queries: dict[str, str] = {}
     fixed_type_counts: dict[str, int] = {}
     shapes = {
@@ -222,9 +236,7 @@ def read_presentation(graph: Graph) -> ShapesPresentation:
         if not isinstance(shape, BNode)
     }
     for shape in shapes:
-        name = _literal_text(graph, shape, SH.name)
-        if name is not None:
-            shape_names[str(shape)] = name
+        shape_names[str(shape)] = localized_texts(graph, shape, SH.name)
         shape_properties = []
         fixed_types: set[Node] = set()
         for property_shape in graph.objects(shape, SH.property):
@@ -248,7 +260,13 @@ def read_presentation(graph: Graph) -> ShapesPresentation:
             shape_properties.append(
                 _property_presentation(graph, property_shape, str(path))
             )
-        properties[str(shape)] = sorted(shape_properties, key=_presentation_sort_key)
+        for language in LANGUAGES:
+            properties[language][str(shape)] = sorted(
+                shape_properties,
+                key=lambda prop, language=language: _presentation_sort_key(
+                    prop, language
+                ),
+            )
         fixed_type_counts[str(shape)] = len(fixed_types)
     return ShapesPresentation(
         shape_names=shape_names,

@@ -5,6 +5,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../i18n/language.dart';
 import '../session/session_controller.dart';
 
 const _apiTimeout = Duration(seconds: 120);
@@ -22,7 +23,10 @@ final dioProvider = Provider<Dio>((ref) {
       baseUrl: apiBaseUrl,
       connectTimeout: _apiTimeout,
       receiveTimeout: _apiTimeout,
-      headers: const {'Accept': 'application/json'},
+      headers: {
+        'Accept': 'application/json',
+        'Accept-Language': ref.watch(languageProvider).languageCode,
+      },
       extra: const {'withCredentials': true},
     ),
   );

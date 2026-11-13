@@ -30,6 +30,10 @@ void _collectGroup(FieldGroup group, Map<String, List<Object>> data) {
 }
 
 Object? collectItem(FormItem item) => switch (item) {
+  LiteralItem(:final language?) when !item.isEmpty => {
+    'value': item.value,
+    'language': language,
+  },
   LiteralItem() ||
   SelectItem() ||
   DateItem() ||

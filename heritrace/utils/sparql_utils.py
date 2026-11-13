@@ -35,6 +35,7 @@ from heritrace.extensions import (
     get_shacl_graph,
     get_sparql,
 )
+from heritrace.language import request_language
 from heritrace.sparql import get_sparql_bindings
 from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.shacl_presentation import inverse_predicate, is_inverse_path
@@ -306,6 +307,10 @@ def _get_classes_from_sparql() -> list[str]:
     return [r["class"]["value"] for r in class_bindings]
 
 
+def _localized_key(key: str) -> str:
+    return f"{key}:{request_language()}"
+
+
 def _cached_classes(key: str, version: str | None) -> list[dict[str, str | int]] | None:
     """
     Class counts are kept for a short time in each worker. Every save bumps a
@@ -313,6 +318,7 @@ def _cached_classes(key: str, version: str | None) -> list[dict[str, str | int]]
     refreshes the counts in all of them.
     """
     class_counts = get_app_state().class_counts
+    key = _localized_key(key)
     if key not in class_counts:
         return None
     classes, computed_at, cached_version = class_counts[key]
@@ -389,7 +395,7 @@ def get_available_classes() -> list[dict[str, str | int]]:
             )
 
     available_classes.sort(key=lambda x: x["label"].lower())
-    get_app_state().class_counts["available_classes"] = (
+    get_app_state().class_counts[_localized_key("available_classes")] = (
         available_classes,
         time.monotonic(),
         version,
@@ -615,7 +621,7 @@ def _binding_to_node(binding: dict[str, str]) -> Literal | URIRef:
     if "datatype" in binding:
         return Literal(binding["value"], datatype=URIRef(binding["datatype"]))
     # Omit explicit datatype to match Reader's import behavior
-    return Literal(binding["value"])
+    return Literal(binding["value"], lang=binding.get("xml:lang"))
 
 
 def fetch_data_graph_for_subject(subject: URIRef) -> Graph | Dataset:
@@ -849,7 +855,7 @@ def get_deleted_available_classes() -> list[dict[str, str | int]]:
         )
 
     deleted_classes.sort(key=lambda x: str(x["label"]).lower())
-    get_app_state().class_counts["deleted_classes"] = (
+    get_app_state().class_counts[_localized_key("deleted_classes")] = (
         deleted_classes,
         time.monotonic(),
         version,

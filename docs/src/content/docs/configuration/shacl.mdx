@@ -362,6 +362,21 @@ sh:property [
 ] .
 ```
 
+### Languages
+
+HERITRACE speaks English and Italian, and users choose between them in the account menu. When you tag `sh:name`, `sh:description` and the messages of `sh:message` with a language, they follow that choice:
+
+```ttl
+sh:property [
+    sh:path dcterms:title ;
+    sh:name "Title"@en, "Titolo"@it ;
+    sh:description "A name given to the resource."@en,
+        "Un nome dato alla risorsa."@it ;
+] .
+```
+
+HERITRACE shows each text in the language of the interface. When a shape gives no text in that language, it uses the text without a language tag, which stands for every language; only when that is missing too does it show a text in another language.
+
 ### Order (`sh:order`)
 
 Fields follow the ascending value of `sh:order`. Property shapes without `sh:order` come after the ordered ones, sorted alphabetically by `sh:name`, or by the IRI of their path when they have no name. Without any `sh:order`, all fields follow this alphabetical order. The same rule sorts two shapes that share a position.
@@ -386,6 +401,17 @@ sh:property [
     sh:path dcterms:abstract ;
     sh:datatype xsd:string ;
     shui:editor shui:TextAreaEditor ;
+] .
+```
+
+A text can also come in several languages. `shui:TextFieldWithLangEditor` and `shui:TextAreaWithLangEditor` give each value a single-line or multi-line input, next to a menu that sets its language: one of the two-letter ISO 639-1 codes, or none. The property accepts tagged values when `rdf:langString` is among its datatypes, or when it declares no datatype. Add `sh:uniqueLang` to refuse two values in the same language:
+
+```ttl
+sh:property [
+    sh:path dcterms:abstract ;
+    sh:datatype rdf:langString ;
+    sh:uniqueLang true ;
+    shui:editor shui:TextAreaWithLangEditor ;
 ] .
 ```
 
@@ -522,8 +548,14 @@ The prefixes that the query uses are declared once for the whole shapes graph:
 
 A select expression can also carry its own `sh:prefixes`. If a label query returns no result, HERITRACE reports the error.
 
+A label query can also read the language of the interface from `$language`, which holds `"en"` or `"it"`. Use it to prefer the text in that language, as in `FILTER(LANG(?title) = $language)`.
+
 <Aside type="caution" title="Labels that follow incoming references">
 A label query can use `$this` as an object and build the label from the entities that point at it. HERITRACE detects this and loads those entities on history pages, which is expensive when an entity has many referrers. Such a label also resolves only for snapshots taken after the referring entity existed, so prefer following references away from the entity.
+</Aside>
+
+<Aside type="caution" title="$language is a HERITRACE extension">
+`$language` works only in HERITRACE: it is not part of <a href="https://w3c.github.io/data-shapes/shacl12-sparql/#SelectExpression" target="_blank" rel="noopener noreferrer">SHACL 1.2 SPARQL-Related Features</a>.
 </Aside>
 
 ## Duplicate detection (`owl:hasKey`)

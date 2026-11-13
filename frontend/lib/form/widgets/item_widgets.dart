@@ -16,6 +16,7 @@ import '../form_scope.dart';
 import 'entity_autocomplete.dart';
 import 'entity_form.dart';
 import 'field_group_widget.dart';
+import 'language_picker.dart';
 import 'nested_dialog.dart';
 
 TextInputType valueKeyboardType(FieldDef def) => def.isInteger
@@ -119,7 +120,7 @@ class _LiteralFieldState extends State<LiteralField> {
   Widget build(BuildContext context) {
     final def = widget.item.def;
     final multiline = def.inputType == 'textarea';
-    return AppTextField(
+    final field = AppTextField(
       controller: _controller,
       focusNode: widget.item.focusNode,
       maxLines: multiline ? 5 : 1,
@@ -129,7 +130,43 @@ class _LiteralFieldState extends State<LiteralField> {
       errorText: itemErrorText(context, widget.item),
       onChanged: widget.item.setValue,
     );
+    if (!def.withLanguage) {
+      return field;
+    }
+    final item = widget.item;
+    return _WithLanguage(
+      language: item.language,
+      taken: item.group.usedLanguages(except: item),
+      onChanged: item.setLanguage,
+      child: field,
+    );
   }
+}
+
+/// A value of a field with languages, followed by the button that picks its
+/// language.
+class _WithLanguage extends StatelessWidget {
+  const _WithLanguage({
+    required this.language,
+    required this.taken,
+    required this.onChanged,
+    required this.child,
+  });
+
+  final String? language;
+  final Set<String?> taken;
+  final ValueChanged<String?> onChanged;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    spacing: appInputSpacing / 2,
+    children: [
+      Expanded(child: child),
+      LanguageButton(language: language, taken: taken, onChanged: onChanged),
+    ],
+  );
 }
 
 class DateField extends StatefulWidget {

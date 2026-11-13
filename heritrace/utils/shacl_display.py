@@ -2,12 +2,10 @@
 #
 # SPDX-License-Identifier: ISC
 
-import json
 from collections import OrderedDict, defaultdict
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
-from pathlib import Path
 from typing import cast
 
 from flask import Flask
@@ -19,8 +17,8 @@ from rdflib.query import Result, ResultRow
 from rdflib.term import Node
 
 from heritrace.configuration.vocabulary import DASH, HT, SH, SHUI
+from heritrace.language import LocalizedText, localized_texts
 from heritrace.sparql import select_results
-from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_patterns import (
     PatternAlternative,
     read_pattern_alternatives,
@@ -64,12 +62,13 @@ class _ParsedRow:
     link_only: bool
     entity_key: tuple[str, str]
     node_shapes: list[str]
-    name: str | None
-    description: str | None
+    names: LocalizedText
+    descriptions: LocalizedText
     editor: str | None
     viewer: str | None
     composite: bool
     hidden: bool
+    unique_lang: bool
     ordered_by: str | None
 
 
@@ -80,12 +79,18 @@ _BOUND_VARIABLES = {
     "maxExclusive": "max_exclusive",
 }
 
+_LANGUAGE_EDITORS = (
+    str(SHUI.TextFieldWithLangEditor),
+    str(SHUI.TextAreaWithLangEditor),
+)
+
 COMMON_SPARQL_QUERY = prepareQuery(
     """
-    SELECT ?shape ?type ?path ?inverse ?node_shape ?link_shape ?link_class ?datatype
+    SELECT ?shape ?type ?property ?path ?inverse ?node_shape ?link_shape ?link_class
+           ?datatype
            ?max_count ?min_count ?min_inclusive ?max_inclusive ?min_exclusive
            ?max_exclusive ?has_value ?object_class
-           ?name ?description ?editor ?viewer ?composite ?hidden ?ordered_by
+           ?editor ?viewer ?composite ?hidden ?unique_lang ?ordered_by
            (GROUP_CONCAT(?optional_value; separator=",")
             AS ?optional_values)
            (GROUP_CONCAT(?or_node; separator=",") AS ?or_nodes)
@@ -153,15 +158,11 @@ COMMON_SPARQL_QUERY = prepareQuery(
             ?property sh:in ?list .
             ?list rdf:rest*/rdf:first ?optional_value .
         }
-        OPTIONAL { ?property sh:name ?name . }
-        OPTIONAL {
-            ?property sh:description ?description .
-            FILTER (!BOUND(?name) || LANG(?description) = LANG(?name))
-        }
         OPTIONAL { ?property shui:editor ?editor . }
         OPTIONAL { ?property shui:viewer ?viewer . }
         OPTIONAL { ?property dash:composite ?composite . }
         OPTIONAL { ?property dash:hidden ?hidden . }
+        OPTIONAL { ?property sh:uniqueLang ?unique_lang . }
         OPTIONAL { ?property ht:orderedBy ?chained_by . }
         BIND(COALESCE(
             ?chained_by,
@@ -173,10 +174,11 @@ COMMON_SPARQL_QUERY = prepareQuery(
         FILTER (isURI(?path) || BOUND(?inverse))
         FILTER NOT EXISTS { ?property sh:values ?computed . }
     }
-    GROUP BY ?shape ?type ?path ?inverse ?node_shape ?link_shape ?link_class ?datatype
+    GROUP BY ?shape ?type ?property ?path ?inverse ?node_shape ?link_shape ?link_class
+             ?datatype
              ?max_count ?min_count ?min_inclusive ?max_inclusive ?min_exclusive
              ?max_exclusive ?has_value ?object_class
-             ?name ?description ?editor ?viewer ?composite ?hidden ?ordered_by
+             ?editor ?viewer ?composite ?hidden ?unique_lang ?ordered_by
 """,
     initNs={
         "sh": "http://www.w3.org/ns/shacl#",
@@ -188,7 +190,7 @@ COMMON_SPARQL_QUERY = prepareQuery(
 )
 
 
-def _parse_row(row: ResultRow) -> _ParsedRow:
+def _parse_row(shacl: Graph, row: ResultRow) -> _ParsedRow:
     subject_shape = str(row.shape)
     entity_type = str(row.type)
     predicate = inverse_path_key(row.inverse) if row.inverse else str(row.path)
@@ -232,21 +234,22 @@ def _parse_row(row: ResultRow) -> _ParsedRow:
         link_only=row.node_shape is None and row.link_shape is not None,
         entity_key=(entity_type, subject_shape),
         node_shapes=node_shapes,
-        name=str(row.name) if row.name else None,
-        description=str(row.description) if row.description else None,
+        names=localized_texts(shacl, row.property, SH.name),
+        descriptions=localized_texts(shacl, row.property, SH.description),
         editor=str(row.editor) if row.editor else None,
         viewer=str(row.viewer) if row.viewer else None,
         composite=bool(row.composite),
         hidden=bool(row.hidden),
+        unique_lang=bool(row.unique_lang),
         ordered_by=str(row.ordered_by) if row.ordered_by else None,
     )
 
 
 def _field_conditions(
     ctx: ShaclProcessingContext, parsed: _ParsedRow
-) -> list[dict[str, object]]:
+) -> list[PatternAlternative]:
     return [
-        alternative.as_condition()
+        alternative
         for alternative in ctx.pattern_alternatives
         if alternative.shape == parsed.subject_shape
         and alternative.path == parsed.predicate
@@ -275,14 +278,12 @@ def _find_existing_field(
 def _or_option(
     ctx: ShaclProcessingContext,
     parsed: _ParsedRow,
-    custom_filter: Filter,
     node: str,
 ) -> dict[str, object]:
     target_class = get_shape_target_class(ctx.shacl, node)
     return {
         "entityType": target_class,
         "uri": parsed.predicate,
-        "displayName": custom_filter.human_readable_class((target_class, node)),
         "subjectShape": parsed.subject_shape,
         "nodeShape": node,
         "min": parsed.min_count,
@@ -302,18 +303,17 @@ def _or_option(
 def _process_or_nodes(
     ctx: ShaclProcessingContext,
     parsed: _ParsedRow,
-    custom_filter: Filter,
     field_info: dict[str, object],
     depth: int,
 ) -> None:
     options: list[dict[str, object]] = []
     for node in parsed.or_nodes:
-        option = _or_option(ctx, parsed, custom_filter, node)
+        option = _or_option(ctx, parsed, node)
         if node not in ctx.processed_shapes:
             option["nestedShape"] = process_nested_shapes(ctx, node, depth=depth + 1)
         options.append(option)
     for node in parsed.or_link_shapes:
-        option = _or_option(ctx, parsed, custom_filter, node)
+        option = _or_option(ctx, parsed, node)
         option["objectClass"] = option["entityType"]
         option["nestedShape"] = []
         options.append(option)
@@ -323,7 +323,6 @@ def _process_or_nodes(
 def _process_single_row(
     ctx: ShaclProcessingContext,
     parsed: _ParsedRow,
-    custom_filter: Filter,
     form_fields: defaultdict[tuple[str, str], dict[str, list[dict[str, object]]]],
     depth: int,
 ) -> None:
@@ -364,10 +363,12 @@ def _process_single_row(
         "detailsViewer": parsed.viewer == str(SHUI.DetailsViewer),
         "composite": parsed.composite,
         "hidden": parsed.hidden,
+        "withLanguage": parsed.editor in _LANGUAGE_EDITORS,
+        "uniqueLang": parsed.unique_lang,
     }
     declared = {
-        "displayName": parsed.name,
-        "description": parsed.description,
+        "displayName": parsed.names,
+        "description": parsed.descriptions,
         "detailPaths": parsed.detail_paths or None,
         "orderedBy": parsed.ordered_by,
         "shownWith": ctx.shown_with.get((parsed.subject_shape, parsed.predicate)),
@@ -384,7 +385,7 @@ def _process_single_row(
         )
 
     if parsed.or_nodes or parsed.or_link_shapes:
-        _process_or_nodes(ctx, parsed, custom_filter, field_info, depth)
+        _process_or_nodes(ctx, parsed, field_info, depth)
 
     form_fields[parsed.entity_key][parsed.predicate].append(field_info)
 
@@ -398,16 +399,9 @@ def process_query_results(
         defaultdict(dict)
     )
 
-    with (Path(__file__).parent / "context.json").open() as config_file:
-        context = json.load(config_file)["@context"]
-
-    from heritrace.extensions import new_store_sparql  # noqa: PLC0415
-
-    custom_filter = Filter(context, ctx.presentation, new_store_sparql)
-
     for row in results:
-        parsed = _parse_row(row)
-        _process_single_row(ctx, parsed, custom_filter, form_fields, depth)
+        parsed = _parse_row(ctx.shacl, row)
+        _process_single_row(ctx, parsed, form_fields, depth)
 
     return form_fields
 
@@ -485,9 +479,12 @@ def order_form_fields(
 
 
 def determine_input_type(editor: str | None, datatype: str | None) -> str:
-    if editor == str(SHUI.TextAreaEditor):
+    if editor in (str(SHUI.TextAreaEditor), str(SHUI.TextAreaWithLangEditor)):
         return "textarea"
-    if editor == str(SHUI.TextFieldEditor) or not datatype:
+    if (
+        editor in (str(SHUI.TextFieldEditor), str(SHUI.TextFieldWithLangEditor))
+        or not datatype
+    ):
         return "text"
 
     datatype_to_input = {

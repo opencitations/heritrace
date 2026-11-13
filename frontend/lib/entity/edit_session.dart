@@ -19,15 +19,18 @@ const lockRenewalInterval = Duration(seconds: 240);
 class ExistingValue extends ChangeNotifier {
   ExistingValue({required this.triple, required this.group})
     : newValue = triple.value,
+      newLanguage = triple.language,
       dateType = _dateTypeFor(triple.value);
 
   final EntityTriple triple;
   final PropertyGroup group;
   String newValue;
+  String? newLanguage;
   DateType dateType;
   bool markedForDeletion = false;
 
-  bool get isModified => newValue != triple.value;
+  bool get isModified =>
+      newValue != triple.value || newLanguage != triple.language;
 
   bool get isEntityLink => triple.externalEntity != null;
 
@@ -39,6 +42,11 @@ class ExistingValue extends ChangeNotifier {
 
   void setValue(String value) {
     newValue = value;
+    notifyListeners();
+  }
+
+  void setLanguage(String? language) {
+    newLanguage = language;
     notifyListeners();
   }
 
@@ -62,6 +70,7 @@ class ExistingValue extends ChangeNotifier {
 
   void reset() {
     newValue = triple.value;
+    newLanguage = triple.language;
     dateType = _dateTypeFor(triple.value);
     markedForDeletion = false;
     notifyListeners();
@@ -79,8 +88,21 @@ class EditableGroup extends ChangeNotifier {
     for (final value in existing) {
       value.addListener(notifyListeners);
     }
+    formGroup?.savedLanguages = () => [
+      for (final value in existing)
+        if (!value.markedForDeletion) value.newLanguage,
+    ];
     formGroup?.addListener(notifyListeners);
   }
+
+  /// The languages of the values of this group other than [except]; null
+  /// stands for a value without a language.
+  Set<String?> usedLanguages(ExistingValue except) => {
+    for (final value in existing)
+      if (value != except && !value.markedForDeletion) value.newLanguage,
+    for (final item in formGroup?.items ?? const <FormItem>[])
+      if (item is LiteralItem) item.language,
+  };
 
   final PropertyGroup group;
   final FieldGroup? formGroup;
@@ -314,12 +336,16 @@ class EditSession extends ChangeNotifier {
             ...base('delete', group),
             'object': value.triple.object,
             'newObject': null,
+            'language': ?value.triple.language,
           });
         } else if (value.isModified) {
           changes.add({
             ...base('update', group),
             'object': value.triple.object,
             'newObject': value.newValue,
+            'language': ?value.triple.language,
+            if (group.group.field?.withLanguage ?? false)
+              'newLanguage': value.newLanguage ?? '',
           });
         }
       }

@@ -16,6 +16,7 @@ from flask import Flask
 from flask.testing import FlaskClient
 from rdflib import DCTERMS, FOAF, OWL, PROV, RDF, XSD, Dataset, Graph, Literal, URIRef
 from rdflib.compare import isomorphic
+from rdflib.term import Node
 from rdflib_ocdm.counter_handler.in_memory_counter_handler import InMemoryCounterHandler
 
 from heritrace import create_app, extensions
@@ -31,7 +32,11 @@ from heritrace.configuration.entity import (
     ensure_configuration_entity,
     read_shacl,
 )
-from heritrace.configuration.shapes import read_duplicate_keys, read_shapes
+from heritrace.configuration.shapes import (
+    read_duplicate_keys,
+    read_shapes,
+    unsupported_parts,
+)
 from heritrace.configuration.vocabulary import DASH, META, SH
 from heritrace.scripts.seed_config import seed_config
 from tests.test_config import TestConfig, test_example_dir
@@ -656,3 +661,145 @@ def test_removing_a_prefix_removes_its_declaration(
     assert (declaration, None, None) not in _data(config_app)
     shapes = read_shapes(read_shacl(config_app.config["CONFIG_DIR"]))
     assert prefix not in shapes.prefixes
+
+
+def _entity_types(client: FlaskClient, language: str) -> set[str]:
+    response = client.get(
+        "/api/configuration/entity-types", headers={"Accept-Language": language}
+    )
+    return {entity_type["label"] for entity_type in response.get_json()["types"]}
+
+
+def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -> None:
+    english = {"Field", "Prefix", "Resource type", "Resource types"}
+    assert _entity_types(admin_client, "en") == english
+    assert _entity_types(admin_client, "it") == {
+        "Campo",
+        "Prefisso",
+        "Tipi di risorsa",
+        "Tipo di risorsa",
+    }
+    assert _entity_types(admin_client, "fr") == english
+
+
+def _add_name(client: FlaskClient, subject: URIRef, name: str, language: str) -> int:
+    response = client.post(
+        "/api/configuration/apply_changes",
+        json=[
+            {
+                "action": "create",
+                "subject": str(subject),
+                "data": {
+                    "properties": {
+                        str(SH.name): [{"value": name, "language": language}]
+                    }
+                },
+                "primary_source": "",
+            }
+        ],
+    )
+    return response.status_code
+
+
+def _label(client: FlaskClient, entity: URIRef, language: str) -> str:
+    response = client.get(
+        f"/api/configuration/entity/{quote(str(entity), safe='')}",
+        headers={"Accept-Language": language},
+    )
+    return response.get_json()["label"]
+
+
+def test_a_name_is_saved_once_for_each_language(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    assert _add_name(admin_client, JOURNAL_ARTICLE_SHAPE, "Articolo", "it") == 200
+    assert _add_name(admin_client, JOURNAL_ARTICLE_SHAPE, "Saggio", "it") == 400
+
+    names = {Literal("Journal Article"), Literal("Articolo", lang="it")}
+    assert set(_data(config_app).objects(JOURNAL_ARTICLE_SHAPE, SH.name)) == names
+    shacl = read_shacl(config_app.config["CONFIG_DIR"])
+    assert set(shacl.objects(JOURNAL_ARTICLE_SHAPE, SH.name)) == names
+    assert _label(admin_client, JOURNAL_ARTICLE_SHAPE, "it") == "Articolo"
+    assert _label(admin_client, JOURNAL_ARTICLE_SHAPE, "en") == "Journal Article"
+
+
+def _edit_name(
+    client: FlaskClient, old: Literal, new: str, new_language: str | None = None
+) -> int:
+    change = {
+        "subject": str(IDENTIFIER_SHAPE),
+        "action": "update",
+        "predicate": str(SH.name),
+        "object": str(old),
+        "newObject": new,
+        "language": old.language,
+        "primary_source": "",
+    }
+    if new_language is not None:
+        change["newLanguage"] = new_language
+    response = client.post("/api/configuration/apply_changes", json=[change])
+    return response.status_code
+
+
+def _identifier_names(app: Flask) -> set[Node]:
+    return set(_data(app).objects(IDENTIFIER_SHAPE, SH.name))
+
+
+def test_an_edited_name_keeps_its_language(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    assert _add_name(admin_client, IDENTIFIER_SHAPE, "Identifier", "it") == 200
+
+    assert (
+        _edit_name(admin_client, Literal("Identifier", lang="it"), "Identificatore")
+        == 200
+    )
+    assert _identifier_names(config_app) == {
+        Literal("Identifier"),
+        Literal("Identificatore", lang="it"),
+    }
+
+
+def test_an_edited_name_takes_the_language_it_is_given(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    assert _edit_name(admin_client, Literal("Identifier"), "Identifiant", "fr") == 200
+    assert _identifier_names(config_app) == {Literal("Identifiant", lang="fr")}
+
+    assert (
+        _edit_name(admin_client, Literal("Identifiant", lang="fr"), "Identifier", "")
+        == 200
+    )
+    assert _identifier_names(config_app) == {Literal("Identifier")}
+
+    assert _add_name(admin_client, IDENTIFIER_SHAPE, "Identificatore", "it") == 200
+    assert _edit_name(admin_client, Literal("Identifier"), "Codice", "it") == 400
+    assert _identifier_names(config_app) == {
+        Literal("Identifier"),
+        Literal("Identificatore", lang="it"),
+    }
+
+
+@pytest.mark.parametrize(
+    ("names", "unsupported"),
+    [
+        ('"Book"@en, "Libro"@it, "Volume"', []),
+        ('"Libro"@it, "Volume"@it', ["http://example.org/BookShape: sh:name (1)"]),
+    ],
+)
+def test_shapes_written_by_hand_have_one_name_for_each_language(
+    names: str, unsupported: list[str]
+) -> None:
+    graph = Graph().parse(
+        data=f"""
+        @prefix sh: <http://www.w3.org/ns/shacl#> .
+        @prefix ex: <http://example.org/> .
+
+        ex:BookShape a sh:NodeShape ;
+          sh:targetClass ex:Book ;
+          sh:name {names} .
+        """,
+        format="turtle",
+    )
+
+    assert unsupported_parts(graph, read_shapes(graph)) == unsupported

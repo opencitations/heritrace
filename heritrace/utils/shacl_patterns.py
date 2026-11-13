@@ -7,18 +7,20 @@ from dataclasses import dataclass
 from rdflib import Graph
 from rdflib.plugins.sparql import prepareQuery
 
+from heritrace.configuration.vocabulary import SH
+from heritrace.language import LocalizedText, localize, localized_texts
 from heritrace.sparql import select_results
 
 _ALTERNATIVES_QUERY = prepareQuery(
     """
-    SELECT ?type ?shape ?path ?condition_path ?condition_value ?pattern ?message
+    SELECT ?type ?shape ?path ?condition_path ?condition_value ?pattern
+           ?value_shape
     WHERE {
         ?shape sh:targetClass ?type ;
                sh:or/rdf:rest*/rdf:first ?alternative .
         ?alternative sh:property ?value_shape, ?condition_shape .
         ?value_shape sh:path ?path ;
                      sh:pattern ?pattern .
-        OPTIONAL { ?value_shape sh:message ?message . }
         ?condition_shape sh:path ?condition_path ;
                          sh:hasValue ?condition_value .
     }
@@ -39,13 +41,16 @@ class PatternAlternative:
     condition_path: str
     condition_value: str
     pattern: str
-    message: str
+    messages: LocalizedText
+
+    def message(self) -> str:
+        return localize(self.messages) or f"Value must match pattern: {self.pattern}"
 
     def as_condition(self) -> dict[str, object]:
         return {
             "condition": {"path": self.condition_path, "value": self.condition_value},
             "pattern": self.pattern,
-            "message": self.message,
+            "message": self.message(),
         }
 
 
@@ -58,11 +63,7 @@ def read_pattern_alternatives(shacl: Graph) -> list[PatternAlternative]:
             condition_path=str(row.condition_path),
             condition_value=str(row.condition_value),
             pattern=str(row.pattern),
-            message=(
-                str(row.message)
-                if row.message
-                else f"Value must match pattern: {row.pattern}"
-            ),
+            messages=localized_texts(shacl, row.value_shape, SH.message),
         )
         for row in select_results(shacl.query(_ALTERNATIVES_QUERY))
     ]

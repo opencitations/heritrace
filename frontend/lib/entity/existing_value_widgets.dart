@@ -13,6 +13,7 @@ import '../form/form_model.dart';
 import '../form/widgets/boolean_field.dart';
 import '../form/widgets/field_group_widget.dart';
 import '../form/widgets/item_widgets.dart';
+import '../form/widgets/language_picker.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/entity_store.dart';
 import 'edit_session.dart';
@@ -89,6 +90,9 @@ class EditableGroupWidget extends StatelessWidget {
                       value: group.existing[index],
                       view: view,
                       editing: editing,
+                      takenLanguages: group.usedLanguages(
+                        group.existing[index],
+                      ),
                       dragHandle: DragHandle(index: index),
                     ),
                   ),
@@ -102,6 +106,7 @@ class EditableGroupWidget extends StatelessWidget {
                       value: value,
                       view: view,
                       editing: editing,
+                      takenLanguages: group.usedLanguages(value),
                     ),
                   ),
               if (editing && group.formGroup != null) ...[
@@ -122,6 +127,7 @@ class ExistingValueWidget extends StatelessWidget {
     required this.value,
     required this.view,
     required this.editing,
+    required this.takenLanguages,
     this.dragHandle,
     super.key,
   });
@@ -129,6 +135,9 @@ class ExistingValueWidget extends StatelessWidget {
   final ExistingValue value;
   final EntityView view;
   final bool editing;
+
+  /// The languages of the other values of the group.
+  final Set<String?> takenLanguages;
   final Widget? dragHandle;
 
   @override
@@ -146,6 +155,7 @@ class ExistingValueWidget extends StatelessWidget {
       listenable: value,
       builder: (context, _) {
         final deleted = value.markedForDeletion;
+        final withLanguage = value.group.field?.withLanguage ?? false;
         final row = ConstrainedBox(
           constraints: _valueRowConstraints,
           child: Row(
@@ -174,6 +184,14 @@ class ExistingValueWidget extends StatelessWidget {
                   ),
                 ),
               ),
+              if (withLanguage && editing && !deleted) ...[
+                const SizedBox(width: appInputSpacing / 2),
+                LanguageButton(
+                  language: value.newLanguage,
+                  taken: takenLanguages,
+                  onChanged: value.setLanguage,
+                ),
+              ],
               if (linked) const CupertinoListTileChevron(),
               if (dragHandle != null) ...[
                 const SizedBox(width: appInputSpacing / 2),
@@ -182,10 +200,16 @@ class ExistingValueWidget extends StatelessWidget {
             ],
           ),
         );
-        if (!linked) {
-          return row;
+        if (linked) {
+          return _EntityLink(uri: triple.externalEntity!, child: row);
         }
-        return _EntityLink(uri: triple.externalEntity!, child: row);
+        return switch (triple.language) {
+          final language? when withLanguage && !editing => LanguageLabelled(
+            language: language,
+            child: row,
+          ),
+          _ => row,
+        };
       },
     );
   }

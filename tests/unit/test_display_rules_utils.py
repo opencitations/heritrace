@@ -391,7 +391,7 @@ def test_grouped_triples_follow_the_shapes() -> None:
                     "nestedShape": [
                         {
                             "uri": ex + "withRole",
-                            "displayName": "Role",
+                            "displayName": {"": "Role"},
                             "hidden": False,
                             "nodeShapes": [],
                             "entityType": ex + "Role",
@@ -399,7 +399,7 @@ def test_grouped_triples_follow_the_shapes() -> None:
                         },
                         {
                             "uri": ex + "heldBy",
-                            "displayName": "Held By",
+                            "displayName": {"": "Held By"},
                             "hidden": False,
                             "nodeShape": ex + "AgentShape",
                             "nodeShapes": [ex + "AgentShape"],

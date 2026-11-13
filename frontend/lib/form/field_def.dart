@@ -83,6 +83,7 @@ class FieldDef {
     required this.nestedShape,
     required this.or,
     required this.hidden,
+    required this.withLanguage,
     required this.shownWith,
   });
 
@@ -132,6 +133,7 @@ class FieldDef {
           ?.map((e) => FieldDef.fromJson(e as Map<String, dynamic>))
           .toList(),
       hidden: json['hidden'] == true,
+      withLanguage: json['withLanguage'] == true,
       shownWith: (json['shownWith'] as List<dynamic>? ?? []).cast<String>(),
     );
   }
@@ -170,6 +172,9 @@ class FieldDef {
   final List<FieldDef>? nestedShape;
   final List<FieldDef>? or;
   final bool hidden;
+
+  /// Each value carries a language, picked next to its input.
+  final bool withLanguage;
 
   /// The properties of the same entity of which at least one must have a
   /// value for this field to apply; the field always applies when empty.

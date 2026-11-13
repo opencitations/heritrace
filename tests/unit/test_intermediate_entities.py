@@ -46,7 +46,7 @@ def test_an_inverse_path_leaves_out_the_property_of_the_path() -> None:
     citing_side = fields[f"^{CITING}"][0]
     cited_side = fields[f"^{CITED}"][0]
 
-    assert citing_side["displayName"] == "Citations"
+    assert citing_side["displayName"] == {"": "Citations"}
     assert citing_side["composite"] is True
     assert CITED in _nested_uris(citing_side)
     assert CITING not in _nested_uris(citing_side)

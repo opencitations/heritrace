@@ -47,6 +47,7 @@ class EntityTriple {
     required this.predicate,
     required this.value,
     required this.object,
+    required this.language,
     required this.externalEntity,
     required this.isMandatory,
     required this.label,
@@ -58,6 +59,7 @@ class EntityTriple {
     predicate: json['predicate'] as String,
     value: json['value'] as String,
     object: json['object'] as String,
+    language: json['language'] as String?,
     externalEntity: json['external_entity'] as String?,
     isMandatory: json['is_mandatory'] as bool,
     label: json['label'] as String?,
@@ -70,6 +72,9 @@ class EntityTriple {
   final String predicate;
   final String value;
   final String object;
+
+  /// The language tag of a literal value, when it has one.
+  final String? language;
   final String? externalEntity;
   final bool isMandatory;
   final String? label;

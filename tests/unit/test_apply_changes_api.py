@@ -196,6 +196,7 @@ def test_apply_changes_delete_integer_literal(
         mock.ANY,
         URIRef("http://example.org/property/1"),
         "123",
+        None,
     )
 
 

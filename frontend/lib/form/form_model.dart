@@ -4,6 +4,7 @@
 
 import 'package:flutter/widgets.dart';
 
+import '../i18n/translations.g.dart';
 import 'field_def.dart';
 
 enum DateType { date, month, year }
@@ -80,6 +81,10 @@ class FieldGroup extends ChangeNotifier {
   final List<FormItem> items = [];
   late EntityNode owner;
 
+  /// The languages of the values a resource already holds, when the form
+  /// edits it.
+  Iterable<String?> Function() savedLanguages = () => const [];
+
   bool get canAdd => def.max == null || items.length < def.max!;
 
   bool get hasContent => items.any((item) => !item.isEmpty);
@@ -94,6 +99,14 @@ class FieldGroup extends ChangeNotifier {
     return def.min == 0 || items.indexOf(item) >= def.min;
   }
 
+  /// The languages of the values of this field other than [except]; null
+  /// stands for a value without a language.
+  Set<String?> usedLanguages({FormItem? except}) => {
+    ...savedLanguages(),
+    for (final item in items)
+      if (item != except && item is LiteralItem) item.language,
+  };
+
   void fillMinimum() {
     while (items.length < def.min) {
       addItem(notify: false);
@@ -102,6 +115,12 @@ class FieldGroup extends ChangeNotifier {
 
   FormItem addItem({bool notify = true}) {
     final item = createItem(def, depth, this);
+    if (def.withLanguage && item is LiteralItem) {
+      final language = LocaleSettings.currentLocale.languageCode;
+      if (!usedLanguages().contains(language)) {
+        item.language = language;
+      }
+    }
     items.add(item);
     item.addListener(notifyListeners);
     if (notify) {
@@ -202,11 +221,20 @@ class LiteralItem extends FormItem {
 
   String value = '';
 
+  /// The language tag the value is saved with, in a field with languages.
+  String? language;
+
   @override
   String get textValue => value;
 
   void setValue(String next) {
     value = next;
+    touched = true;
+    notifyListeners();
+  }
+
+  void setLanguage(String? next) {
+    language = next;
     touched = true;
     notifyListeners();
   }

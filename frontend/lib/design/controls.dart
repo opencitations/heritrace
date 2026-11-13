@@ -239,7 +239,6 @@ class AppMenuButton<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final styles = AppTextStyles.of(context);
     final selected = options.where((o) => o.value == value).firstOrNull;
     return _WithError(
       errorText: errorText,
@@ -256,50 +255,126 @@ class AppMenuButton<T> extends StatelessWidget {
                 child: Text(option.label),
               ),
           ],
-          builder: (context, controller, _) => GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          builder: (context, controller, _) => _PopUpBox(
+            label: selected?.label,
+            placeholder: placeholder,
+            hasError: errorText != null,
+            focusNode: focusNode,
             onTap: () =>
                 controller.isOpen ? controller.close() : controller.open(),
-            child: Focus(
-              focusNode: focusNode,
-              child: Container(
-                padding: _fieldPadding,
-                decoration: _fieldDecoration(
-                  context,
-                  hasError: errorText != null,
-                ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final label = Text(
-                      selected?.label ?? placeholder ?? '',
-                      overflow: TextOverflow.ellipsis,
-                      style: selected == null
-                          ? styles.body.copyWith(
-                              color: AppColors.of(context).secondaryText,
-                            )
-                          : styles.body,
-                    );
-                    return Row(
-                      mainAxisSize: constraints.hasBoundedWidth
-                          ? MainAxisSize.max
-                          : MainAxisSize.min,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// An iOS pop-up button that opens a sheet: it shows [label], the chosen
+/// option, or [placeholder] when there is none.
+class AppSheetButton extends StatelessWidget {
+  const AppSheetButton({
+    required this.label,
+    required this.semanticLabel,
+    required this.onPressed,
+    this.placeholder,
+    this.widestLabel,
+    super.key,
+  });
+
+  final String? label;
+  final String semanticLabel;
+  final VoidCallback onPressed;
+  final String? placeholder;
+
+  /// A label as wide as the widest option, so that the button keeps one
+  /// width whatever it shows.
+  final String? widestLabel;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: semanticLabel,
+    button: true,
+    excludeSemantics: true,
+    child: SelectionContainer.disabled(
+      child: _PopUpBox(
+        label: label,
+        placeholder: placeholder,
+        widestLabel: widestLabel,
+        hasError: false,
+        onTap: onPressed,
+      ),
+    ),
+  );
+}
+
+class _PopUpBox extends StatelessWidget {
+  const _PopUpBox({
+    required this.label,
+    required this.placeholder,
+    required this.hasError,
+    required this.onTap,
+    this.widestLabel,
+    this.focusNode,
+  });
+
+  final String? label;
+  final String? placeholder;
+  final String? widestLabel;
+  final bool hasError;
+  final VoidCallback onTap;
+  final FocusNode? focusNode;
+
+  @override
+  Widget build(BuildContext context) {
+    final styles = AppTextStyles.of(context);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Focus(
+        focusNode: focusNode,
+        child: Container(
+          padding: _fieldPadding,
+          decoration: _fieldDecoration(context, hasError: hasError),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final shown = Text(
+                label ?? placeholder ?? '',
+                overflow: TextOverflow.ellipsis,
+                style: label == null
+                    ? styles.body.copyWith(
+                        color: AppColors.of(context).secondaryText,
+                      )
+                    : styles.body,
+              );
+              final text = widestLabel == null
+                  ? shown
+                  : Stack(
                       children: [
-                        if (constraints.hasBoundedWidth)
-                          Expanded(child: label)
-                        else
-                          Flexible(child: label),
-                        const SizedBox(width: appInputSpacing / 2),
-                        Icon(
-                          CupertinoIcons.chevron_up_chevron_down,
-                          size: 16,
-                          color: AppColors.of(context).secondaryText,
+                        Visibility.maintain(
+                          visible: false,
+                          child: Text(widestLabel!, style: styles.body),
                         ),
+                        shown,
                       ],
                     );
-                  },
-                ),
-              ),
-            ),
+              return Row(
+                mainAxisSize: constraints.hasBoundedWidth
+                    ? MainAxisSize.max
+                    : MainAxisSize.min,
+                children: [
+                  if (constraints.hasBoundedWidth)
+                    Expanded(child: text)
+                  else
+                    Flexible(child: text),
+                  const SizedBox(width: appInputSpacing / 2),
+                  Icon(
+                    CupertinoIcons.chevron_up_chevron_down,
+                    size: 16,
+                    color: AppColors.of(context).secondaryText,
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),

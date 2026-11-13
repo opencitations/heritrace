@@ -33,6 +33,7 @@ EditableGroup editableGroup(List<String> values, {bool addable = true}) =>
               predicate: hidden,
               value: value,
               object: value,
+              language: null,
               externalEntity: null,
               isMandatory: false,
               label: null,

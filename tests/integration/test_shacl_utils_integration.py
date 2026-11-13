@@ -603,7 +603,7 @@ def test_form_fields_take_names_and_order_from_the_shapes(
     title_field = article_fields["http://purl.org/dc/terms/title"][0]
     role_fields = article_fields["http://purl.org/spar/pro/isDocumentContextFor"]
 
-    assert title_field["displayName"] == "Title"
+    assert title_field["displayName"] == {"": "Title"}
     assert "orderedBy" not in title_field
     assert {field["orderedBy"] for field in role_fields} == {
         "https://w3id.org/oc/ontology/hasNext"
@@ -1514,6 +1514,8 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 self.viewer = None
                 self.composite = None
                 self.hidden = None
+                self.unique_lang = None
+                self.property = None
                 self.ordered_by = None
                 self.node_shape = node_shape
                 self.min_count = (

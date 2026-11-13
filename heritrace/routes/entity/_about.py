@@ -190,6 +190,7 @@ def _serialize_group(
             "predicate": str(triple_data["triple"][1]),
             "value": str(triple_data["triple"][2]),
             "object": str(triple_data["object"]),
+            "language": getattr(triple_data["triple"][2], "language", None),
             "external_entity": triple_data.get("external_entity"),
             "details": triple_data.get("details"),
             "is_mandatory": str(triple_data["object"]) in predicate_mandatory,

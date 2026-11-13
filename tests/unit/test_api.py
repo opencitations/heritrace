@@ -1333,6 +1333,7 @@ def test_update_logic_implementation(mock_validate_new_triple, app: Flask) -> No
             "update",
             old_value,
             entity_types="http://example.org/type/1",
+            language=None,
         )
 
         mock_editor.update.assert_called_with(
@@ -2007,6 +2008,7 @@ def test_update_logic(mock_validate_new_triple, app: Flask) -> None:
             "update",
             URIRef("http://example.org/old_value"),
             entity_types="http://example.org/EntityType",
+            language=None,
         )
 
         # Verify the editor was called correctly

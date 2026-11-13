@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: ISC
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../common/preference_storage.dart';
@@ -19,7 +20,19 @@ void applyLanguage(AppLocale? locale) {
   Intl.defaultLocale = active.languageTag;
 }
 
-void selectLanguage(AppLocale locale) {
-  writePreference(_key, locale.name);
-  applyLanguage(locale);
+/// The language of the interface. The server reads it from every request to
+/// pick the names and descriptions of the shapes.
+class LanguageController extends Notifier<AppLocale> {
+  @override
+  AppLocale build() => LocaleSettings.currentLocale;
+
+  void select(AppLocale locale) {
+    writePreference(_key, locale.name);
+    applyLanguage(locale);
+    state = locale;
+  }
 }
+
+final languageProvider = NotifierProvider<LanguageController, AppLocale>(
+  LanguageController.new,
+);

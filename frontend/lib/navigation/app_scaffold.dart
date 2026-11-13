@@ -250,7 +250,8 @@ class _AccountMenu extends ConsumerWidget {
           const CupertinoMenuDivider(),
           for (final language in AppLocale.values)
             CupertinoMenuItem(
-              onPressed: () => selectLanguage(language),
+              onPressed: () =>
+                  ref.read(languageProvider.notifier).select(language),
               trailing: language == currentLanguage
                   ? const Icon(CupertinoIcons.check_mark, size: 18)
                   : null,

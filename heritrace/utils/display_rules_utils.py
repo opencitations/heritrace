@@ -19,6 +19,7 @@ from heritrace.extensions import (
     get_sparql,
     get_sparql_bindings,
 )
+from heritrace.language import localize
 from heritrace.sparql import select_results
 from heritrace.utils.shacl_presentation import inverse_predicate
 from heritrace.utils.shacl_utils import index_order
@@ -155,7 +156,7 @@ def _details(ctx: GroupingContext, value: str, field: dict) -> list[dict[str, ob
             if str(linked_predicate) == nested["uri"]
         ]
         if values:
-            details.append({"name": nested["displayName"], "values": values})
+            details.append({"name": localize(nested["displayName"]), "values": values})
     return details
 
 
@@ -242,7 +243,7 @@ def _group_shape_properties(ctx: GroupingContext) -> None:
         ctx.relevant_properties.add(predicate)
         group_names = {}
         for presentation in presentations:
-            group_name = presentation.name or predicate
+            group_name = localize(presentation.names) or predicate
             group_names[presentation.identifier] = group_name
             if group_name not in ctx.grouped_triples:
                 ctx.grouped_triples[group_name] = _new_group(

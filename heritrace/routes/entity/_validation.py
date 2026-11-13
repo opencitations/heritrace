@@ -2,11 +2,12 @@
 #
 # SPDX-License-Identifier: ISC
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from rdflib import RDF, URIRef
 
 from heritrace.extensions import get_custom_filter, get_form_fields
+from heritrace.language import is_tagged
 from heritrace.utils.datatypes import DATATYPE_MAPPING
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_presentation import is_inverse_path
@@ -119,6 +120,29 @@ def _validate_property_values(
                 )
 
 
+def _validate_languages(
+    errors: list[str],
+    prop_input: PropertyValidationInput,
+) -> None:
+    languages = [
+        value["language"]
+        for value in prop_input.normalized_prop_values
+        if is_tagged(value)
+    ]
+    if not languages:
+        return
+    prop_label = prop_input.custom_filter.human_readable_predicate(
+        prop_input.prop_uri, prop_input.entity_key
+    )
+    datatypes = prop_input.matching_field_def["datatypes"]
+    if datatypes and str(RDF.langString) not in datatypes:
+        errors.append(f"Property {prop_label} does not accept values with a language")
+    if prop_input.matching_field_def["uniqueLang"] and len(languages) != len(
+        set(languages)
+    ):
+        errors.append(f"Property {prop_label} allows one value for each language")
+
+
 def _check_missing_required_properties(
     errors: list[str],
     entity_fields: dict,
@@ -225,7 +249,18 @@ def validate_entity_data(structured_data: dict) -> list[str]:
                 custom_filter=custom_filter,
             )
             _validate_property_cardinality(errors, prop_input)
-            _validate_property_values(errors, prop_input)
+            _validate_property_values(
+                errors,
+                replace(
+                    prop_input,
+                    normalized_prop_values=[
+                        value
+                        for value in normalized_prop_values
+                        if not is_tagged(value)
+                    ],
+                ),
+            )
+            _validate_languages(errors, prop_input)
 
     _check_missing_required_properties(
         errors,

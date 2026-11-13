@@ -64,6 +64,9 @@ form:
   selectOption: Select an option
   fillInDetails: Fill in the details
   draftLabelFailed: Could not update the resource label
+  noLanguage: No language
+  language: Language
+  searchLanguages: Search languages
   dateTypeDate: Date
   dateTypeMonth: Year and month
   dateTypeYear: Year

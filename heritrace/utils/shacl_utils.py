@@ -16,6 +16,7 @@ from heritrace.extensions import (
     get_shacl_graph,
     get_sparql,
 )
+from heritrace.language import NEUTRAL
 from heritrace.sparql import get_sparql_bindings, select_results
 from heritrace.utils.filters import format_uri_as_readable
 from heritrace.utils.shacl_display import (
@@ -266,7 +267,9 @@ def ensure_display_names(form_fields: dict) -> None:
             for field_info in details_list:
                 # Only add displayName if not already present
                 if not field_info.get("displayName"):
-                    field_info["displayName"] = format_uri_as_readable(predicate_uri)
+                    field_info["displayName"] = {
+                        NEUTRAL: format_uri_as_readable(predicate_uri)
+                    }
 
 
 def find_matching_form_field(

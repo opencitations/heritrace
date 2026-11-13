@@ -30,6 +30,7 @@ from heritrace.extensions import (
     new_editor,
     record_dataset_change,
 )
+from heritrace.language import is_tagged
 from heritrace.services.resource_lock_manager import LockInfo, LockStatus
 from heritrace.utils.datatypes import DATATYPE_MAPPING, get_datatype_options
 from heritrace.utils.draft_labels import draft_label
@@ -741,6 +742,8 @@ def _process_remaining_changes(
                 URIRef(change["predicate"]),
                 change["object"],
                 change["newObject"],
+                change.get("language"),
+                change.get("newLanguage"),
             )
         elif change["action"] == "order":
             op = ChangeOperation(
@@ -792,7 +795,7 @@ def _process_delete_change(
         ):
             return
 
-        delete_logic(op, change_predicate, object_value)
+        delete_logic(op, change_predicate, object_value, change.get("language"))
 
 
 def _save_and_respond(editor: Editor) -> tuple[Response, int]:
@@ -978,12 +981,18 @@ def _handle_property_value(
 
         ctx.editor.create(subject, predicate, object_value, ctx.graph_uri)
     else:
+        text, language = (
+            (value["value"], value["language"])
+            if is_tagged(value)
+            else (str(value), None)
+        )
         object_value, _, error_message = validate_new_triple(
             subject,
             predicate,
-            str(value),
+            text,
             "create",
             entity_types=ctx.entity_type,
+            language=language,
         )
         if error_message:
             raise ValueError(error_message)
@@ -1061,14 +1070,18 @@ def create_logic(  # noqa: PLR0913
     return subject
 
 
-def update_logic(
+def update_logic(  # noqa: PLR0913
     op: ChangeOperation,
     predicate: URIRef,
     old_value: str,
     new_value: str,
+    language: str | None = None,
+    new_language: str | None = None,
 ) -> None:
     old_value_rdf: URIRef | Literal = (
-        URIRef(old_value) if is_valid_url(old_value) else Literal(old_value)
+        URIRef(old_value)
+        if is_valid_url(old_value)
+        else Literal(old_value, lang=language)
     )
     validated_new, validated_old, error_message = validate_new_triple(
         op.subject,
@@ -1077,6 +1090,7 @@ def update_logic(
         "update",
         old_value_rdf,
         entity_types=op.entity_type,
+        language=new_language,
     )
     if error_message:
         raise ValueError(error_message)
@@ -1117,13 +1131,14 @@ def delete_logic(
     op: ChangeOperation,
     predicate: URIRef | None = None,
     object_value: str | None = None,
+    language: str | None = None,
 ) -> None:
     resolved_value: URIRef | Literal | None = None
     if predicate and object_value:
         old_val_rdf: URIRef | Literal = (
             URIRef(object_value)
             if is_valid_url(object_value)
-            else Literal(object_value)
+            else Literal(object_value, lang=language)
         )
         _, resolved_value, error_message = validate_new_triple(
             op.subject,

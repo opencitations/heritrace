@@ -14,6 +14,7 @@ export const termDefinitions = {
   'oco:hasNext': 'https://opencitations.github.io/ontology/current/ontology.html#https://w3id.org/oc/ontology/hasNext',
   'owl:hasKey': 'https://www.w3.org/TR/owl2-syntax/#Keys',
   'owl:sameAs': 'https://www.w3.org/TR/owl2-syntax/#Individual_Equality',
+  'rdf:langString': 'https://www.w3.org/TR/rdf11-concepts/#dfn-language-tagged-string',
   'rdf:type': 'https://www.w3.org/TR/rdf-schema/#ch_type',
   'sh:agentInstruction': 'https://w3c.github.io/data-shapes/shacl12-core/#agentInstruction',
   'sh:alternativePath': 'https://w3c.github.io/data-shapes/shacl12-core/#property-path-alternative',

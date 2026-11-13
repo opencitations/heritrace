@@ -13,6 +13,7 @@ import pytest
 from flask import Flask
 from rdflib import RDF, XSD, Graph, Literal, Namespace, URIRef
 
+from heritrace.utils.filters import field_with_labels
 from heritrace.utils.shacl_display import (
     ShaclProcessingContext,
     get_shape_target_class,
@@ -100,11 +101,11 @@ class TestShaclUtils:
             ]
             for predicate, details_list in fields.items()
         } == {
-            "http://example.org/abstract": [("Abstract", "textarea")],
+            "http://example.org/abstract": [({"": "Abstract"}, "textarea")],
             "http://example.org/pages": [(None, "number")],
         }
 
-    def test_field_description_follows_the_language_of_its_name(self) -> None:
+    def test_field_names_and_descriptions_keep_every_language(self) -> None:
         app = Flask(__name__)
         app.config["DATASET_DB_URL"] = "http://example.org/sparql"
         shacl = Graph().parse(
@@ -129,11 +130,60 @@ class TestShaclUtils:
         [field] = form_fields[
             ("http://example.org/Article", "http://example.org/ArticleShape")
         ]["http://example.org/abstract"]
-        descriptions = {
-            "Abstract": "A summary of the article.",
-            "Riassunto": "Una sintesi dell'articolo.",
+        assert field["displayName"] == {"en": "Abstract", "it": "Riassunto"}
+        assert field["description"] == {
+            "en": "A summary of the article.",
+            "it": "Una sintesi dell'articolo.",
         }
-        assert field["description"] == descriptions[str(field["displayName"])]
+
+    @pytest.mark.parametrize(
+        ("language", "names"),
+        [
+            ("it", ["Riassunto", "Pagine", "Title"]),
+            ("en", ["Abstract", "Pages", "Title"]),
+        ],
+    )
+    def test_a_field_is_named_in_the_language_of_the_request(
+        self, language: str, names: list[str]
+    ) -> None:
+        app = Flask(__name__)
+        app.config["DATASET_DB_URL"] = "http://example.org/sparql"
+        shacl = Graph().parse(
+            data="""
+            @prefix sh: <http://www.w3.org/ns/shacl#> .
+            @prefix ex: <http://example.org/> .
+
+            ex:ArticleShape a sh:NodeShape ;
+              sh:targetClass ex:Article ;
+              sh:property [
+                sh:path ex:abstract ;
+                sh:order 1 ;
+                sh:name "Abstract"@en, "Riassunto"@it, "Summary" ;
+              ] ;
+              sh:property [
+                sh:path ex:pages ;
+                sh:order 2 ;
+                sh:name "Pages"@en, "Pagine" ;
+              ] ;
+              sh:property [
+                sh:path ex:title ;
+                sh:order 3 ;
+                sh:name "Title"@en ;
+              ] .
+            """,
+            format="turtle",
+        )
+        presentation = read_presentation(shacl)
+        fields = extract_shacl_form_fields(shacl, presentation, app)[
+            ("http://example.org/Article", "http://example.org/ArticleShape")
+        ]
+
+        with app.test_request_context(headers={"Accept-Language": language}):
+            assert [
+                field_with_labels(field, MagicMock())["displayName"]
+                for path in ("abstract", "pages", "title")
+                for field in fields[f"http://example.org/{path}"]
+            ] == names
 
     def test_a_boolean_restricted_by_sh_or_is_shown_with_its_alternatives(
         self,
@@ -268,19 +318,16 @@ class TestShaclUtils:
 
     @patch("heritrace.utils.shacl_display.get_shape_target_class")
     @patch("heritrace.utils.shacl_display.get_object_class")
-    @patch("heritrace.utils.filters.Filter.human_readable_class")
     @patch("heritrace.utils.shacl_display.process_nested_shapes")
     def test_process_query_results_with_ornodes(
         self,
         mock_process_nested_shapes,
-        mock_human_readable_class,
         mock_get_object_class,
         mock_get_shape_target_class,
     ) -> None:
         """Test che process_query_results gestisca correttamente gli orNodes."""
         mock_get_shape_target_class.return_value = "entity_type_or_node"
         mock_get_object_class.return_value = "objectClass1"
-        mock_human_readable_class.return_value = "display_name"
         mock_process_nested_shapes.return_value = {}
 
         # Crea un risultato di query simulato con orNodes
@@ -304,13 +351,13 @@ class TestShaclUtils:
             link_shape: object
             link_class: object
             detail_paths: object
-            name: object = None
-            description: object = None
+            property: object = None
             editor: object = None
             inverse: object = None
             viewer: object = None
             composite: object = None
             hidden: object = None
+            unique_lang: object = None
             ordered_by: object = None
 
         # Crea un risultato con orNodes
@@ -376,13 +423,11 @@ class TestShaclUtils:
         assert or_field_info["entityType"] == "entity_type_or_node"
         assert or_field_info["uri"] == "predicate1"
         assert or_field_info["nodeShape"] == "orNode1"
-        assert or_field_info["displayName"] == "display_name"
         assert "nestedShape" in or_field_info
 
         # Verifica che le funzioni mock siano state chiamate correttamente
         mock_get_shape_target_class.assert_called_with(shacl, "orNode1")
         mock_get_object_class.assert_called_with(shacl, "orNode1", "predicate1")
-        mock_human_readable_class.assert_called_with(("entity_type_or_node", "orNode1"))
         call_args = mock_process_nested_shapes.call_args
         ctx_arg = call_args[0][0]
         assert isinstance(ctx_arg, ShaclProcessingContext)
@@ -408,12 +453,10 @@ class TestShaclUtils:
 
     @patch("heritrace.utils.shacl_display.get_shape_target_class")
     @patch("heritrace.utils.shacl_display.get_object_class")
-    @patch("heritrace.utils.filters.Filter.human_readable_class")
     @patch("heritrace.utils.shacl_display.process_nested_shapes")
     def test_process_query_results_update_existing_field(
         self,
         mock_process_nested_shapes,
-        mock_human_readable_class,
         mock_get_object_class,
         mock_get_shape_target_class,
     ) -> None:
@@ -424,7 +467,6 @@ class TestShaclUtils:
         # Configura i mock per le funzioni chiamate da process_query_results
         mock_get_shape_target_class.return_value = "entity_type_or_node"
         mock_get_object_class.return_value = "objectClass1"
-        mock_human_readable_class.return_value = "display_name"
         mock_process_nested_shapes.return_value = {}
 
         # Crea un risultato di query simulato
@@ -448,13 +490,13 @@ class TestShaclUtils:
             link_shape: object
             link_class: object
             detail_paths: object
-            name: object = None
-            description: object = None
+            property: object = None
             editor: object = None
             inverse: object = None
             viewer: object = None
             composite: object = None
             hidden: object = None
+            unique_lang: object = None
             ordered_by: object = None
 
         # Crea due risultati con lo stesso campo di base ma con datatype diversi
@@ -480,7 +522,6 @@ class TestShaclUtils:
                 link_shape=None,
                 link_class=None,
                 detail_paths="",
-                name=None,
                 editor=None,
             ),
             # Il secondo risultato ha lo stesso campo base ma con un datatype diverso
@@ -531,7 +572,7 @@ class TestShaclUtils:
                         condition_path="conditionPath1",
                         condition_value="conditionValue1",
                         pattern="pattern1",
-                        message="message1",
+                        messages={"": "message1"},
                     )
                 ],
                 shown_with={},
@@ -556,7 +597,9 @@ class TestShaclUtils:
         assert "http://www.w3.org/2001/XMLSchema#string" in field_info["datatypes"]
         assert "http://www.w3.org/2001/XMLSchema#integer" in field_info["datatypes"]
 
-        assert field_info["conditions"] == [
+        assert [
+            alternative.as_condition() for alternative in field_info["conditions"]
+        ] == [
             {
                 "condition": {"path": "conditionPath1", "value": "conditionValue1"},
                 "pattern": "pattern1",

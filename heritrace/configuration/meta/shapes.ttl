@@ -66,7 +66,10 @@ meta:NodeShapeShape
               (MAX(IF(?shape = $this, ?shortShape, "")) AS ?shortThis)
             WHERE {
               ?shape a sh:NodeShape .
-              OPTIONAL { ?shape sh:name ?shapeName }
+              OPTIONAL { ?shape sh:name ?shapeNameActive FILTER(LANG(?shapeNameActive) = $language) }
+              OPTIONAL { ?shape sh:name ?shapeNameNeutral FILTER(LANG(?shapeNameNeutral) = "") }
+              OPTIONAL { ?shape sh:name ?shapeNameOther }
+              BIND(STR(COALESCE(?shapeNameActive, ?shapeNameNeutral, ?shapeNameOther)) AS ?shapeName)
               OPTIONAL { ?shape sh:targetClass ?class }
               OPTIONAL {
                 ?declaration sh:prefix ?prefix ; sh:namespace ?namespace .
@@ -85,10 +88,14 @@ meta:NodeShapeShape
             SELECT (GROUP_CONCAT(DISTINCT ?fieldName; separator=", ") AS ?fields)
             WHERE {
               ?owner sh:property ?field .
-              ?field (sh:qualifiedValueShape|sh:or/rdf:rest*/rdf:first)?/sh:node $this ;
-                sh:name ?fieldName .
+              ?field (sh:qualifiedValueShape|sh:or/rdf:rest*/rdf:first)?/sh:node $this .
+              OPTIONAL { ?field sh:name ?fieldNameActive FILTER(LANG(?fieldNameActive) = $language) }
+              OPTIONAL { ?field sh:name ?fieldNameNeutral FILTER(LANG(?fieldNameNeutral) = "") }
+              OPTIONAL { ?field sh:name ?fieldNameOther }
+              BIND(STR(COALESCE(?fieldNameActive, ?fieldNameNeutral, ?fieldNameOther)) AS ?fieldName)
               FILTER(?owner != $this)
-              FILTER NOT EXISTS { $this sh:name ?fieldName }
+              FILTER(BOUND(?fieldName))
+              FILTER NOT EXISTS { $this sh:name ?ownName FILTER(STR(?ownName) = ?fieldName) }
             }
           }
           {
@@ -96,7 +103,10 @@ meta:NodeShapeShape
             WHERE {
               ?owner sh:property/(sh:qualifiedValueShape|sh:or/rdf:rest*/rdf:first)?/sh:node $this .
               FILTER(?owner != $this)
-              OPTIONAL { ?owner sh:name ?ownerLabel }
+              OPTIONAL { ?owner sh:name ?ownerLabelActive FILTER(LANG(?ownerLabelActive) = $language) }
+              OPTIONAL { ?owner sh:name ?ownerLabelNeutral FILTER(LANG(?ownerLabelNeutral) = "") }
+              OPTIONAL { ?owner sh:name ?ownerLabelOther }
+              BIND(STR(COALESCE(?ownerLabelActive, ?ownerLabelNeutral, ?ownerLabelOther)) AS ?ownerLabel)
               OPTIONAL { ?owner sh:targetClass ?ownerClass }
               OPTIONAL {
                 ?declaration sh:prefix ?prefix ; sh:namespace ?namespace .
@@ -120,8 +130,9 @@ meta:NodeShapeShape
     sh:path sh:name ;
     sh:name "Name"@en, "Nome"@it ;
     sh:order 1 ;
-    sh:datatype xsd:string ;
-    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:datatype rdf:langString ] ) ;
+    sh:uniqueLang true ;
+    shui:editor shui:TextFieldWithLangEditor ;
   ] ;
   sh:property [
     sh:path sh:targetClass ;
@@ -169,10 +180,13 @@ meta:PropertyShapeShape
       sh:prefixes meta:ShapesGraph ;
       sh:select """
         SELECT ?label WHERE {
-          OPTIONAL { $this sh:name ?name }
+          OPTIONAL { $this sh:name ?nameActive FILTER(LANG(?nameActive) = $language) }
+          OPTIONAL { $this sh:name ?nameNeutral FILTER(LANG(?nameNeutral) = "") }
+          OPTIONAL { $this sh:name ?nameOther }
+          BIND(STR(COALESCE(?nameActive, ?nameNeutral, ?nameOther)) AS ?name)
           OPTIONAL {
             $this shui:propertyRole shui:LabelRole .
-            BIND("Display label" AS ?role)
+            BIND(IF($language = "it", "Etichetta mostrata", "Display label") AS ?role)
           }
           OPTIONAL {
             $this sh:path ?path .
@@ -194,8 +208,9 @@ meta:PropertyShapeShape
     sh:path sh:name ;
     sh:name "Name"@en, "Nome"@it ;
     sh:order 1 ;
-    sh:datatype xsd:string ;
-    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:datatype rdf:langString ] ) ;
+    sh:uniqueLang true ;
+    shui:editor shui:TextFieldWithLangEditor ;
   ] ;
   sh:property [
     sh:path sh:path ;
@@ -211,9 +226,9 @@ meta:PropertyShapeShape
     sh:description "Text shown under the field to help fill it in."@en,
       "Testo mostrato sotto il campo per aiutare a compilarlo."@it ;
     sh:order 3 ;
-    sh:datatype xsd:string ;
-    shui:editor shui:TextAreaEditor ;
-    sh:maxCount 1 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:datatype rdf:langString ] ) ;
+    sh:uniqueLang true ;
+    shui:editor shui:TextAreaWithLangEditor ;
   ] ;
   sh:property [
     sh:path sh:order ;
@@ -302,7 +317,7 @@ meta:PropertyShapeShape
     sh:path shui:editor ;
     sh:name "Editor"@en, "Editor"@it ;
     sh:order 13 ;
-    sh:in ( shui:TextFieldEditor shui:TextAreaEditor shui:AutoCompleteEditor shui:DetailsEditor ) ;
+    sh:in ( shui:TextFieldEditor shui:TextAreaEditor shui:TextFieldWithLangEditor shui:TextAreaWithLangEditor shui:AutoCompleteEditor shui:DetailsEditor ) ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
@@ -346,6 +361,15 @@ meta:PropertyShapeShape
       "I campi della risorsa annidata che compaiono dentro questa risorsa. Se l'elenco è vuoto, compaiono tutti."@it ;
     sh:order 18 ;
     sh:node meta:DetailFieldShape ;
+  ] ;
+  sh:property [
+    sh:path sh:uniqueLang ;
+    sh:name "One value for each language"@en, "Un valore per ogni lingua"@it ;
+    sh:description "Two values of this field cannot have the same language."@en,
+      "Due valori di questo campo non possono avere la stessa lingua."@it ;
+    sh:order 19 ;
+    sh:datatype xsd:boolean ;
+    sh:maxCount 1 ;
   ] .
 
 meta:DetailFieldShape

@@ -13,6 +13,13 @@ from rdflib.compare import isomorphic
 from rdflib.term import Node
 
 from heritrace.configuration.vocabulary import DASH, HT, SH, SHUI
+from heritrace.language import (
+    LANGUAGES,
+    LocalizedText,
+    add_localized_texts,
+    localized_texts,
+    pick_text,
+)
 
 ValueKind = TypingLiteral["any", "datatype", "node", "value", "options", "class"]
 
@@ -27,6 +34,8 @@ VALUE_KINDS: tuple[ValueKind, ...] = (
 EDITORS = (
     str(SHUI.TextFieldEditor),
     str(SHUI.TextAreaEditor),
+    str(SHUI.TextFieldWithLangEditor),
+    str(SHUI.TextAreaWithLangEditor),
     str(SHUI.AutoCompleteEditor),
     str(SHUI.DetailsEditor),
 )
@@ -45,8 +54,8 @@ _ALTERNATIVE_KINDS: tuple[ValueKind, ...] = ("datatype", "node", "value", "class
 class PropertyShape:
     path: str
     inverse: bool = False
-    name: str | None = None
-    description: str | None = None
+    names: LocalizedText = field(default_factory=dict)
+    descriptions: LocalizedText = field(default_factory=dict)
     order: int | None = None
     min_count: int | None = None
     max_count: int | None = None
@@ -58,6 +67,7 @@ class PropertyShape:
     viewer: str | None = None
     composite: bool | None = None
     hidden: bool | None = None
+    unique_lang: bool | None = None
     ordered_by: str | None = None
     kind: ValueKind = "any"
     values: list[str] = field(default_factory=list)
@@ -74,13 +84,13 @@ class PatternRule:
     condition_value: str
     path: str
     pattern: str
-    message: str | None = None
+    messages: LocalizedText = field(default_factory=dict)
 
 
 @dataclass
 class NodeShape:
     iri: str
-    name: str | None = None
+    names: LocalizedText = field(default_factory=dict)
     target_class: str | None = None
     hidden: bool | None = None
     properties: list[PropertyShape] = field(default_factory=list)
@@ -178,13 +188,14 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
     prop = PropertyShape(
         path=str(inverse_of or path),
         inverse=inverse_of is not None,
-        name=_text(graph, property_shape, SH.name),
-        description=_text(graph, property_shape, SH.description),
+        names=localized_texts(graph, property_shape, SH.name),
+        descriptions=localized_texts(graph, property_shape, SH.description),
         order=_integer(graph, property_shape, SH.order),
         editor=_iri(graph, property_shape, SHUI.editor),
         viewer=_iri(graph, property_shape, SHUI.viewer),
         composite=_boolean(graph, property_shape, DASH.composite),
         hidden=_boolean(graph, property_shape, DASH.hidden),
+        unique_lang=_boolean(graph, property_shape, SH.uniqueLang),
         ordered_by=_iri(graph, property_shape, HT.orderedBy),
         label=(property_shape, SHUI.propertyRole, SHUI.LabelRole) in graph,
         min_inclusive=_literal(graph, property_shape, SH.minInclusive),
@@ -235,7 +246,7 @@ def _read_pattern_rule(graph: Graph, alternative: Node) -> PatternRule | None:
         condition_value=cast("str", condition_value),
         path=cast("str", path),
         pattern=cast("str", pattern),
-        message=_text(graph, constraint, SH.message),
+        messages=localized_texts(graph, constraint, SH.message),
     )
 
 
@@ -255,7 +266,11 @@ def read_duplicate_keys(graph: Graph, shape: Node) -> list[list[str]]:
 
 
 def _property_sort_key(prop: PropertyShape) -> tuple[bool, int, str]:
-    return (prop.order is None, prop.order or 0, prop.name or prop.path)
+    return (
+        prop.order is None,
+        prop.order or 0,
+        pick_text(prop.names, LANGUAGES[0]) or prop.path,
+    )
 
 
 def shape_subjects(graph: Graph) -> list[URIRef]:
@@ -287,7 +302,7 @@ def read_shapes(graph: Graph) -> Shapes:
         shapes.append(
             NodeShape(
                 iri=str(subject),
-                name=_text(graph, subject, SH.name),
+                names=localized_texts(graph, subject, SH.name),
                 target_class=_iri(graph, subject, SH.targetClass),
                 hidden=_boolean(graph, subject, DASH.hidden),
                 properties=sorted(properties, key=_property_sort_key),
@@ -346,6 +361,8 @@ def _add_widgets(graph: Graph, node: Node, prop: PropertyShape) -> None:
         graph.add((node, DASH.composite, Literal(prop.composite)))
     if prop.hidden is not None:
         graph.add((node, DASH.hidden, Literal(prop.hidden)))
+    if prop.unique_lang is not None:
+        graph.add((node, SH.uniqueLang, Literal(prop.unique_lang)))
     if prop.ordered_by is not None:
         graph.add((node, HT.orderedBy, URIRef(prop.ordered_by)))
     for detail_path in prop.details:
@@ -359,9 +376,9 @@ def _add_property(graph: Graph, shape: URIRef, prop: PropertyShape) -> None:
     graph.add((shape, SH.property, node))
     _add_path(graph, node, prop)
     _add_widgets(graph, node, prop)
+    add_localized_texts(graph, node, SH.name, prop.names)
+    add_localized_texts(graph, node, SH.description, prop.descriptions)
     for predicate, value in (
-        (SH.name, prop.name),
-        (SH.description, prop.description),
         (SH.order, prop.order),
         (SH.minInclusive, prop.min_inclusive),
         (SH.maxInclusive, prop.max_inclusive),
@@ -405,8 +422,7 @@ def _add_pattern_rules(graph: Graph, shape: URIRef, rules: list[PatternRule]) ->
         graph.add((condition, SH.hasValue, URIRef(rule.condition_value)))
         graph.add((constraint, SH.path, URIRef(rule.path)))
         graph.add((constraint, SH.pattern, Literal(rule.pattern)))
-        if rule.message is not None:
-            graph.add((constraint, SH.message, Literal(rule.message)))
+        add_localized_texts(graph, constraint, SH.message, rule.messages)
         alternatives.append(alternative)
     graph.add((shape, SH["or"], _add_list(graph, alternatives)))
 
@@ -426,8 +442,7 @@ def shapes_to_graph(shapes: Shapes) -> Graph:
     for shape in shapes.shapes:
         subject = URIRef(shape.iri)
         graph.add((subject, RDF.type, SH.NodeShape))
-        if shape.name is not None:
-            graph.add((subject, SH.name, Literal(shape.name)))
+        add_localized_texts(graph, subject, SH.name, shape.names)
         if shape.target_class is not None:
             graph.add((subject, SH.targetClass, URIRef(shape.target_class)))
         if shape.hidden is not None:

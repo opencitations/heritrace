@@ -64,6 +64,9 @@ form:
   selectOption: Scegli un'opzione
   fillInDetails: Compila i dettagli
   draftLabelFailed: Impossibile aggiornare l'etichetta della risorsa
+  noLanguage: Senza lingua
+  language: Lingua
+  searchLanguages: Cerca una lingua
   dateTypeDate: Data
   dateTypeMonth: Anno e mese
   dateTypeYear: Anno

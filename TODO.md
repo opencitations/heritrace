@@ -34,10 +34,6 @@ The configuration editor shows the prefixes (`sh:declare`) but not several terms
 
 A search on a link can match too many entities to browse: in OpenCitations Meta, 1,501,210 of the 7,614,242 issues have the number "1". Let users choose the journal first, then the volume, then the issue, with each list limited by the previous choice. The article still stores one `frbr:partOf` link, to the final choice. Decide how the shapes express these steps, since SHACL UI has no term for a field that depends on another.
 
-## Show names and descriptions in the language of the interface
-
-A shape can give `sh:name` and `sh:description` in several languages, but HERITRACE shows the first one in the file, whatever language the user has chosen. The frontend does not tell the backend which language is active. Let HERITRACE pick names and descriptions in the language of the interface, on entity pages, in forms and in the configuration editor.
-
 ## Accept the shapes in any RDF format and under any file name
 
 HERITRACE reads the shapes only from a file called `shacl.ttl`, written in Turtle. Let administrators choose the name of the file and write it in any RDF serialization that rdflib reads, such as JSON-LD, RDF/XML or N-Triples. When the app rewrites the file after a change, it keeps the name and the format the administrator chose.
@@ -45,6 +41,10 @@ HERITRACE reads the shapes only from a file called `shacl.ttl`, written in Turtl
 ## Keep the order of values created inside a new nested entity
 
 When a form creates a nested entity together with its values, the values of an ordered property get no position: neither an `sh:order` index nor an `ht:orderedBy` chain. This holds in the dataset and in the configuration editor. Give these values their position as for values created at the first level.
+
+## Choose widgets by score
+
+SHACL 1.2 UI picks the editor and the viewer of each value by score. Every widget gains points from its `shui:WidgetScore` matchers, a `shui:WidgetAcceptMatcher` can rule it out, and the highest score wins. HERITRACE follows a fixed rule: the widget named by `shui:editor` or `shui:viewer`, otherwise an input chosen from the datatype. The value already present plays no part; a tagged value of a property that admits both `xsd:string` and `rdf:langString` therefore opens in a plain text field, where the specification would choose `shui:TextFieldWithLangEditor`. Implement the scoring algorithm with the scores that the specification gives to the widgets HERITRACE supports.
 
 ## Show each nested entity shown in place in a box of its own
 

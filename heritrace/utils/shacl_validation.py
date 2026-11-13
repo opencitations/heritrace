@@ -246,7 +246,7 @@ def _query_shacl_constraints(
     query = f"""
         PREFIX sh: <http://www.w3.org/ns/shacl#>
         SELECT DISTINCT ?path ?datatype ?a_class ?maxCount ?minCount ?shape
-            ?minInclusive ?maxInclusive ?minExclusive ?maxExclusive
+            ?minInclusive ?maxInclusive ?minExclusive ?maxExclusive ?uniqueLang
             (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS
             ?optionalValues)
         WHERE {{
@@ -272,6 +272,7 @@ def _query_shacl_constraints(
             OPTIONAL {{?propertyShape sh:maxInclusive ?maxInclusive .}}
             OPTIONAL {{?propertyShape sh:minExclusive ?minExclusive .}}
             OPTIONAL {{?propertyShape sh:maxExclusive ?maxExclusive .}}
+            OPTIONAL {{?propertyShape sh:uniqueLang ?uniqueLang .}}
             OPTIONAL {{
                 ?propertyShape sh:or ?orList .
                 ?orList rdf:rest*/rdf:first ?orConstraint .
@@ -284,7 +285,7 @@ def _query_shacl_constraints(
             }}
         }}
         GROUP BY ?path ?datatype ?a_class ?maxCount ?minCount ?shape
-            ?minInclusive ?maxInclusive ?minExclusive ?maxExclusive
+            ?minInclusive ?maxInclusive ?minExclusive ?maxExclusive ?uniqueLang
     """
     shacl = get_shacl_graph()
     results = shacl.query(query)
@@ -357,7 +358,7 @@ def _validate_pattern_constraints(  # noqa: PLR0913
         for alternative in applicable
     ):
         return None
-    return None, old_value, applicable[0].message
+    return None, old_value, applicable[0].message()
 
 
 def _type_error(
@@ -466,6 +467,10 @@ def _resolve_old_value(
         triple[2]  # type: ignore[misc]
         for triple in get_triples_from_graph(data_graph, (subject, predicate, None))
         if str(triple[2]) == str(old_value)
+        and (
+            not isinstance(old_value, Literal)
+            or old_value.language in (None, getattr(triple[2], "language", None))
+        )
     ]
     if matching_triples:
         return matching_triples[0]
@@ -520,6 +525,68 @@ def _validate_optional_values(
     )
 
 
+def _validate_language(
+    new_value: str | URIRef | None,
+    language: str | None,
+    ctx: ValidationContext,
+    datatypes: list[URIRef],
+    results_list: list[ResultRow],
+) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str] | None:
+    accepts_language = not datatypes or RDF.langString in datatypes
+    # An edited value keeps its language unless the change names one; an
+    # empty one removes the tag.
+    if language is None and accepts_language and isinstance(ctx.old_value, Literal):
+        language = ctx.old_value.language
+    if not language:
+        return None
+    predicate_label = ctx.custom_filter.human_readable_predicate(
+        str(ctx.predicate), ctx.entity_key
+    )
+    if not accepts_language:
+        return (
+            None,
+            ctx.old_value,
+            f"The '{predicate_label}' property does not accept values with a language",
+        )
+    if any(row.uniqueLang for row in results_list) and any(
+        isinstance(triple[2], Literal)
+        and triple[2].language == language
+        and triple[2] != ctx.old_value
+        for triple in get_triples_from_graph(
+            ctx.data_graph, (ctx.subject, ctx.predicate, None)
+        )
+    ):
+        return (
+            None,
+            ctx.old_value,
+            f"The '{predicate_label}' property allows one value for each language",
+        )
+    return Literal(new_value, lang=language), ctx.old_value, ""
+
+
+def _typed_value(  # noqa: PLR0913
+    new_value: str | URIRef | None,
+    language: str | None,
+    ctx: ValidationContext,
+    results_list: list[ResultRow],
+    s_types: list[str],
+    current_shape: str | None,
+) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
+    datatypes, classes, _, _, _ = _extract_shacl_constraints(results_list)
+    language_result = _validate_language(
+        new_value, language, ctx, datatypes, results_list
+    )
+    if language_result:
+        return language_result
+    if classes:
+        return _validate_class_constraint(
+            new_value, ctx, classes, s_types, current_shape
+        )
+    if datatypes:
+        return _validate_datatype_constraint(new_value, ctx, datatypes, results_list)
+    return _infer_value_type(new_value, ctx.old_value)
+
+
 def validate_new_triple(  # noqa: PLR0911, PLR0913
     subject: URIRef,
     predicate: URIRef,
@@ -527,6 +594,7 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
     action: str,
     old_value: URIRef | Literal | None = None,
     entity_types: str | list[str] | None = None,
+    language: str | None = None,
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
     data_graph = fetch_data_graph_for_subject(subject)
     old_value = _resolve_old_value(data_graph, subject, predicate, old_value)
@@ -560,8 +628,8 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
             return (None, old_value, "No entity type specified")
         return _coerce_value_without_shacl(new_value, old_value, XSD.string)
 
-    datatypes, classes, optional_values, max_count, min_count = (
-        _extract_shacl_constraints(results_list)
+    _, _, optional_values, max_count, min_count = _extract_shacl_constraints(
+        results_list
     )
 
     cardinality_error = _validate_cardinality(ctx, action, max_count, min_count)
@@ -581,13 +649,7 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
     if pattern_error:
         return pattern_error
 
-    if classes:
-        return _validate_class_constraint(
-            new_value, ctx, classes, s_types, current_shape
-        )
-    if datatypes:
-        return _validate_datatype_constraint(new_value, ctx, datatypes, results_list)
-    return _infer_value_type(new_value, old_value)
+    return _typed_value(new_value, language, ctx, results_list, s_types, current_shape)
 
 
 def convert_to_matching_class(

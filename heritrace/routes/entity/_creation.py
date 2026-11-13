@@ -18,6 +18,7 @@ from heritrace.extensions import (
     new_editor,
     record_dataset_change,
 )
+from heritrace.language import is_tagged, tagged_literal
 from heritrace.routes.entity._blueprint import entity_bp
 from heritrace.routes.entity._validation import validate_entity_data
 from heritrace.utils.datatypes import determine_datatype
@@ -323,6 +324,10 @@ def create_nested_entity(
                         URIRef(existing_entity_uri),
                         graph_uri,
                     )
+            elif is_tagged(value):
+                editor.create(
+                    entity_uri, predicate_uri, tagged_literal(value), graph_uri
+                )
             else:
                 str_value = str(value)
                 if is_valid_url(str_value):
@@ -376,8 +381,10 @@ def process_entity_value(
         msg = "Missing entity_uri in existing entity reference"
         raise ValueError(msg)
     str_value = str(value)
-    if is_valid_url(str_value):
-        object_value: URIRef | Literal = URIRef(str_value)
+    if is_tagged(value):
+        object_value: URIRef | Literal = tagged_literal(value)
+    elif is_valid_url(str_value):
+        object_value = URIRef(str_value)
     else:
         datatype_uris = []
         if matching_field_def:
