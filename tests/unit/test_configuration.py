@@ -12,7 +12,7 @@ import pytest
 import requests
 import responses
 from flask.testing import FlaskClient
-from rdflib import Graph
+from rdflib import Graph, Literal
 from rdflib.compare import isomorphic
 
 from heritrace import create_app
@@ -25,6 +25,8 @@ from heritrace.configuration.settings import (
     write_settings,
 )
 from heritrace.configuration.store import SETTINGS_FILE, SHACL_FILE
+from heritrace.configuration.vocabulary import SH
+from heritrace.language import LANGUAGES
 from heritrace.scripts.seed_config import seed_config
 from tests.conftest import write_test_configuration
 from tests.test_config import BASE_DIR, TestConfig, test_example_dir
@@ -62,6 +64,27 @@ def test_example_becomes_the_configuration_without_losses(
         read_shacl(tmp_path),
         Graph().parse(example, format="turtle"),
     )
+
+
+@pytest.mark.parametrize("example", EXAMPLES, ids=lambda path: path.parent.name)
+def test_example_texts_come_in_every_interface_language(example: Path) -> None:
+    graph = Graph().parse(example, format="turtle")
+    untranslated = [
+        (subject, predicate)
+        for predicate in (SH.name, SH.message)
+        for subject in set(graph.subjects(predicate, None))
+        if sorted(
+            (
+                literal.language
+                for literal in graph.objects(subject, predicate)
+                if isinstance(literal, Literal)
+            ),
+            key=str,
+        )
+        != sorted(LANGUAGES)
+    ]
+
+    assert untranslated == []
 
 
 def test_settings_list_the_strategies(logged_in_client: FlaskClient) -> None:

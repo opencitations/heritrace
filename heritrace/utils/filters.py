@@ -221,8 +221,6 @@ def split_namespace(uri: str) -> tuple[str, str]:
 def format_uri_as_readable(uri: str) -> str:
     _, last_part = split_namespace(uri)
 
-    if last_part.islower():
-        return last_part
     words = []
     word = ""
     for char in last_part:
@@ -232,7 +230,7 @@ def format_uri_as_readable(uri: str) -> str:
         else:
             word += char
     words.append(word)
-    return " ".join(words).lower()
+    return " ".join(words).capitalize()
 
 
 def field_with_labels(details: dict, custom_filter: Filter) -> dict:

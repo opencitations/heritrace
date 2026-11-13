@@ -330,51 +330,54 @@ class _PopUpBox extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Focus(
-        focusNode: focusNode,
-        child: Container(
-          padding: _fieldPadding,
-          decoration: _fieldDecoration(context, hasError: hasError),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final shown = Text(
-                label ?? placeholder ?? '',
-                overflow: TextOverflow.ellipsis,
-                style: label == null
-                    ? styles.body.copyWith(
-                        color: AppColors.of(context).secondaryText,
-                      )
-                    : styles.body,
-              );
-              final text = widestLabel == null
-                  ? shown
-                  : Stack(
-                      children: [
-                        Visibility.maintain(
-                          visible: false,
-                          child: Text(widestLabel!, style: styles.body),
-                        ),
-                        shown,
-                      ],
-                    );
-              return Row(
-                mainAxisSize: constraints.hasBoundedWidth
-                    ? MainAxisSize.max
-                    : MainAxisSize.min,
-                children: [
-                  if (constraints.hasBoundedWidth)
-                    Expanded(child: text)
-                  else
-                    Flexible(child: text),
-                  const SizedBox(width: appInputSpacing / 2),
-                  Icon(
-                    CupertinoIcons.chevron_up_chevron_down,
-                    size: 16,
-                    color: AppColors.of(context).secondaryText,
-                  ),
-                ],
-              );
-            },
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Focus(
+          focusNode: focusNode,
+          child: Container(
+            padding: _fieldPadding,
+            decoration: _fieldDecoration(context, hasError: hasError),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final shown = Text(
+                  label ?? placeholder ?? '',
+                  overflow: TextOverflow.ellipsis,
+                  style: label == null
+                      ? styles.body.copyWith(
+                          color: AppColors.of(context).secondaryText,
+                        )
+                      : styles.body,
+                );
+                final text = widestLabel == null
+                    ? shown
+                    : Stack(
+                        children: [
+                          Visibility.maintain(
+                            visible: false,
+                            child: Text(widestLabel!, style: styles.body),
+                          ),
+                          shown,
+                        ],
+                      );
+                return Row(
+                  mainAxisSize: constraints.hasBoundedWidth
+                      ? MainAxisSize.max
+                      : MainAxisSize.min,
+                  children: [
+                    if (constraints.hasBoundedWidth)
+                      Expanded(child: text)
+                    else
+                      Flexible(child: text),
+                    const SizedBox(width: appInputSpacing / 2),
+                    Icon(
+                      CupertinoIcons.chevron_up_chevron_down,
+                      size: 16,
+                      color: AppColors.of(context).secondaryText,
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),

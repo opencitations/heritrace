@@ -98,17 +98,20 @@ class _PrimarySourceDialogState extends State<_PrimarySourceDialog> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => setState(() => _saveAsDefault = !_saveAsDefault),
-            child: SelectionContainer.disabled(
-              child: Row(
-                children: [
-                  Expanded(child: Text(t.ui.primarySource.saveAsDefault)),
-                  const SizedBox(width: appInputSpacing),
-                  CupertinoSwitch(
-                    value: _saveAsDefault,
-                    onChanged: (value) =>
-                        setState(() => _saveAsDefault = value),
-                  ),
-                ],
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: SelectionContainer.disabled(
+                child: Row(
+                  children: [
+                    Expanded(child: Text(t.ui.primarySource.saveAsDefault)),
+                    const SizedBox(width: appInputSpacing),
+                    CupertinoSwitch(
+                      value: _saveAsDefault,
+                      onChanged: (value) =>
+                          setState(() => _saveAsDefault = value),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

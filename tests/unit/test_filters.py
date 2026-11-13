@@ -86,7 +86,7 @@ def shapes_filter():
 def test_class_names_come_from_node_shapes(shapes_filter) -> None:
     assert shapes_filter.human_readable_class(BOOK_KEY) == "Book"
     assert shapes_filter.human_readable_class((EX + "Role", EX + "AuthorShape")) == (
-        "role"
+        "Role"
     )
     assert shapes_filter.human_readable_class(None) == "Unknown"
     assert shapes_filter.human_readable_class((None, None)) == "Unknown"
@@ -112,7 +112,7 @@ def test_predicate_names_depend_on_the_object_shape(shapes_filter) -> None:
     )
     assert shapes_filter.human_readable_predicate(contributor, BOOK_KEY) == "Author"
     assert shapes_filter.human_readable_predicate(EX + "isbnCode", BOOK_KEY) == (
-        "isbn code"
+        "Isbn code"
     )
     assert (
         shapes_filter.human_readable_predicate("https://other.org/x", BOOK_KEY)

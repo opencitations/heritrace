@@ -37,14 +37,14 @@
 
 schema:JournalArticleShape
   a sh:NodeShape ;
-  sh:name "Journal Article" ;
+  sh:name "Journal article"@en, "Articolo di rivista"@it ;
   sh:targetClass fabio:JournalArticle ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -52,7 +52,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:JournalArticle ] ;
     sh:qualifiedMinCount 1 ;
@@ -61,14 +61,14 @@ schema:JournalArticleShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
     sh:minCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -77,7 +77,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 5 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -94,14 +94,14 @@ schema:JournalArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Author" ;
+    sh:name "Author"@en, "Autore"@it ;
     sh:order 4 ;
     sh:node schema:AuthorShape ;
     sh:minCount 1 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:name "Container" ;
+    sh:name "Container"@en, "Contenitore"@it ;
     sh:order 6 ;
     shui:editor shui:AutoCompleteEditor ;
     sh:or (
@@ -115,7 +115,7 @@ schema:JournalArticleShape
   sh:property [
     sh:path frbr:embodiment ;
     dash:composite true ;
-    sh:name "Pages" ;
+    sh:name "Pages"@en, "Pagine"@it ;
     sh:order 7 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 1 ;
@@ -173,12 +173,12 @@ schema:JournalArticleShape
 
 schema:JournalArticleIdentifierShape
   a sh:NodeShape ;
-  sh:name "Identifier" ;
+  sh:name "Identifier"@en, "Identificativo"@it ;
   sh:targetClass datacite:Identifier ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
     sh:qualifiedMinCount 1 ;
@@ -186,7 +186,7 @@ schema:JournalArticleIdentifierShape
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
-    sh:name "Identifier Scheme" ;
+    sh:name "Identifier scheme"@en, "Schema dell'identificativo"@it ;
     sh:order 2 ;
     sh:in (datacite:doi datacite:pmid) ;
     sh:minCount 1 ;
@@ -194,7 +194,7 @@ schema:JournalArticleIdentifierShape
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
-    sh:name "Literal Value" ;
+    sh:name "Literal value"@en, "Valore letterale"@it ;
     sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -216,12 +216,12 @@ schema:JournalArticleIdentifierShape
 
 schema:JournalShape
   a sh:NodeShape ;
-  sh:name "Journal" ;
+  sh:name "Journal"@en, "Rivista"@it ;
   sh:targetClass fabio:Journal ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -229,7 +229,7 @@ schema:JournalShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Journal ] ;
     sh:qualifiedMinCount 1 ;
@@ -237,7 +237,7 @@ schema:JournalShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 2 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -259,12 +259,12 @@ schema:JournalShape
 
 schema:VolumeShape
   a sh:NodeShape ;
-  sh:name "Volume" ;
+  sh:name "Volume"@en, "Volume"@it ;
   sh:targetClass fabio:JournalVolume ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -272,7 +272,7 @@ schema:VolumeShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:JournalVolume ] ;
     sh:qualifiedMinCount 1 ;
@@ -280,7 +280,7 @@ schema:VolumeShape
   ] ;
   sh:property [
     sh:path fabio:hasSequenceIdentifier ;
-    sh:name "Number" ;
+    sh:name "Number"@en, "Numero"@it ;
     sh:order 2 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -288,7 +288,7 @@ schema:VolumeShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:name "Journal" ;
+    sh:name "Journal"@en, "Rivista"@it ;
     sh:order 3 ;
     sh:node schema:JournalShape ;
     sh:class fabio:Journal ;
@@ -301,7 +301,7 @@ schema:VolumeShape
     shui:propertyRole shui:LabelRole ;
     sh:values [
       sh:select """
-        SELECT (CONCAT("Volume ", ?number, " of ", ?journalTitle) AS ?display)
+        SELECT (CONCAT("Volume ", ?number, IF($language = "it", " di ", " of "), ?journalTitle) AS ?display)
         WHERE {
           $this fabio:hasSequenceIdentifier ?number ;
                   frbr:partOf ?journal .
@@ -313,12 +313,12 @@ schema:VolumeShape
 
 schema:IssueShape
   a sh:NodeShape ;
-  sh:name "Issue" ;
+  sh:name "Issue"@en, "Fascicolo"@it ;
   sh:targetClass fabio:JournalIssue ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -326,7 +326,7 @@ schema:IssueShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:JournalIssue ] ;
     sh:qualifiedMinCount 1 ;
@@ -334,7 +334,7 @@ schema:IssueShape
   ] ;
   sh:property [
     sh:path fabio:hasSequenceIdentifier ;
-    sh:name "Number" ;
+    sh:name "Number"@en, "Numero"@it ;
     sh:order 2 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -342,7 +342,7 @@ schema:IssueShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:name "Volume" ;
+    sh:name "Volume"@en, "Volume"@it ;
     sh:order 3 ;
     shui:editor shui:AutoCompleteEditor ;
     sh:or (
@@ -357,7 +357,7 @@ schema:IssueShape
     shui:propertyRole shui:LabelRole ;
     sh:values [
       sh:select """
-        SELECT (CONCAT("Issue ", ?issueNumber, " of Volume ", ?volumeNumber, ", ", ?journalTitle) AS ?display)
+        SELECT (CONCAT(IF($language = "it", "Fascicolo ", "Issue "), ?issueNumber, IF($language = "it", " del volume ", " of volume "), ?volumeNumber, ", ", ?journalTitle) AS ?display)
         WHERE {
           $this fabio:hasSequenceIdentifier ?issueNumber ;
                   frbr:partOf ?volume .
@@ -371,12 +371,12 @@ schema:IssueShape
 
 schema:ResourceEmbodimentShape
   a sh:NodeShape ;
-  sh:name "Pages" ;
+  sh:name "Pages"@en, "Pagine"@it ;
   sh:targetClass fabio:Manifestation ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Manifestation ] ;
     sh:qualifiedMinCount 1 ;
@@ -384,7 +384,7 @@ schema:ResourceEmbodimentShape
   ] ;
   sh:property [
     sh:path prism:startingPage ;
-    sh:name "Starting Page" ;
+    sh:name "Starting page"@en, "Pagina iniziale"@it ;
     sh:order 2 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -392,7 +392,7 @@ schema:ResourceEmbodimentShape
   ] ;
   sh:property [
     sh:path prism:endingPage ;
-    sh:name "Ending Page" ;
+    sh:name "Ending page"@en, "Pagina finale"@it ;
     sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -414,12 +414,12 @@ schema:ResourceEmbodimentShape
 
 schema:ResponsibleAgentShape
   a sh:NodeShape ;
-  sh:name "Author" ;
+  sh:name "Author"@en, "Autore"@it ;
   sh:targetClass foaf:Agent ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue foaf:Agent ] ;
     sh:qualifiedMinCount 1 ;
@@ -427,7 +427,7 @@ schema:ResponsibleAgentShape
   ] ;
   sh:property [
     sh:path foaf:givenName ;
-    sh:name "Given Name" ;
+    sh:name "Given name"@en, "Nome"@it ;
     sh:order 2 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -435,7 +435,7 @@ schema:ResponsibleAgentShape
   ] ;
   sh:property [
     sh:path foaf:familyName ;
-    sh:name "Family Name" ;
+    sh:name "Family name"@en, "Cognome"@it ;
     sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -457,12 +457,12 @@ schema:ResponsibleAgentShape
 
 schema:AuthorShape
   a sh:NodeShape ;
-  sh:name "Author Role" ;
+  sh:name "Author role"@en, "Ruolo dell'autore"@it ;
   sh:targetClass pro:RoleInTime ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue pro:RoleInTime ] ;
     sh:qualifiedMinCount 1 ;
@@ -470,7 +470,7 @@ schema:AuthorShape
   ] ;
   sh:property [
     sh:path pro:withRole ;
-    sh:name "Role" ;
+    sh:name "Role"@en, "Ruolo"@it ;
     sh:order 3 ;
     sh:hasValue pro:author ;
     sh:minCount 1 ;
@@ -478,7 +478,7 @@ schema:AuthorShape
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
-    sh:name "Held By" ;
+    sh:name "Held by"@en, "Ricoperto da"@it ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:minCount 1 ;

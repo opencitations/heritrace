@@ -114,13 +114,18 @@ class _LanguageSheetState extends State<_LanguageSheet> {
     return code == query || name.toLowerCase().contains(query);
   }
 
-  Widget _tile(String? code, String name) => CupertinoListTile(
-    title: Text(name),
-    additionalInfo: code == null ? null : Text(code),
-    trailing: code == widget.current
-        ? const Icon(CupertinoIcons.check_mark, size: 18)
-        : null,
-    onTap: () => Navigator.of(context).pop((language: code)),
+  Widget _tile(String? code, String name) => SelectionContainer.disabled(
+    child: MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: CupertinoListTile(
+        title: Text(name),
+        additionalInfo: code == null ? null : Text(code),
+        trailing: code == widget.current
+            ? const Icon(CupertinoIcons.check_mark, size: 18)
+            : null,
+        onTap: () => Navigator.of(context).pop((language: code)),
+      ),
+    ),
   );
 
   @override

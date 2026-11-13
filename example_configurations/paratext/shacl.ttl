@@ -39,14 +39,14 @@
 
 schema:IdentifierShape 
   a sh:NodeShape ;
-  sh:name "Identifier" ;
+  sh:name "Identifier"@en, "Identificativo"@it ;
   sh:targetClass datacite:Identifier ;
   dash:hidden true ;
   owl:hasKey
     ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
     sh:qualifiedMinCount 1 ;
@@ -54,7 +54,7 @@ schema:IdentifierShape
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
-    sh:name "Literal Value" ;
+    sh:name "Literal value"@en, "Valore letterale"@it ;
     sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -62,7 +62,7 @@ schema:IdentifierShape
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
-    sh:name "Identifier Scheme" ;
+    sh:name "Identifier scheme"@en, "Schema dell'identificativo"@it ;
     sh:order 2 ;
     sh:in (
       datacite:crossref
@@ -99,14 +99,14 @@ schema:IdentifierShape
 
 schema:JournalArticleIdentifierShape
   a sh:NodeShape ;
-  sh:name "Identifier" ;
+  sh:name "Identifier"@en, "Identificativo"@it ;
   sh:targetClass datacite:Identifier ;
   dash:hidden true ;
   owl:hasKey
     ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
     sh:qualifiedMinCount 1 ;
@@ -114,7 +114,7 @@ schema:JournalArticleIdentifierShape
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
-    sh:name "Identifier Scheme" ;
+    sh:name "Identifier scheme"@en, "Schema dell'identificativo"@it ;
     sh:order 2 ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -127,7 +127,7 @@ schema:JournalArticleIdentifierShape
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
-    sh:name "Literal Value" ;
+    sh:name "Literal value"@en, "Valore letterale"@it ;
     sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -142,7 +142,7 @@ schema:JournalArticleIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
-        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023"@en, "Il DOI deve iniziare con '10.' seguito da un prefisso, una barra e un suffisso. Per esempio: 10.1162/qss_a_00023"@it ;
       ] ;
     ]
     [
@@ -153,7 +153,7 @@ schema:JournalArticleIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^[1-9]\\d*$" ;
-        sh:message "PMID must contain only numbers. For example: 39288764" ;
+        sh:message "PMID must contain only numbers. For example: 39288764"@en, "Il PMID deve contenere solo cifre. Per esempio: 39288764"@it ;
       ] ;
     ]
     [
@@ -164,7 +164,7 @@ schema:JournalArticleIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^PMC[1-9]\\d+(\\.(\\d{1,2})?)?$" ;
-        sh:message "PMCID must start with 'PMC' followed by a number that doesn't start with 0, and may optionally end with a dot and 1-2 digits. For example: PMC10829861" ;
+        sh:message "PMCID must start with 'PMC' followed by a number that doesn't start with 0, and may optionally end with a dot and 1-2 digits. For example: PMC10829861"@en, "Il PMCID deve iniziare con 'PMC' seguito da un numero che non inizia con 0, e può terminare con un punto e 1-2 cifre. Per esempio: PMC10829861"@it ;
       ] ;
     ]
     [
@@ -175,7 +175,7 @@ schema:JournalArticleIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^W[1-9]\\d*$" ;
-        sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
+        sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807"@en, "L'ID OpenAlex dell'opera deve iniziare con 'W' seguita da cifre. Per esempio: W2741809807"@it ;
       ] ;
     ]
   ) ;
@@ -196,14 +196,14 @@ schema:JournalArticleIdentifierShape
 
 schema:JournalIdentifierShape
   a sh:NodeShape ;
-  sh:name "Identifier" ;
+  sh:name "Identifier"@en, "Identificativo"@it ;
   sh:targetClass datacite:Identifier ;
   dash:hidden true ;
   owl:hasKey
     ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
     sh:qualifiedMinCount 1 ;
@@ -211,7 +211,7 @@ schema:JournalIdentifierShape
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
-    sh:name "Identifier Scheme" ;
+    sh:name "Identifier scheme"@en, "Schema dell'identificativo"@it ;
     sh:order 2 ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -224,7 +224,7 @@ schema:JournalIdentifierShape
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
-    sh:name "Literal Value" ;
+    sh:name "Literal value"@en, "Valore letterale"@it ;
     sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -239,7 +239,7 @@ schema:JournalIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
-        sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
+        sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337"@en, "L'ISSN deve avere il formato NNNN-NNNC, dove N è una cifra e C è una cifra o 'X'. Per esempio: 2641-3337"@it ;
       ] ;
     ]
     [
@@ -250,7 +250,7 @@ schema:JournalIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
-        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023"@en, "Il DOI deve iniziare con '10.' seguito da un prefisso, una barra e un suffisso. Per esempio: 10.1162/qss_a_00023"@it ;
       ] ;
     ]
     [
@@ -261,7 +261,7 @@ schema:JournalIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^[a-z]+([12][0-9]{3}){0,1}[a-z]*$" ;
-        sh:message "JID must start with lowercase letters, optionally followed by a four-digit year, and may end with additional lowercase letters. For example: nature or science2001 or procnatacadsci" ;
+        sh:message "JID must start with lowercase letters, optionally followed by a four-digit year, and may end with additional lowercase letters. For example: nature or science2001 or procnatacadsci"@en, "Il JID deve iniziare con lettere minuscole, eventualmente seguite da un anno di quattro cifre, e può terminare con altre lettere minuscole. Per esempio: nature o science2001 o procnatacadsci"@it ;
       ] ;
     ]
     [
@@ -272,7 +272,7 @@ schema:JournalIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^S\\d+$" ;
-        sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326" ;
+        sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326"@en, "L'ID OpenAlex della rivista deve iniziare con 'S' seguita da cifre. Per esempio: S4210195326"@it ;
       ] ;
     ]
   ) ;
@@ -293,14 +293,14 @@ schema:JournalIdentifierShape
 
 schema:SeriesAndProceedingsIdentifierShape
   a sh:NodeShape ;
-  sh:name "Identifier" ;
+  sh:name "Identifier"@en, "Identificativo"@it ;
   sh:targetClass datacite:Identifier ;
   dash:hidden true ;
   owl:hasKey
     ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
     sh:qualifiedMinCount 1 ;
@@ -308,7 +308,7 @@ schema:SeriesAndProceedingsIdentifierShape
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
-    sh:name "Identifier Scheme" ;
+    sh:name "Identifier scheme"@en, "Schema dell'identificativo"@it ;
     sh:order 2 ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -322,7 +322,7 @@ schema:SeriesAndProceedingsIdentifierShape
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
-    sh:name "Literal Value" ;
+    sh:name "Literal value"@en, "Valore letterale"@it ;
     sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -337,7 +337,7 @@ schema:SeriesAndProceedingsIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
-        sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
+        sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337"@en, "L'ISSN deve avere il formato NNNN-NNNC, dove N è una cifra e C è una cifra o 'X'. Per esempio: 2641-3337"@it ;
       ] ;
     ]
     [
@@ -348,7 +348,7 @@ schema:SeriesAndProceedingsIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
-        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023"@en, "Il DOI deve iniziare con '10.' seguito da un prefisso, una barra e un suffisso. Per esempio: 10.1162/qss_a_00023"@it ;
       ] ;
     ]
     [
@@ -359,7 +359,7 @@ schema:SeriesAndProceedingsIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^[a-z]+([12][0-9]{3}){0,1}[a-z]*$" ;
-        sh:message "JID must start with lowercase letters, optionally followed by a four-digit year, and may end with additional lowercase letters. For example: nature or science2001 or procnatacadsci" ;
+        sh:message "JID must start with lowercase letters, optionally followed by a four-digit year, and may end with additional lowercase letters. For example: nature or science2001 or procnatacadsci"@en, "Il JID deve iniziare con lettere minuscole, eventualmente seguite da un anno di quattro cifre, e può terminare con altre lettere minuscole. Per esempio: nature o science2001 o procnatacadsci"@it ;
       ] ;
     ]
     [
@@ -370,7 +370,7 @@ schema:SeriesAndProceedingsIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^S\\d+$" ;
-        sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326 " ;
+        sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326 "@en, "L'ID OpenAlex della rivista deve iniziare con 'S' seguita da cifre. Per esempio: S4210195326"@it ;
       ] ;
     ]
     [
@@ -381,7 +381,7 @@ schema:SeriesAndProceedingsIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
-        sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
+        sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9"@en, "L'ISBN deve essere un numero ISBN valido di 10 o 13 cifre, con trattini facoltativi. Per esempio: 0-7475-3269-9 o 978-0-7475-3269-9"@it ;
       ] ;
     ]
   ) ;
@@ -402,14 +402,14 @@ schema:SeriesAndProceedingsIdentifierShape
 
 schema:BookIdentifierShape
   a sh:NodeShape ;
-  sh:name "Identifier" ;
+  sh:name "Identifier"@en, "Identificativo"@it ;
   sh:targetClass datacite:Identifier ;
   dash:hidden true ;
   owl:hasKey
     ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
     sh:qualifiedMinCount 1 ;
@@ -417,7 +417,7 @@ schema:BookIdentifierShape
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
-    sh:name "Identifier Scheme" ;
+    sh:name "Identifier scheme"@en, "Schema dell'identificativo"@it ;
     sh:order 2 ;
     sh:in (
       datacite:doi
@@ -431,7 +431,7 @@ schema:BookIdentifierShape
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
-    sh:name "Literal Value" ;
+    sh:name "Literal value"@en, "Valore letterale"@it ;
     sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -446,7 +446,7 @@ schema:BookIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
-        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023"@en, "Il DOI deve iniziare con '10.' seguito da un prefisso, una barra e un suffisso. Per esempio: 10.1162/qss_a_00023"@it ;
       ] ;
     ]
     [
@@ -457,7 +457,7 @@ schema:BookIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^[1-9]\\d*$" ;
-        sh:message "PMID must contain only numbers. For example: 39288764" ;
+        sh:message "PMID must contain only numbers. For example: 39288764"@en, "Il PMID deve contenere solo cifre. Per esempio: 39288764"@it ;
       ] ;
     ]
     [
@@ -468,7 +468,7 @@ schema:BookIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^PMC[1-9]\\d+(\\.(\\d{1,2})?)?$" ;
-        sh:message "PMCID must start with 'PMC' followed by a number that doesn't start with 0, and may optionally end with a dot and 1-2 digits. For example: PMC10829861" ;
+        sh:message "PMCID must start with 'PMC' followed by a number that doesn't start with 0, and may optionally end with a dot and 1-2 digits. For example: PMC10829861"@en, "Il PMCID deve iniziare con 'PMC' seguito da un numero che non inizia con 0, e può terminare con un punto e 1-2 cifre. Per esempio: PMC10829861"@it ;
       ] ;
     ]
     [
@@ -479,7 +479,7 @@ schema:BookIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
-        sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
+        sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9"@en, "L'ISBN deve essere un numero ISBN valido di 10 o 13 cifre, con trattini facoltativi. Per esempio: 0-7475-3269-9 o 978-0-7475-3269-9"@it ;
       ] ;
     ]
     [
@@ -490,7 +490,7 @@ schema:BookIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^W[1-9]\\d*$" ;
-        sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
+        sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807"@en, "L'ID OpenAlex dell'opera deve iniziare con 'W' seguita da cifre. Per esempio: W2741809807"@it ;
       ] ;
     ]
   ) ;
@@ -511,14 +511,14 @@ schema:BookIdentifierShape
   
 schema:AgentIdentifierShape
   a sh:NodeShape ;
-  sh:name "Identifier" ;
+  sh:name "Identifier"@en, "Identificativo"@it ;
   sh:targetClass datacite:Identifier ;
   dash:hidden true ;
   owl:hasKey
     ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
     sh:qualifiedMinCount 1 ;
@@ -526,7 +526,7 @@ schema:AgentIdentifierShape
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
-    sh:name "Literal Value" ;
+    sh:name "Literal value"@en, "Valore letterale"@it ;
     sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -534,7 +534,7 @@ schema:AgentIdentifierShape
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
-    sh:name "Identifier Scheme" ;
+    sh:name "Identifier scheme"@en, "Schema dell'identificativo"@it ;
     sh:order 2 ;
     sh:in (
       datacite:crossref
@@ -556,7 +556,7 @@ schema:AgentIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^([0-9]{4}-){3}[0-9]{3}[0-9X]$" ;
-        sh:message "ORCID must be in the format 'XXXX-XXXX-XXXX-XXXX' where X is a digit or 'X'. For example: 0000-0002-1825-0097" ;
+        sh:message "ORCID must be in the format 'XXXX-XXXX-XXXX-XXXX' where X is a digit or 'X'. For example: 0000-0002-1825-0097"@en, "L'ORCID deve avere il formato 'XXXX-XXXX-XXXX-XXXX', dove X è una cifra o 'X'. Per esempio: 0000-0002-1825-0097"@it ;
       ] ;
     ]
     [
@@ -567,7 +567,7 @@ schema:AgentIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^[1-9]\\d{1,21}$" ;
-        sh:message "VIAF ID must be a string of 2 to 22 digits, not starting with 0. For example: 12345678" ;
+        sh:message "VIAF ID must be a string of 2 to 22 digits, not starting with 0. For example: 12345678"@en, "L'ID VIAF deve essere una sequenza da 2 a 22 cifre che non inizia con 0. Per esempio: 12345678"@it ;
       ] ;
     ]
     [
@@ -578,7 +578,7 @@ schema:AgentIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^\\d+$" ;
-        sh:message "Crossref ID must be a string of one or more digits. For example: 98765432" ;
+        sh:message "Crossref ID must be a string of one or more digits. For example: 98765432"@en, "L'ID Crossref deve essere una sequenza di una o più cifre. Per esempio: 98765432"@it ;
       ] ;
     ]
     [
@@ -589,7 +589,7 @@ schema:AgentIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^Q[1-9]\\d*$" ;
-        sh:message "Wikidata ID must start with 'Q' followed by a non-zero digit and optionally more digits. For example: Q42" ;
+        sh:message "Wikidata ID must start with 'Q' followed by a non-zero digit and optionally more digits. For example: Q42"@en, "L'ID Wikidata deve iniziare con 'Q' seguita da una cifra diversa da zero e, facoltativamente, da altre cifre. Per esempio: Q42"@it ;
       ] ;
     ]
     [
@@ -600,7 +600,7 @@ schema:AgentIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^[1-9][0-9]*$" ;
-        sh:message "Wikipedia ID must be a string of digits not starting with 0. For example: 123456" ;
+        sh:message "Wikipedia ID must be a string of digits not starting with 0. For example: 123456"@en, "L'ID Wikipedia deve essere una sequenza di cifre che non inizia con 0. Per esempio: 123456"@it ;
       ] ;
     ]
     [
@@ -611,7 +611,7 @@ schema:AgentIdentifierShape
       sh:property [
         sh:path literal:hasLiteralValue ;
         sh:pattern "^((https:\\/\\/)?ror\\.org\\/)?0[a-hj-km-np-tv-z0-9]{6}[0-9]{2}$" ;
-        sh:message "ROR ID must be in the format '0XXXXXXXX' where X is a digit or lowercase letter (excluding i, l, o), optionally prefixed with 'https://ror.org/'. For example: 04wxnsj81 or https://ror.org/04wxnsj81" ;
+        sh:message "ROR ID must be in the format '0XXXXXXXX' where X is a digit or lowercase letter (excluding i, l, o), optionally prefixed with 'https://ror.org/'. For example: 04wxnsj81 or https://ror.org/04wxnsj81"@en, "L'ID ROR deve avere il formato '0XXXXXXXX', dove X è una cifra o una lettera minuscola (escluse i, l, o), eventualmente preceduto da 'https://ror.org/'. Per esempio: 04wxnsj81 o https://ror.org/04wxnsj81"@it ;
       ] ;
     ]
   ) ;
@@ -634,12 +634,12 @@ schema:AgentIdentifierShape
 
 schema:AgentRoleShape
   a sh:NodeShape ;
-  sh:name "Agent Role" ;
+  sh:name "Agent role"@en, "Ruolo dell'agente"@it ;
   sh:targetClass pro:RoleInTime ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue pro:RoleInTime ] ;
     sh:qualifiedMinCount 1 ;
@@ -648,7 +648,7 @@ schema:AgentRoleShape
   sh:property [
     sh:path oco:hasNext ;
     dash:hidden true ;
-    sh:name "Has Next" ;
+    sh:name "Has next"@en, "Successivo"@it ;
     sh:order 3 ;
     sh:node schema:AgentRoleShape ;
     sh:minCount 0 ;
@@ -656,7 +656,7 @@ schema:AgentRoleShape
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
-    sh:name "Held By" ;
+    sh:name "Held by"@en, "Ricoperto da"@it ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:class foaf:Agent ;
@@ -666,7 +666,7 @@ schema:AgentRoleShape
   ] ;
   sh:property [
     sh:path pro:withRole ;
-    sh:name "Role" ;
+    sh:name "Role"@en, "Ruolo"@it ;
     sh:order 4 ;
     sh:in (pro:publisher pro:author pro:editor pro:translator pro:contributor) ;
     sh:minCount 0 ;
@@ -695,8 +695,17 @@ schema:AgentRoleShape
               ) AS ?agentDisplay
           )
           BIND(
-            CONCAT(STRAFTER(STR(?role), "pro/"), ": ", ?agentDisplay) AS ?display
+            IF($language = "it",
+              IF(?role = pro:author, "autore",
+              IF(?role = pro:editor, "curatore",
+              IF(?role = pro:publisher, "editore",
+              IF(?role = pro:translator, "traduttore",
+              IF(?role = pro:contributor, "collaboratore",
+              STRAFTER(STR(?role), "pro/")))))),
+              STRAFTER(STR(?role), "pro/")
+            ) AS ?roleName
           )
+          BIND(CONCAT(?roleName, ": ", ?agentDisplay) AS ?display)
         }
       """ ;
     ] ;
@@ -706,7 +715,7 @@ schema:AgentRoleShape
 
 schema:ExpressionShape
   a sh:NodeShape ;
-  sh:name "Bibliographic Resource" ;
+  sh:name "Bibliographic resource"@en, "Risorsa bibliografica"@it ;
   sh:targetClass fabio:Expression ;
   dash:hidden true ;
   owl:hasKey
@@ -714,21 +723,21 @@ schema:ExpressionShape
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
-    sh:name "Citations" ;
+    sh:name "Citations"@en, "Citazioni"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitedEntity ] ;
-    sh:name "Is Cited By" ;
+    sh:name "Is cited by"@en, "Citato da"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -736,7 +745,7 @@ schema:ExpressionShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [
       sh:or (
@@ -760,14 +769,14 @@ schema:ExpressionShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:IdentifierShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -776,7 +785,7 @@ schema:ExpressionShape
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
-    sh:name "Abstract" ;
+    sh:name "Abstract"@en, "Abstract"@it ;
     sh:order 5 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -785,14 +794,14 @@ schema:ExpressionShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
-    sh:name "Keyword" ;
+    sh:name "Keyword"@en, "Parola chiave"@it ;
     sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 4 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -800,7 +809,7 @@ schema:ExpressionShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -813,7 +822,7 @@ schema:ExpressionShape
   sh:property [
     sh:path frbr:embodiment ;
     dash:composite true ;
-    sh:name "Page" ;
+    sh:name "Page"@en, "Pagina"@it ;
     sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
@@ -832,7 +841,7 @@ schema:ExpressionShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:name "Part Of" ;
+    sh:name "Part of"@en, "Parte di"@it ;
     sh:order 14 ;
     sh:node schema:BibliographicResourceShape ;
     sh:minCount 0 ;
@@ -980,18 +989,18 @@ schema:ExpressionShape
                     "."),
             IF(?entityType IN (fabio:JournalVolume, fabio:Expression),
               CONCAT("Volume ", ?volumeNumber,
-                    IF(BOUND(?journalTitle), CONCAT(" of ", ?journalTitle), ""),
+                    IF(BOUND(?journalTitle), CONCAT(IF($language = "it", " di ", " of "), ?journalTitle), ""),
                     "."),
             IF(?entityType IN (fabio:JournalIssue, fabio:Expression),
-              CONCAT("Issue ", ?issueNumber,
-                    IF(BOUND(?volumeNumber), CONCAT(" of Volume ", ?volumeNumber), ""),
+              CONCAT(IF($language = "it", "Fascicolo ", "Issue "), ?issueNumber,
+                    IF(BOUND(?volumeNumber), CONCAT(IF($language = "it", " del volume ", " of volume "), ?volumeNumber), ""),
                     IF(BOUND(?journalTitle), CONCAT(", ", ?journalTitle), ""),
                     "."),
             IF(?entityType = fabio:Journal,
               CONCAT(?title,
                     IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
                     "."),
-            "Unknown entity type."
+            IF($language = "it", "Tipo di risorsa sconosciuto.", "Unknown entity type.")
           ))))))) AS ?display)
         }
       """ ;
@@ -1000,28 +1009,28 @@ schema:ExpressionShape
 
 schema:ArticleShape
   a sh:NodeShape ;
-  sh:name "Article" ;
+  sh:name "Article"@en, "Articolo"@it ;
   sh:targetClass fabio:Article ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
-    sh:name "Citations" ;
+    sh:name "Citations"@en, "Citazioni"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitedEntity ] ;
-    sh:name "Is Cited By" ;
+    sh:name "Is cited by"@en, "Citato da"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -1029,7 +1038,7 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Article ] ;
     sh:qualifiedMinCount 1 ;
@@ -1037,7 +1046,7 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -1046,7 +1055,7 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
-    sh:name "Abstract" ;
+    sh:name "Abstract"@en, "Abstract"@it ;
     sh:order 5 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -1055,14 +1064,14 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
-    sh:name "Keyword" ;
+    sh:name "Keyword"@en, "Parola chiave"@it ;
     sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 4 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -1070,7 +1079,7 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -1083,7 +1092,7 @@ schema:ArticleShape
   sh:property [
     sh:path frbr:embodiment ;
     dash:composite true ;
-    sh:name "Page" ;
+    sh:name "Page"@en, "Pagina"@it ;
     sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
@@ -1096,7 +1105,7 @@ schema:ArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Author" ;
+    sh:name "Author"@en, "Autore"@it ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
@@ -1108,7 +1117,7 @@ schema:ArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Editor" ;
+    sh:name "Editor"@en, "Curatore"@it ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
@@ -1120,7 +1129,7 @@ schema:ArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Collaborator" ;
+    sh:name "Collaborator"@en, "Collaboratore"@it ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
@@ -1132,7 +1141,7 @@ schema:ArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Publisher" ;
+    sh:name "Publisher"@en, "Editore"@it ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
@@ -1144,7 +1153,7 @@ schema:ArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Translator" ;
+    sh:name "Translator"@en, "Traduttore"@it ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
@@ -1152,14 +1161,14 @@ schema:ArticleShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:name "Miscellany" ;
+    sh:name "Miscellany"@en, "Miscellanea"@it ;
     sh:order 14 ;
     sh:node schema:SeriesShape ;
     sh:class fabio:Series ;
@@ -1266,21 +1275,21 @@ schema:ArticleShape
   
 schema:JournalArticleShape
   a sh:NodeShape ;
-  sh:name "Journal Article" ;
+  sh:name "Journal article"@en, "Articolo di rivista"@it ;
   sh:targetClass fabio:JournalArticle ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
-    sh:name "Citations" ;
+    sh:name "Citations"@en, "Citazioni"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitedEntity ] ;
-    sh:name "Is Cited By" ;
+    sh:name "Is cited by"@en, "Citato da"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
@@ -1288,13 +1297,13 @@ schema:JournalArticleShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -1302,7 +1311,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:JournalArticle ] ;
     sh:qualifiedMinCount 1 ;
@@ -1310,7 +1319,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -1319,7 +1328,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
-    sh:name "Abstract" ;
+    sh:name "Abstract"@en, "Abstract"@it ;
     sh:order 5 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -1328,14 +1337,14 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
-    sh:name "Keyword" ;
+    sh:name "Keyword"@en, "Parola chiave"@it ;
     sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 4 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -1343,7 +1352,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:name "Container" ;
+    sh:name "Container"@en, "Contenitore"@it ;
     sh:order 14 ;
     shui:editor shui:AutoCompleteEditor ;
     sh:or (
@@ -1357,7 +1366,7 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -1370,7 +1379,7 @@ schema:JournalArticleShape
   sh:property [
     sh:path frbr:embodiment ;
     dash:composite true ;
-    sh:name "Page" ;
+    sh:name "Page"@en, "Pagina"@it ;
     sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
@@ -1383,7 +1392,7 @@ schema:JournalArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Author" ;
+    sh:name "Author"@en, "Autore"@it ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
@@ -1395,7 +1404,7 @@ schema:JournalArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Editor" ;
+    sh:name "Editor"@en, "Curatore"@it ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
@@ -1407,7 +1416,7 @@ schema:JournalArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Collaborator" ;
+    sh:name "Collaborator"@en, "Collaboratore"@it ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
@@ -1419,7 +1428,7 @@ schema:JournalArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Translator" ;
+    sh:name "Translator"@en, "Traduttore"@it ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
@@ -1431,7 +1440,7 @@ schema:JournalArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Publisher" ;
+    sh:name "Publisher"@en, "Editore"@it ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
@@ -1534,21 +1543,21 @@ schema:JournalArticleShape
 
 schema:BookShape
   a sh:NodeShape ;
-  sh:name "Monograph" ;
+  sh:name "Monograph"@en, "Monografia"@it ;
   sh:targetClass fabio:Book ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
-    sh:name "Citations" ;
+    sh:name "Citations"@en, "Citazioni"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitedEntity ] ;
-    sh:name "Is Cited By" ;
+    sh:name "Is cited by"@en, "Citato da"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
@@ -1556,13 +1565,13 @@ schema:BookShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:BookIdentifierShape ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -1570,7 +1579,7 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Book ] ;
     sh:qualifiedMinCount 1 ;
@@ -1578,7 +1587,7 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -1587,7 +1596,7 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
-    sh:name "Abstract" ;
+    sh:name "Abstract"@en, "Abstract"@it ;
     sh:order 5 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -1596,14 +1605,14 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
-    sh:name "Keyword" ;
+    sh:name "Keyword"@en, "Parola chiave"@it ;
     sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 4 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -1611,7 +1620,7 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -1628,7 +1637,7 @@ schema:BookShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Author" ;
+    sh:name "Author"@en, "Autore"@it ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
@@ -1640,7 +1649,7 @@ schema:BookShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Editor" ;
+    sh:name "Editor"@en, "Curatore"@it ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
@@ -1652,7 +1661,7 @@ schema:BookShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Collaborator" ;
+    sh:name "Collaborator"@en, "Collaboratore"@it ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
@@ -1664,7 +1673,7 @@ schema:BookShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Translator" ;
+    sh:name "Translator"@en, "Traduttore"@it ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
@@ -1676,7 +1685,7 @@ schema:BookShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Publisher" ;
+    sh:name "Publisher"@en, "Editore"@it ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
@@ -1777,7 +1786,7 @@ schema:BookShape
             IF(BOUND(?editorList) && (!BOUND(?authorList) || ?authorList = ""),
               # Case 1: Only editors
               CONCAT(
-                ?editorList, " (Ed.)",
+                ?editorList, IF($language = "it", " (cur.)", " (Ed.)"),
                 IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
                 IF(BOUND(?title), CONCAT(". ", ?title), ""),
                 IF(BOUND(?publisher), CONCAT(". ", ?publisher), ""),
@@ -1789,7 +1798,7 @@ schema:BookShape
                 IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
                 IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
                 IF(BOUND(?title), CONCAT(". ", ?title), ""),
-                IF(BOUND(?editorList), CONCAT(". ", ?editorList, " (Ed.)"), ""),
+                IF(BOUND(?editorList), CONCAT(". ", ?editorList, IF($language = "it", " (cur.)", " (Ed.)")), ""),
                 IF(BOUND(?publisher), CONCAT(". ", ?publisher), ""),
                 "."
               )
@@ -1805,28 +1814,28 @@ schema:BookShape
 
 schema:ProceedingsPaperShape
   a sh:NodeShape ;
-  sh:name "Proceedings Paper" ;
+  sh:name "Proceedings paper"@en, "Contributo in atti di convegno"@it ;
   sh:targetClass fabio:ProceedingsPaper ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
-    sh:name "Citations" ;
+    sh:name "Citations"@en, "Citazioni"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitedEntity ] ;
-    sh:name "Is Cited By" ;
+    sh:name "Is cited by"@en, "Citato da"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -1834,7 +1843,7 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:ProceedingsPaper ] ;
     sh:qualifiedMinCount 1 ;
@@ -1842,7 +1851,7 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -1851,7 +1860,7 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
-    sh:name "Abstract" ;
+    sh:name "Abstract"@en, "Abstract"@it ;
     sh:order 5 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -1860,14 +1869,14 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
-    sh:name "Keyword" ;
+    sh:name "Keyword"@en, "Parola chiave"@it ;
     sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 4 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -1875,7 +1884,7 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:name "Conference Proceedings" ;
+    sh:name "Conference proceedings"@en, "Atti di convegno"@it ;
     sh:order 14 ;
     sh:node schema:ProceedingsShape ;
     sh:class fabio:AcademicProceedings ;
@@ -1885,7 +1894,7 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -1898,7 +1907,7 @@ schema:ProceedingsPaperShape
   sh:property [
     sh:path frbr:embodiment ;
     dash:composite true ;
-    sh:name "Page" ;
+    sh:name "Page"@en, "Pagina"@it ;
     sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
@@ -1911,7 +1920,7 @@ schema:ProceedingsPaperShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Author" ;
+    sh:name "Author"@en, "Autore"@it ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
@@ -1923,7 +1932,7 @@ schema:ProceedingsPaperShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Editor" ;
+    sh:name "Editor"@en, "Curatore"@it ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
@@ -1935,7 +1944,7 @@ schema:ProceedingsPaperShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Collaborator" ;
+    sh:name "Collaborator"@en, "Collaboratore"@it ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
@@ -1947,7 +1956,7 @@ schema:ProceedingsPaperShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Publisher" ;
+    sh:name "Publisher"@en, "Editore"@it ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
@@ -1959,7 +1968,7 @@ schema:ProceedingsPaperShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Translator" ;
+    sh:name "Translator"@en, "Traduttore"@it ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
@@ -1967,7 +1976,7 @@ schema:ProceedingsPaperShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
     sh:minCount 0 ;
@@ -2054,28 +2063,28 @@ schema:ProceedingsPaperShape
 
 schema:ProceedingsShape
   a sh:NodeShape ;
-  sh:name "Proceedings" ;
+  sh:name "Proceedings"@en, "Atti"@it ;
   sh:targetClass fabio:AcademicProceedings ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
-    sh:name "Citations" ;
+    sh:name "Citations"@en, "Citazioni"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitedEntity ] ;
-    sh:name "Is Cited By" ;
+    sh:name "Is cited by"@en, "Citato da"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -2083,7 +2092,7 @@ schema:ProceedingsShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:AcademicProceedings ] ;
     sh:qualifiedMinCount 1 ;
@@ -2091,7 +2100,7 @@ schema:ProceedingsShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -2100,7 +2109,7 @@ schema:ProceedingsShape
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
-    sh:name "Abstract" ;
+    sh:name "Abstract"@en, "Abstract"@it ;
     sh:order 5 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -2109,14 +2118,14 @@ schema:ProceedingsShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
-    sh:name "Keyword" ;
+    sh:name "Keyword"@en, "Parola chiave"@it ;
     sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 4 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -2124,7 +2133,7 @@ schema:ProceedingsShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 10 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -2141,7 +2150,7 @@ schema:ProceedingsShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Editor" ;
+    sh:name "Editor"@en, "Curatore"@it ;
     sh:order 7 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
@@ -2153,7 +2162,7 @@ schema:ProceedingsShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Publisher" ;
+    sh:name "Publisher"@en, "Editore"@it ;
     sh:order 8 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
@@ -2165,7 +2174,7 @@ schema:ProceedingsShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Collaborator" ;
+    sh:name "Collaborator"@en, "Collaboratore"@it ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
@@ -2173,7 +2182,7 @@ schema:ProceedingsShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:SeriesAndProceedingsIdentifierShape ;
     sh:minCount 0 ;
@@ -2260,8 +2269,8 @@ schema:ProceedingsShape
 
           BIND(CONCAT(
             ?title,
-            IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(". ", ?editorList, " (Ed.)"), ""),
-            IF(BOUND(?collabList) && STRLEN(?collabList) > 0, CONCAT(". ", ?collabList, " (Collab.)"), ""),
+            IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(". ", ?editorList, IF($language = "it", " (cur.)", " (Ed.)")), ""),
+            IF(BOUND(?collabList) && STRLEN(?collabList) > 0, CONCAT(". ", ?collabList, IF($language = "it", " (collab.)", " (Collab.)")), ""),
             IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
             "."
           ) AS ?displayWithDot)
@@ -2275,14 +2284,14 @@ schema:ProceedingsShape
 
 schema:JournalShape
   a sh:NodeShape ;
-  sh:name "Journal" ;
+  sh:name "Journal"@en, "Rivista"@it ;
   sh:targetClass fabio:Journal ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -2290,7 +2299,7 @@ schema:JournalShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Journal ] ;
     sh:qualifiedMinCount 1 ;
@@ -2299,13 +2308,13 @@ schema:JournalShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:JournalIdentifierShape ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -2314,7 +2323,7 @@ schema:JournalShape
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 4 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -2357,13 +2366,13 @@ schema:JournalShape
 
 schema:VolumeShape
   a sh:NodeShape ;
-  sh:name "Volume" ;
+  sh:name "Volume"@en, "Volume"@it ;
   sh:targetClass fabio:JournalVolume ;
   owl:hasKey
     ( fabio:hasSequenceIdentifier frbr:partOf ) ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -2371,7 +2380,7 @@ schema:VolumeShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:JournalVolume ] ;
     sh:qualifiedMinCount 1 ;
@@ -2379,7 +2388,7 @@ schema:VolumeShape
   ] ;
   sh:property [
     sh:path fabio:hasSequenceIdentifier ;
-    sh:name "Number" ;
+    sh:name "Number"@en, "Numero"@it ;
     sh:order 2 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -2387,7 +2396,7 @@ schema:VolumeShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:name "Journal" ;
+    sh:name "Journal"@en, "Rivista"@it ;
     sh:order 4 ;
     sh:node schema:JournalShape ;
     sh:class fabio:Journal ;
@@ -2397,7 +2406,7 @@ schema:VolumeShape
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -2447,13 +2456,13 @@ schema:VolumeShape
 
 schema:IssueShape
   a sh:NodeShape ;
-  sh:name "Issue" ;
+  sh:name "Issue"@en, "Fascicolo"@it ;
   sh:targetClass fabio:JournalIssue ;
   owl:hasKey
     ( fabio:hasSequenceIdentifier frbr:partOf ) ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -2461,7 +2470,7 @@ schema:IssueShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:JournalIssue ] ;
     sh:qualifiedMinCount 1 ;
@@ -2469,7 +2478,7 @@ schema:IssueShape
   ] ;
   sh:property [
     sh:path fabio:hasSequenceIdentifier ;
-    sh:name "Number" ;
+    sh:name "Number"@en, "Numero"@it ;
     sh:order 2 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -2477,7 +2486,7 @@ schema:IssueShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:name "Container" ;
+    sh:name "Container"@en, "Contenitore"@it ;
     sh:order 4 ;
     shui:editor shui:AutoCompleteEditor ;
     sh:or (
@@ -2489,7 +2498,7 @@ schema:IssueShape
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -2535,7 +2544,7 @@ schema:IssueShape
                 ) AS ?journalDisplay)
           }
           BIND(CONCAT(
-            "Issue ", ?issueNumber,
+            IF($language = "it", "Fascicolo ", "Issue "), ?issueNumber,
             IF(BOUND(?volumeNumber), CONCAT(", Vol. ", ?volumeNumber), ""),
             IF(BOUND(?journalDisplay), CONCAT(", ", ?journalDisplay), "")
           ) AS ?display)
@@ -2546,28 +2555,28 @@ schema:IssueShape
 
 schema:SpecialIssueShape
   a sh:NodeShape ;
-  sh:name "Special Issue" ;
+  sh:name "Special issue"@en, "Fascicolo speciale"@it ;
   sh:targetClass fabio:JournalIssue ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier frbr:partOf ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
-    sh:name "Citations" ;
+    sh:name "Citations"@en, "Citazioni"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitedEntity ] ;
-    sh:name "Is Cited By" ;
+    sh:name "Is cited by"@en, "Citato da"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -2575,7 +2584,7 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:JournalIssue ] ;
     sh:qualifiedMinCount 1 ;
@@ -2583,7 +2592,7 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path fabio:hasSequenceIdentifier ;
-    sh:name "Number" ;
+    sh:name "Number"@en, "Numero"@it ;
     sh:order 4 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -2591,7 +2600,7 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:name "Container" ;
+    sh:name "Container"@en, "Contenitore"@it ;
     sh:order 15 ;
     shui:editor shui:AutoCompleteEditor ;
     sh:or (
@@ -2603,7 +2612,7 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -2612,7 +2621,7 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
-    sh:name "Abstract" ;
+    sh:name "Abstract"@en, "Abstract"@it ;
     sh:order 6 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -2621,14 +2630,14 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
-    sh:name "Keyword" ;
+    sh:name "Keyword"@en, "Parola chiave"@it ;
     sh:order 7 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 5 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -2636,7 +2645,7 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 13 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -2649,7 +2658,7 @@ schema:SpecialIssueShape
   sh:property [
     sh:path frbr:embodiment ;
     dash:composite true ;
-    sh:name "Page" ;
+    sh:name "Page"@en, "Pagina"@it ;
     sh:order 14 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
@@ -2662,7 +2671,7 @@ schema:SpecialIssueShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Author" ;
+    sh:name "Author"@en, "Autore"@it ;
     sh:order 8 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
@@ -2674,7 +2683,7 @@ schema:SpecialIssueShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Editor" ;
+    sh:name "Editor"@en, "Curatore"@it ;
     sh:order 9 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
@@ -2686,7 +2695,7 @@ schema:SpecialIssueShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Collaborator" ;
+    sh:name "Collaborator"@en, "Collaboratore"@it ;
     sh:order 10 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
@@ -2698,7 +2707,7 @@ schema:SpecialIssueShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Publisher" ;
+    sh:name "Publisher"@en, "Editore"@it ;
     sh:order 12 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
@@ -2710,7 +2719,7 @@ schema:SpecialIssueShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Translator" ;
+    sh:name "Translator"@en, "Traduttore"@it ;
     sh:order 11 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
@@ -2718,7 +2727,7 @@ schema:SpecialIssueShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
     sh:minCount 0 ;
@@ -2757,12 +2766,12 @@ schema:SpecialIssueShape
           # Build display string based on available information
           BIND(
             IF(BOUND(?number) && BOUND(?volumeNumber) && BOUND(?journalTitle),
-              CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber, ", ", ?journalTitle),
+              CONCAT(IF($language = "it", "Fascicolo ", "Issue "), ?number, IF($language = "it", " del volume ", " of volume "), ?volumeNumber, ", ", ?journalTitle),
               IF(BOUND(?number) && BOUND(?journalTitle),
-                CONCAT("Issue ", ?number, ", ", ?journalTitle),
+                CONCAT(IF($language = "it", "Fascicolo ", "Issue "), ?number, ", ", ?journalTitle),
                 IF(BOUND(?number) && BOUND(?volumeNumber),
-                  CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber),
-                  CONCAT("Issue ", ?number)
+                  CONCAT(IF($language = "it", "Fascicolo ", "Issue "), ?number, IF($language = "it", " del volume ", " of volume "), ?volumeNumber),
+                  CONCAT(IF($language = "it", "Fascicolo ", "Issue "), ?number)
                 )
               )
             ) AS ?display
@@ -2774,28 +2783,28 @@ schema:SpecialIssueShape
 
 schema:ReferenceBookShape
   a sh:NodeShape ;
-  sh:name "Dictionary" ;
+  sh:name "Dictionary"@en, "Dizionario"@it ;
   sh:targetClass fabio:ReferenceBook ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
-    sh:name "Citations" ;
+    sh:name "Citations"@en, "Citazioni"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitedEntity ] ;
-    sh:name "Is Cited By" ;
+    sh:name "Is cited by"@en, "Citato da"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -2803,7 +2812,7 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:ReferenceBook ] ;
     sh:qualifiedMinCount 1 ;
@@ -2811,7 +2820,7 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -2820,7 +2829,7 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 4 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -2828,7 +2837,7 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 10 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -2845,7 +2854,7 @@ schema:ReferenceBookShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Author" ;
+    sh:name "Author"@en, "Autore"@it ;
     sh:order 5 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
@@ -2857,7 +2866,7 @@ schema:ReferenceBookShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Editor" ;
+    sh:name "Editor"@en, "Curatore"@it ;
     sh:order 6 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
@@ -2869,7 +2878,7 @@ schema:ReferenceBookShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Collaborator" ;
+    sh:name "Collaborator"@en, "Collaboratore"@it ;
     sh:order 7 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
@@ -2881,7 +2890,7 @@ schema:ReferenceBookShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Translator" ;
+    sh:name "Translator"@en, "Traduttore"@it ;
     sh:order 8 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
@@ -2893,7 +2902,7 @@ schema:ReferenceBookShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Publisher" ;
+    sh:name "Publisher"@en, "Editore"@it ;
     sh:order 9 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
@@ -2901,7 +2910,7 @@ schema:ReferenceBookShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:BookIdentifierShape ;
     sh:minCount 0 ;
@@ -2998,13 +3007,13 @@ schema:ReferenceBookShape
           }
 
           BIND(CONCAT(
-            IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(?editorList, " (Ed.)"), COALESCE(?authorList, "")),
+            IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(?editorList, IF($language = "it", " (cur.)", " (Ed.)")), COALESCE(?authorList, "")),
             IF((BOUND(?editorList) && STRLEN(?editorList) > 0 || BOUND(?authorList)) && BOUND(?pubDate), " ", ""),
             IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
             IF(BOUND(?title) && STRLEN(?title) > 0, CONCAT(
               IF(BOUND(?editorList) && STRLEN(?editorList) > 0 || BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
               ?title,
-              " [Dictionary]"
+              IF($language = "it", " [Dizionario]", " [Dictionary]")
             ), ""),
             IF(BOUND(?publisher) && STRLEN(?publisher) > 0, CONCAT(
               IF(BOUND(?editorList) && STRLEN(?editorList) > 0 || BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
@@ -3022,28 +3031,28 @@ schema:ReferenceBookShape
 
 schema:ReviewShape
   a sh:NodeShape ;
-  sh:name "Review" ;
+  sh:name "Review"@en, "Recensione"@it ;
   sh:targetClass fabio:Review ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
-    sh:name "Citations" ;
+    sh:name "Citations"@en, "Citazioni"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitedEntity ] ;
-    sh:name "Is Cited By" ;
+    sh:name "Is cited by"@en, "Citato da"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -3051,7 +3060,7 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Review ] ;
     sh:qualifiedMinCount 1 ;
@@ -3059,7 +3068,7 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -3068,7 +3077,7 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
-    sh:name "Abstract" ;
+    sh:name "Abstract"@en, "Abstract"@it ;
     sh:order 5 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -3077,14 +3086,14 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
-    sh:name "Keyword" ;
+    sh:name "Keyword"@en, "Parola chiave"@it ;
     sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 4 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -3092,7 +3101,7 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -3109,7 +3118,7 @@ schema:ReviewShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Author" ;
+    sh:name "Author"@en, "Autore"@it ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
@@ -3121,7 +3130,7 @@ schema:ReviewShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Editor" ;
+    sh:name "Editor"@en, "Curatore"@it ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
@@ -3133,7 +3142,7 @@ schema:ReviewShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Collaborator" ;
+    sh:name "Collaborator"@en, "Collaboratore"@it ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
@@ -3145,7 +3154,7 @@ schema:ReviewShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Translator" ;
+    sh:name "Translator"@en, "Traduttore"@it ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
@@ -3157,7 +3166,7 @@ schema:ReviewShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Publisher" ;
+    sh:name "Publisher"@en, "Editore"@it ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
@@ -3165,7 +3174,7 @@ schema:ReviewShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:JournalIdentifierShape ;
     sh:minCount 0 ;
@@ -3173,7 +3182,7 @@ schema:ReviewShape
   sh:property [
     sh:path frbr:embodiment ;
     dash:composite true ;
-    sh:name "Page" ;
+    sh:name "Page"@en, "Pagina"@it ;
     sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
@@ -3181,7 +3190,7 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:name "Container" ;
+    sh:name "Container"@en, "Contenitore"@it ;
     sh:order 14 ;
     shui:editor shui:AutoCompleteEditor ;
     sh:or (
@@ -3283,7 +3292,7 @@ schema:ReviewShape
             IF(BOUND(?title), CONCAT(
               IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
               ?title,
-              " [Review]"
+              IF($language = "it", " [Recensione]", " [Review]")
             ), ""),
             IF(BOUND(?containerTitle), CONCAT(
               IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
@@ -3307,28 +3316,28 @@ schema:ReviewShape
 
 schema:ReviewArticleShape
   a sh:NodeShape ;
-  sh:name "Review Article" ;
+  sh:name "Review article"@en, "Articolo di rassegna"@it ;
   sh:targetClass fabio:ReviewArticle ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
-    sh:name "Citations" ;
+    sh:name "Citations"@en, "Citazioni"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitedEntity ] ;
-    sh:name "Is Cited By" ;
+    sh:name "Is cited by"@en, "Citato da"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -3336,7 +3345,7 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:ReviewArticle ] ;
     sh:qualifiedMinCount 1 ;
@@ -3344,7 +3353,7 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -3353,7 +3362,7 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
-    sh:name "Abstract" ;
+    sh:name "Abstract"@en, "Abstract"@it ;
     sh:order 5 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -3362,14 +3371,14 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
-    sh:name "Keyword" ;
+    sh:name "Keyword"@en, "Parola chiave"@it ;
     sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 4 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -3377,7 +3386,7 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:name "Container" ;
+    sh:name "Container"@en, "Contenitore"@it ;
     sh:order 14 ;
     shui:editor shui:AutoCompleteEditor ;
     sh:or (
@@ -3391,7 +3400,7 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -3404,7 +3413,7 @@ schema:ReviewArticleShape
   sh:property [
     sh:path frbr:embodiment ;
     dash:composite true ;
-    sh:name "Page" ;
+    sh:name "Page"@en, "Pagina"@it ;
     sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
@@ -3417,7 +3426,7 @@ schema:ReviewArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Author" ;
+    sh:name "Author"@en, "Autore"@it ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
@@ -3429,7 +3438,7 @@ schema:ReviewArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Editor" ;
+    sh:name "Editor"@en, "Curatore"@it ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
@@ -3441,7 +3450,7 @@ schema:ReviewArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Collaborator" ;
+    sh:name "Collaborator"@en, "Collaboratore"@it ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
@@ -3453,7 +3462,7 @@ schema:ReviewArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Translator" ;
+    sh:name "Translator"@en, "Traduttore"@it ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
@@ -3465,7 +3474,7 @@ schema:ReviewArticleShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Publisher" ;
+    sh:name "Publisher"@en, "Editore"@it ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
@@ -3473,7 +3482,7 @@ schema:ReviewArticleShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
     sh:minCount 0 ;
@@ -3561,7 +3570,7 @@ schema:ReviewArticleShape
             IF(BOUND(?title), CONCAT(
               IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
               ?title,
-              " [Review Article]"
+              IF($language = "it", " [Articolo di rassegna]", " [Review article]")
             ), ""),
             IF(BOUND(?journalTitle), CONCAT(
               IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
@@ -3585,28 +3594,28 @@ schema:ReviewArticleShape
 
 schema:ThesisShape
   a sh:NodeShape ;
-  sh:name "Thesis" ;
+  sh:name "Thesis"@en, "Tesi"@it ;
   sh:targetClass fabio:Thesis ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
-    sh:name "Citations" ;
+    sh:name "Citations"@en, "Citazioni"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitedEntity ] ;
-    sh:name "Is Cited By" ;
+    sh:name "Is cited by"@en, "Citato da"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -3614,7 +3623,7 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Thesis ] ;
     sh:qualifiedMinCount 1 ;
@@ -3622,7 +3631,7 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -3631,7 +3640,7 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
-    sh:name "Abstract" ;
+    sh:name "Abstract"@en, "Abstract"@it ;
     sh:order 5 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -3640,14 +3649,14 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
-    sh:name "Keyword" ;
+    sh:name "Keyword"@en, "Parola chiave"@it ;
     sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 4 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -3655,7 +3664,7 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -3672,7 +3681,7 @@ schema:ThesisShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Author" ;
+    sh:name "Author"@en, "Autore"@it ;
     sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
@@ -3685,7 +3694,7 @@ schema:ThesisShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Editor" ;
+    sh:name "Editor"@en, "Curatore"@it ;
     sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
@@ -3697,7 +3706,7 @@ schema:ThesisShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Collaborator" ;
+    sh:name "Collaborator"@en, "Collaboratore"@it ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
@@ -3709,7 +3718,7 @@ schema:ThesisShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Translator" ;
+    sh:name "Translator"@en, "Traduttore"@it ;
     sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
@@ -3721,7 +3730,7 @@ schema:ThesisShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Publisher" ;
+    sh:name "Publisher"@en, "Editore"@it ;
     sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
@@ -3729,7 +3738,7 @@ schema:ThesisShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:BookIdentifierShape ;
     sh:minCount 0 ;
@@ -3816,7 +3825,7 @@ schema:ThesisShape
             IF(BOUND(?title), CONCAT(
               IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
               ?title,
-              " [Thesis]"
+              IF($language = "it", " [Tesi]", " [Thesis]")
             ), ""),
             IF(BOUND(?publisherList), CONCAT(
               IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
@@ -3834,28 +3843,28 @@ schema:ThesisShape
 
 schema:SeriesShape
   a sh:NodeShape ;
-  sh:name "Miscellany" ;
+  sh:name "Miscellany"@en, "Miscellanea"@it ;
   sh:targetClass fabio:Series ;
   owl:hasKey
     ( dcterms:title ) ,
     ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
-    sh:name "Citations" ;
+    sh:name "Citations"@en, "Citazioni"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitedEntity ] ;
-    sh:name "Is Cited By" ;
+    sh:name "Is cited by"@en, "Citato da"@it ;
     sh:node schema:CitationShape ;
     dash:composite true ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
     sh:qualifiedMinCount 1 ;
@@ -3863,7 +3872,7 @@ schema:SeriesShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Series ] ;
     sh:qualifiedMinCount 1 ;
@@ -3871,7 +3880,7 @@ schema:SeriesShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
-    sh:name "Title" ;
+    sh:name "Title"@en, "Titolo"@it ;
     sh:order 3 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -3880,7 +3889,7 @@ schema:SeriesShape
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
-    sh:name "Abstract" ;
+    sh:name "Abstract"@en, "Abstract"@it ;
     sh:order 5 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -3889,14 +3898,14 @@ schema:SeriesShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
-    sh:name "Keyword" ;
+    sh:name "Keyword"@en, "Parola chiave"@it ;
     sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
-    sh:name "Description" ;
+    sh:name "Description"@en, "Descrizione"@it ;
     sh:order 4 ;
     shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
@@ -3904,7 +3913,7 @@ schema:SeriesShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
-    sh:name "Publication Date" ;
+    sh:name "Publication date"@en, "Data di pubblicazione"@it ;
     sh:order 10 ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -3921,7 +3930,7 @@ schema:SeriesShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Editor" ;
+    sh:name "Editor"@en, "Curatore"@it ;
     sh:order 7 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
@@ -3933,7 +3942,7 @@ schema:SeriesShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Publisher" ;
+    sh:name "Publisher"@en, "Editore"@it ;
     sh:order 8 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
@@ -3945,7 +3954,7 @@ schema:SeriesShape
     sh:property [ sh:path pro:isHeldBy ] ;
     shui:viewer shui:DetailsViewer ;
     dash:composite true ;
-    sh:name "Collaborator" ;
+    sh:name "Collaborator"@en, "Collaboratore"@it ;
     sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
@@ -3953,7 +3962,7 @@ schema:SeriesShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:SeriesAndProceedingsIdentifierShape ;
     sh:minCount 0 ;
@@ -4051,8 +4060,8 @@ schema:SeriesShape
 
           BIND(CONCAT(
             ?title,
-            IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(". ", ?editorList, " (Ed.)"), ""),
-            IF(BOUND(?collabList) && STRLEN(?collabList) > 0, CONCAT(". ", ?collabList, " (Collab.)"), ""),
+            IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(". ", ?editorList, IF($language = "it", " (cur.)", " (Ed.)")), ""),
+            IF(BOUND(?collabList) && STRLEN(?collabList) > 0, CONCAT(". ", ?collabList, IF($language = "it", " (collab.)", " (Collab.)")), ""),
             IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
             "."
           ) AS ?displayWithDot)
@@ -4068,12 +4077,12 @@ schema:SeriesShape
 
 schema:ResourceEmbodimentShape
   a sh:NodeShape ;
-  sh:name "Page" ;
+  sh:name "Page"@en, "Pagina"@it ;
   sh:targetClass fabio:Manifestation ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue fabio:Manifestation ] ;
     sh:qualifiedMinCount 1 ;
@@ -4081,7 +4090,7 @@ schema:ResourceEmbodimentShape
   ] ;
   sh:property [
     sh:path prism:startingPage ;
-    sh:name "Starting Page" ;
+    sh:name "Starting page"@en, "Pagina iniziale"@it ;
     sh:order 2 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -4089,7 +4098,7 @@ schema:ResourceEmbodimentShape
   ] ;
   sh:property [
     sh:path prism:endingPage ;
-    sh:name "Ending Page" ;
+    sh:name "Ending page"@en, "Pagina finale"@it ;
     sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -4113,7 +4122,7 @@ schema:ResourceEmbodimentShape
                   ?start,
                   IF(BOUND(?end), 
                     ?end,
-                    "Unknown page")))
+                    IF($language = "it", "Pagina sconosciuta", "Unknown page"))))
             AS ?display)
         }
       """ ;
@@ -4124,10 +4133,10 @@ schema:ResourceEmbodimentShape
 
 schema:ResponsibleAgentShape
   a sh:NodeShape ;
-  sh:name "Responsible Agent" ;
+  sh:name "Responsible agent"@en, "Agente responsabile"@it ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue foaf:Agent ] ;
     sh:qualifiedMinCount 1 ;
@@ -4142,13 +4151,13 @@ schema:ResponsibleAgentShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
-    sh:name "Identifier" ;
+    sh:name "Identifier"@en, "Identificativo"@it ;
     sh:order 2 ;
     sh:node schema:AgentIdentifierShape ;
   ] ;
   sh:property [
     sh:path foaf:name ;
-    sh:name "Name" ;
+    sh:name "Name"@en, "Nome completo"@it ;
     sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
@@ -4156,7 +4165,7 @@ schema:ResponsibleAgentShape
   ] ;
   sh:property [
     sh:path foaf:givenName ;
-    sh:name "Given Name" ;
+    sh:name "Given name"@en, "Nome"@it ;
     sh:order 4 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
@@ -4164,7 +4173,7 @@ schema:ResponsibleAgentShape
   ] ;
   sh:property [
     sh:path foaf:familyName ;
-    sh:name "Family Name" ;
+    sh:name "Family name"@en, "Cognome"@it ;
     sh:order 5 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
@@ -4228,12 +4237,12 @@ schema:ResponsibleAgentShape
 
 schema:AuthorShape
   a sh:NodeShape ;
-  sh:name "Agent Role" ;
+  sh:name "Agent role"@en, "Ruolo dell'agente"@it ;
   sh:targetClass pro:RoleInTime ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue pro:RoleInTime ] ;
     sh:qualifiedMinCount 1 ;
@@ -4241,7 +4250,7 @@ schema:AuthorShape
   ] ;
   sh:property [
     sh:path pro:withRole ;
-    sh:name "Role" ;
+    sh:name "Role"@en, "Ruolo"@it ;
     sh:order 4 ;
     sh:hasValue pro:author ;
     sh:minCount 1 ;
@@ -4249,7 +4258,7 @@ schema:AuthorShape
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
-    sh:name "Held By" ;
+    sh:name "Held by"@en, "Ricoperto da"@it ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:class foaf:Agent ;
@@ -4260,7 +4269,7 @@ schema:AuthorShape
   sh:property [
     sh:path oco:hasNext ;
     dash:hidden true ;
-    sh:name "Has Next" ;
+    sh:name "Has next"@en, "Successivo"@it ;
     sh:order 3 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
@@ -4316,12 +4325,12 @@ schema:AuthorShape
 
 schema:EditorShape
   a sh:NodeShape ;
-  sh:name "Agent Role" ;
+  sh:name "Agent role"@en, "Ruolo dell'agente"@it ;
   sh:targetClass pro:RoleInTime ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue pro:RoleInTime ] ;
     sh:qualifiedMinCount 1 ;
@@ -4329,7 +4338,7 @@ schema:EditorShape
   ] ;
   sh:property [
     sh:path pro:withRole ;
-    sh:name "Role" ;
+    sh:name "Role"@en, "Ruolo"@it ;
     sh:order 4 ;
     sh:hasValue pro:editor ;
     sh:minCount 1 ;
@@ -4337,7 +4346,7 @@ schema:EditorShape
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
-    sh:name "Held By" ;
+    sh:name "Held by"@en, "Ricoperto da"@it ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:class foaf:Agent ;
@@ -4348,7 +4357,7 @@ schema:EditorShape
   sh:property [
     sh:path oco:hasNext ;
     dash:hidden true ;
-    sh:name "Has Next" ;
+    sh:name "Has next"@en, "Successivo"@it ;
     sh:order 3 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
@@ -4404,12 +4413,12 @@ schema:EditorShape
 
 schema:PublisherShape
   a sh:NodeShape ;
-  sh:name "Agent Role" ;
+  sh:name "Agent role"@en, "Ruolo dell'agente"@it ;
   sh:targetClass pro:RoleInTime ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue pro:RoleInTime ] ;
     sh:qualifiedMinCount 1 ;
@@ -4417,7 +4426,7 @@ schema:PublisherShape
   ] ;
   sh:property [
     sh:path pro:withRole ;
-    sh:name "Role" ;
+    sh:name "Role"@en, "Ruolo"@it ;
     sh:order 4 ;
     sh:hasValue pro:publisher ;
     sh:minCount 1 ;
@@ -4425,7 +4434,7 @@ schema:PublisherShape
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
-    sh:name "Held By" ;
+    sh:name "Held by"@en, "Ricoperto da"@it ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:class foaf:Agent ;
@@ -4436,7 +4445,7 @@ schema:PublisherShape
   sh:property [
     sh:path oco:hasNext ;
     dash:hidden true ;
-    sh:name "Has Next" ;
+    sh:name "Has next"@en, "Successivo"@it ;
     sh:order 3 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
@@ -4492,12 +4501,12 @@ schema:PublisherShape
 
 schema:TranslatorShape
   a sh:NodeShape ;
-  sh:name "Agent Role" ;
+  sh:name "Agent role"@en, "Ruolo dell'agente"@it ;
   sh:targetClass pro:RoleInTime ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue pro:RoleInTime ] ;
     sh:qualifiedMinCount 1 ;
@@ -4505,7 +4514,7 @@ schema:TranslatorShape
   ] ;
   sh:property [
     sh:path pro:withRole ;
-    sh:name "Role" ;
+    sh:name "Role"@en, "Ruolo"@it ;
     sh:order 4 ;
     sh:hasValue pro:translator ;
     sh:minCount 1 ;
@@ -4513,7 +4522,7 @@ schema:TranslatorShape
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
-    sh:name "Held By" ;
+    sh:name "Held by"@en, "Ricoperto da"@it ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:class foaf:Agent ;
@@ -4524,7 +4533,7 @@ schema:TranslatorShape
   sh:property [
     sh:path oco:hasNext ;
     dash:hidden true ;
-    sh:name "Has Next" ;
+    sh:name "Has next"@en, "Successivo"@it ;
     sh:order 3 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
@@ -4580,12 +4589,12 @@ schema:TranslatorShape
 
 schema:CollaboratorShape
   a sh:NodeShape ;
-  sh:name "Agent Role" ;
+  sh:name "Agent role"@en, "Ruolo dell'agente"@it ;
   sh:targetClass pro:RoleInTime ;
   dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue pro:RoleInTime ] ;
     sh:qualifiedMinCount 1 ;
@@ -4593,7 +4602,7 @@ schema:CollaboratorShape
   ] ;
   sh:property [
     sh:path pro:withRole ;
-    sh:name "Role" ;
+    sh:name "Role"@en, "Ruolo"@it ;
     sh:order 4 ;
     sh:hasValue pro:contributor ;
     sh:minCount 1 ;
@@ -4601,7 +4610,7 @@ schema:CollaboratorShape
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
-    sh:name "Held By" ;
+    sh:name "Held by"@en, "Ricoperto da"@it ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:class foaf:Agent ;
@@ -4612,7 +4621,7 @@ schema:CollaboratorShape
   sh:property [
     sh:path oco:hasNext ;
     dash:hidden true ;
-    sh:name "Has Next" ;
+    sh:name "Has next"@en, "Successivo"@it ;
     sh:order 3 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
@@ -4668,11 +4677,11 @@ schema:CollaboratorShape
 
 schema:CitationShape
   a sh:NodeShape ;
-  sh:name "Citation" ;
+  sh:name "Citation"@en, "Citazione"@it ;
   sh:targetClass cito:Citation ;
   sh:property [
     sh:path rdf:type ;
-    sh:name "Type" ;
+    sh:name "Type"@en, "Tipo"@it ;
     sh:order 1 ;
     sh:qualifiedValueShape [ sh:hasValue cito:Citation ] ;
     sh:qualifiedMinCount 1 ;
@@ -4680,7 +4689,7 @@ schema:CitationShape
   ] ;
   sh:property [
     sh:path cito:hasCitingEntity ;
-    sh:name "Citing Resource" ;
+    sh:name "Citing resource"@en, "Risorsa citante"@it ;
     sh:order 2 ;
     shui:editor shui:AutoCompleteEditor ;
     sh:or (
@@ -4701,7 +4710,7 @@ schema:CitationShape
   ] ;
   sh:property [
     sh:path cito:hasCitedEntity ;
-    sh:name "Cited Resource" ;
+    sh:name "Cited resource"@en, "Risorsa citata"@it ;
     sh:order 3 ;
     shui:editor shui:AutoCompleteEditor ;
     sh:or (
@@ -4722,7 +4731,7 @@ schema:CitationShape
   ] ;
   sh:property [
     sh:path cito:hasCitationCharacterization ;
-    sh:name "Citation Type" ;
+    sh:name "Citation type"@en, "Tipo di citazione"@it ;
     sh:order 4 ;
     sh:or (
       [ sh:hasValue cito:reviews ]
@@ -4747,9 +4756,9 @@ schema:CitationShape
           OPTIONAL { ?cited dcterms:title ?citedTitle . }
 
           BIND(CONCAT(
-            "Citation from \\"",
+            IF($language = "it", "Citazione da \\"", "Citation from \\""),
             COALESCE(?citingTitle, STR(?citing)),
-            "\\" to \\"",
+            IF($language = "it", "\\" a \\"", "\\" to \\""),
             COALESCE(?citedTitle, STR(?cited)),
             "\\""
           ) AS ?display)
