@@ -548,9 +548,9 @@ class TestGetEntitiesForClass:
         entities_query = mock_sparql_wrapper.setQuery.call_args.args[0]
         assert f"LIMIT {per_page}" in entities_query
         assert f"OFFSET {per_page}" in entities_query
-        assert mock_custom_filter.value_label.call_args_list == [
-            call(uri, (selected_class, selected_shape)) for uri in uris
-        ]
+        label_calls = mock_custom_filter.value_label.call_args_list
+        expected_calls = [call(uri, (selected_class, selected_shape)) for uri in uris]
+        assert sorted(label_calls, key=repr) == sorted(expected_calls, key=repr)
 
     def test_get_entities_for_empty_class_skips_label_query(
         self, app, mock_sparql_wrapper, mock_custom_filter

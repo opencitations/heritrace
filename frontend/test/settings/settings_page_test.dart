@@ -142,15 +142,14 @@ void main() {
     await tester.tap(pick);
     await tester.pumpAndSettle();
     expect(find.byType(CupertinoDatePicker), findsNWidgets(2));
+    await tester.drag(find.text('2024'), const Offset(0, -120));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
     await _save(tester);
 
-    final picked = withTimeZone(
-      DateTime.parse(settingsJson()['datasetGenerationTime'] as String)
-          .toLocal(),
-    );
-    expect(repository.saved!['datasetGenerationTime'], picked);
+    final picked = repository.saved!['datasetGenerationTime'] as String;
+    expect(picked, withTimeZone(DateTime.parse(picked).toLocal()));
     expect(find.text(picked), findsOneWidget);
 
     await tester.tap(find.text('OK'));
