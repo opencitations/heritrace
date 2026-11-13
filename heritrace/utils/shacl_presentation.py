@@ -15,7 +15,11 @@ from rdflib.plugins.sparql.algebra import translateQuery, traverse
 from rdflib.plugins.sparql.parser import parseQuery
 from rdflib.term import Node
 
-from heritrace.configuration.shapes import read_duplicate_keys
+from heritrace.configuration.shapes import (
+    ValueTexts,
+    read_duplicate_keys,
+    read_value_texts,
+)
 from heritrace.configuration.vocabulary import DASH, HT, SH, SHUI
 from heritrace.language import (
     LANGUAGES,
@@ -71,6 +75,15 @@ class ShapesPresentation:
     fixed_type_counts: dict[str, int]
     hidden_shapes: frozenset[str]
     duplicate_keys: dict[str, list[list[str]]]
+    value_texts: dict[str, ValueTexts]
+
+    def value_name(self, value: str) -> str | None:
+        texts = self.value_texts.get(value)
+        return localize(texts.names) if texts else None
+
+    def value_description(self, value: str) -> str | None:
+        texts = self.value_texts.get(value)
+        return localize(texts.descriptions) if texts else None
 
     def is_hidden(self, shape: str | None) -> bool:
         return str(shape) in self.hidden_shapes
@@ -281,6 +294,7 @@ def read_presentation(graph: Graph) -> ShapesPresentation:
             for shape in shapes
             if (keys := read_duplicate_keys(graph, shape))
         },
+        value_texts=read_value_texts(graph),
     )
 
 

@@ -22,7 +22,7 @@ PRO = "http://purl.org/spar/pro/"
 def labels_from(presentation: ShapesPresentation):
     return patch(
         "heritrace.utils.draft_labels.get_custom_filter",
-        return_value=Filter({}, presentation, MagicMock),
+        return_value=Filter(presentation, MagicMock),
     )
 
 
@@ -199,6 +199,7 @@ def test_draft_label_query_errors_propagate(app):
         fixed_type_counts={},
         hidden_shapes=frozenset(),
         duplicate_keys={},
+        value_texts={},
         label_queries={"http://schema.org/AgentIdentifierShape": "invalid SPARQL"},
     )
     with app.app_context(), labels_from(presentation), pytest.raises(ParseException):
@@ -215,6 +216,7 @@ def test_draft_rules_use_field_datatypes(logged_in_client):
         fixed_type_counts={},
         hidden_shapes=frozenset(),
         duplicate_keys={},
+        value_texts={},
         label_queries={
             entity_shape: """
                 SELECT (STR(?value) AS ?display) WHERE {

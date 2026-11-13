@@ -53,7 +53,7 @@ def merge_test_data():
 
 def _filter_with_labels(merge_test_data: dict) -> MagicMock:
     mock_filter_instance = MagicMock()
-    mock_filter_instance.human_readable_entity.side_effect = [
+    mock_filter_instance.value_label.side_effect = [
         merge_test_data["entity1_label"],
         merge_test_data["entity2_label"],
     ]
@@ -485,9 +485,7 @@ def test_find_similar_resources_success(
         [similar_test_data["prop_ref"]],
     ]
     mock_filter_instance = MagicMock()
-    mock_filter_instance.human_readable_entity.return_value = similar_test_data[
-        "similar_label"
-    ]
+    mock_filter_instance.value_label.return_value = similar_test_data["similar_label"]
     mock_filter_instance.human_readable_predicate.side_effect = (
         lambda pred_uri, _entity_key: f"Label_{pred_uri.split('/')[-1]}"
     )
@@ -663,9 +661,7 @@ def test_find_similar_resources_literal_formatting(
     similarity_props = [[prop_typed], [prop_lang], [prop_plain], [prop_bnode]]
     mock_get_sim_props.return_value = similarity_props
     mock_filter_instance = MagicMock()
-    mock_filter_instance.human_readable_entity.return_value = similar_test_data[
-        "similar_label"
-    ]
+    mock_filter_instance.value_label.return_value = similar_test_data["similar_label"]
     mock_filter_instance.human_readable_predicate.side_effect = (
         lambda pred_uri, _entity_key: f"Label_{pred_uri.split('/')[-1]}"
     )
@@ -1041,7 +1037,7 @@ def test_find_similar_resources_success_with_and_group(
     mock_get_sim_props.return_value = [[prop_a, prop_b]]
 
     mock_filter_instance = MagicMock()
-    mock_filter_instance.human_readable_entity.return_value = "Similar AND Label"
+    mock_filter_instance.value_label.return_value = "Similar AND Label"
     mock_filter_instance.human_readable_predicate.side_effect = (
         lambda pred_uri, _entity_key: f"Label_{pred_uri.split('/')[-1]}"
     )

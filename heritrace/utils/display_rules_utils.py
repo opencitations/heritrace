@@ -129,18 +129,9 @@ def _detail_value(
             "label": custom_filter.human_readable_class((str(value), None)),
             "uri": None,
         }
-    if not nested["nodeShapes"]:
-        label = custom_filter.human_readable_predicate(
-            str(value), (nested["entityType"], nested["subjectShape"])
-        )
-        return {"label": label, "uri": None}
-    shape = nested["nodeShape"]
-    label = (
-        custom_filter.entity_label(value, shape, ctx.historical_snapshot)
-        if custom_filter.has_label(shape)
-        else None
-    )
-    return {"label": str(value) if label is None else label, "uri": str(value)}
+    shape = nested["nodeShape"] if nested["nodeShapes"] else None
+    label = custom_filter.value_label(value, (None, shape), ctx.historical_snapshot)
+    return {"label": label, "uri": str(value) if shape else None}
 
 
 def _details(ctx: GroupingContext, value: str, field: dict) -> list[dict[str, object]]:
@@ -183,29 +174,28 @@ def _triple_data(
             (object_uri, determine_shape_for_classes([object_uri]))
         )
         return {**data, "triple": (str(subject), str(predicate), label)}
+    if isinstance(obj, Literal):
+        return {**data, "triple": (str(subject), str(predicate), obj)}
     value_shape = ctx.value_shapes.get(object_uri)
-    if isinstance(obj, URIRef) and custom_filter.has_label(value_shape):
-        label = custom_filter.entity_label(
-            object_uri, value_shape, ctx.historical_snapshot
-        )
-        if label is not None:
-            ctx.fetched_values_map[label] = object_uri
-            viewer_field = _details_viewer_field(
-                (ctx.highest_priority_class, ctx.highest_priority_shape),
-                str(predicate),
-                object_shape,
-            )
-            return {
-                **data,
-                "triple": (str(subject), str(predicate), label),
-                "external_entity": object_uri,
-                **(
-                    {"details": _details(ctx, object_uri, viewer_field)}
-                    if viewer_field is not None
-                    else {}
-                ),
-            }
-    return {**data, "triple": (str(subject), str(predicate), obj)}
+    label = custom_filter.value_label(obj, (None, value_shape), ctx.historical_snapshot)
+    if value_shape is None:
+        return {**data, "triple": (str(subject), str(predicate), obj), "label": label}
+    ctx.fetched_values_map[label] = object_uri
+    viewer_field = _details_viewer_field(
+        (ctx.highest_priority_class, ctx.highest_priority_shape),
+        str(predicate),
+        object_shape,
+    )
+    return {
+        **data,
+        "triple": (str(subject), str(predicate), label),
+        "external_entity": object_uri,
+        **(
+            {"details": _details(ctx, object_uri, viewer_field)}
+            if viewer_field is not None
+            else {}
+        ),
+    }
 
 
 def _new_group(
@@ -395,7 +385,7 @@ def _add_inverse_values(
     )
     custom_filter = get_custom_filter()
     for entity_uri in _fetch_inverse_values(predicate, target_class, ctx):
-        label = custom_filter.human_readable_entity(
+        label = custom_filter.value_label(
             entity_uri, (target_class, target_shape), ctx.historical_snapshot
         )
         ctx.fetched_values_map[label] = entity_uri

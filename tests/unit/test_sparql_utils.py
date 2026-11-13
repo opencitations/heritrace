@@ -65,8 +65,8 @@ def mock_custom_filter():
 
         # Configure the mock to return readable labels
         mock_filter.human_readable_predicate.return_value = "Human Readable Class"
-        mock_filter.human_readable_entity.return_value = "Human Readable Entity"
-        mock_filter.catalogue_label.return_value = "Human Readable Entity"
+        mock_filter.value_label.return_value = "Human Readable Entity"
+        mock_filter.value_label.return_value = "Human Readable Entity"
         mock_filter.human_readable_class.return_value = "Human Readable Class"
         mock_filter.format_agent_reference.return_value = "Test Agent"
 
@@ -548,7 +548,7 @@ class TestGetEntitiesForClass:
         entities_query = mock_sparql_wrapper.setQuery.call_args.args[0]
         assert f"LIMIT {per_page}" in entities_query
         assert f"OFFSET {per_page}" in entities_query
-        assert mock_custom_filter.catalogue_label.call_args_list == [
+        assert mock_custom_filter.value_label.call_args_list == [
             call(uri, (selected_class, selected_shape)) for uri in uris
         ]
 
@@ -588,7 +588,7 @@ class TestGetEntitiesForClass:
         assert entities == []
         assert total_count == 0
         mock_sparql_wrapper.setQuery.assert_called_once()
-        mock_custom_filter.catalogue_label.assert_not_called()
+        mock_custom_filter.value_label.assert_not_called()
 
 
 class TestGetCatalogData:
@@ -603,7 +603,7 @@ class TestGetCatalogData:
                 ]
             }
         }
-        mock_custom_filter.catalogue_label.side_effect = lambda uri, _key: uri[-7:]
+        mock_custom_filter.value_label.side_effect = lambda uri, _key: uri[-7:]
         available_classes = [
             {
                 "uri": "http://example.org/Person",
@@ -1443,7 +1443,7 @@ class TestGetEntitiesForClassShapeFiltering:
             ]
 
             mock_filter = mock_get_filter.return_value
-            mock_filter.catalogue_label.side_effect = lambda uri, _entity_key: (
+            mock_filter.value_label.side_effect = lambda uri, _entity_key: (
                 f"Entity {uri.split('/')[-1]}"
             )
 
@@ -1539,7 +1539,7 @@ class TestGetEntitiesForClassShapeFiltering:
             ]
 
             mock_filter = mock_get_filter.return_value
-            mock_filter.catalogue_label.return_value = "Test Document"
+            mock_filter.value_label.return_value = "Test Document"
 
             entities, total_count = get_entities_for_class(
                 CatalogQuery(
@@ -1637,7 +1637,7 @@ class TestGetEntitiesForClassShapeFiltering:
         ):
             mock_sparql = mock_get_sparql.return_value
             mock_filter = mock_get_filter.return_value
-            mock_filter.catalogue_label.side_effect = lambda uri, _entity_key: (
+            mock_filter.value_label.side_effect = lambda uri, _entity_key: (
                 f"Entity {uri.split('/')[-1]}"
             )
 
@@ -1918,7 +1918,7 @@ class TestProcessDeletedEntities:
             (PERSON, f"{PERSON}Shape")
         )
 
-        state = mock_custom_filter.human_readable_entity.call_args[0][2]
+        state = mock_custom_filter.value_label.call_args[0][2]
         assert (
             URIRef("http://example.org/person1"),
             URIRef("http://example.org/name"),
@@ -1987,7 +1987,7 @@ class TestProcessDeletedEntities:
 
         process_deleted_entities([binding])
 
-        state = mock_custom_filter.human_readable_entity.call_args[0][2]
+        state = mock_custom_filter.value_label.call_args[0][2]
         assert (
             URIRef("http://example.org/org1"),
             URIRef("http://example.org/name"),
@@ -2025,7 +2025,7 @@ class TestProcessDeletedEntities:
 
         process_deleted_entities([binding])
 
-        state = mock_custom_filter.human_readable_entity.call_args[0][2]
+        state = mock_custom_filter.value_label.call_args[0][2]
         assert set(state.triples((URIRef("http://example.org/role1"), None, None))) == {
             (
                 URIRef("http://example.org/role1"),

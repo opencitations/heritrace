@@ -162,9 +162,7 @@ def test_search_endpoint_returns_labels_and_has_more(
         }
     }
     custom_filter = MagicMock()
-    custom_filter.human_readable_entity.side_effect = lambda uri, _key: (
-        f"Label {uri[-1]}"
-    )
+    custom_filter.value_label.side_effect = lambda uri, _key: f"Label {uri[-1]}"
     with (
         patch("heritrace.routes.search.get_sparql", return_value=sparql),
         patch("heritrace.routes.search.get_custom_filter", return_value=custom_filter),
@@ -194,7 +192,7 @@ def test_search_endpoint_returns_labels_and_has_more(
         "has_more": True,
     }
     assert "LIMIT 3" in sparql.setQuery.call_args.args[0]
-    custom_filter.human_readable_entity.assert_any_call(
+    custom_filter.value_label.assert_any_call(
         "http://example.org/ra/0", (AGENT, AGENT_SHAPE)
     )
 

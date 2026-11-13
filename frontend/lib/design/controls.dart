@@ -211,10 +211,16 @@ class AppTextField extends StatelessWidget {
 }
 
 class AppMenuOption<T> {
-  const AppMenuOption(this.value, this.label);
+  const AppMenuOption(this.value, this.label, {this.detail, this.description});
 
   final T value;
   final String label;
+
+  /// A short code shown next to [label] in a sheet, such as a language code.
+  final String? detail;
+
+  /// A sentence shown under [label] that explains the option.
+  final String? description;
 }
 
 /// An iOS pop-up button: it shows the chosen option and opens a pull-down
@@ -252,6 +258,9 @@ class AppMenuButton<T> extends StatelessWidget {
                 trailing: option.value == value
                     ? const Icon(CupertinoIcons.check_mark, size: 18)
                     : null,
+                subtitle: option.description == null
+                    ? null
+                    : Text(option.description!),
                 child: Text(option.label),
               ),
           ],
@@ -278,6 +287,8 @@ class AppSheetButton extends StatelessWidget {
     required this.onPressed,
     this.placeholder,
     this.widestLabel,
+    this.errorText,
+    this.focusNode,
     super.key,
   });
 
@@ -285,23 +296,29 @@ class AppSheetButton extends StatelessWidget {
   final String semanticLabel;
   final VoidCallback onPressed;
   final String? placeholder;
+  final String? errorText;
+  final FocusNode? focusNode;
 
   /// A label as wide as the widest option, so that the button keeps one
   /// width whatever it shows.
   final String? widestLabel;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: semanticLabel,
-    button: true,
-    excludeSemantics: true,
-    child: SelectionContainer.disabled(
-      child: _PopUpBox(
-        label: label,
-        placeholder: placeholder,
-        widestLabel: widestLabel,
-        hasError: false,
-        onTap: onPressed,
+  Widget build(BuildContext context) => _WithError(
+    errorText: errorText,
+    child: Semantics(
+      label: semanticLabel,
+      button: true,
+      excludeSemantics: true,
+      child: SelectionContainer.disabled(
+        child: _PopUpBox(
+          label: label,
+          placeholder: placeholder,
+          widestLabel: widestLabel,
+          hasError: errorText != null,
+          focusNode: focusNode,
+          onTap: onPressed,
+        ),
       ),
     ),
   );

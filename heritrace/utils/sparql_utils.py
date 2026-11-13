@@ -430,7 +430,7 @@ def _fetch_entity_labels(
 
 
 def _fetch_entity_label(uri: str, entity_key: tuple[str | None, str | None]) -> str:
-    return get_custom_filter().catalogue_label(uri, entity_key)
+    return get_custom_filter().value_label(uri, entity_key)
 
 
 def _get_entities_with_shape_filtering(
@@ -984,9 +984,7 @@ def process_deleted_entities(bindings: list[dict]) -> list[dict[str, str]]:
                 ),
                 "lastValidSnapshotTime": binding["lastValidSnapshotTime"]["value"],
                 "type": custom_filter.human_readable_class(entity_key),
-                "label": custom_filter.human_readable_entity(
-                    entity_uri, entity_key, state
-                ),
+                "label": custom_filter.value_label(entity_uri, entity_key, state),
             }
         )
 

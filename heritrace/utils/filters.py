@@ -8,12 +8,12 @@ import threading
 from typing import TYPE_CHECKING, cast
 from urllib.parse import urlparse
 
-from rdflib import RDF
+from rdflib import RDF, RDFS, Literal, URIRef
 from SPARQLWrapper import JSON
 
 from heritrace.apis.orcid import is_orcid_url, orcid_agent
 from heritrace.apis.zenodo import is_zenodo_url, zenodo_source
-from heritrace.language import localize
+from heritrace.language import NEUTRAL, LocalizedText, localize
 from heritrace.sparql import get_sparql_bindings, select_results
 from heritrace.utils.references import (
     AgentRef,
@@ -28,9 +28,9 @@ from heritrace.utils.references import (
 from heritrace.utils.uri_utils import is_valid_url
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping
 
-    from rdflib import Dataset, Graph, URIRef
+    from rdflib import Dataset, Graph
 
     from heritrace.sparql import SparqlEndpoint
     from heritrace.utils.shacl_presentation import ShapesPresentation
@@ -41,11 +41,9 @@ VERSION_SOURCE_MARKER = "/prov/se/"
 class Filter:
     def __init__(
         self,
-        context: dict,
         presentation: ShapesPresentation,
         new_sparql: Callable[[], SparqlEndpoint],
     ) -> None:
-        self.context = context
         self.presentation = presentation
         self.new_sparql = new_sparql
         self._thread_local = threading.local()
@@ -81,11 +79,7 @@ class Filter:
         )
         if display_name is not None:
             return display_name
-
-        first_part, _ = split_namespace(predicate_uri)
-        if first_part in self.context:
-            return format_uri_as_readable(predicate_uri)
-        return str(predicate_uri)
+        return readable_local_name(predicate_uri)
 
     def human_readable_class(
         self, entity_key: tuple[str | None, str | None] | None
@@ -134,43 +128,76 @@ class Filter:
             return None
         return bindings[0][label_variable]["value"]
 
-    def human_readable_entity(
+    def _data_labels(
+        self, values: list[str], graph: Graph | Dataset | None
+    ) -> dict[str, LocalizedText]:
+        if not values:
+            return {}
+        query = (
+            "SELECT ?value ?label WHERE { VALUES ?value { "
+            + " ".join(URIRef(value).n3() for value in values)
+            + f" }} ?value {RDFS.label.n3()} ?label }}"
+        )
+        labels: dict[str, LocalizedText] = {}
+        if graph is not None:
+            with self._query_lock:
+                results = graph.query(query)
+            for value, label in select_results(results):
+                if isinstance(label, Literal):
+                    labels.setdefault(str(value), {})[label.language or NEUTRAL] = str(
+                        label
+                    )
+            return labels
+        sparql = self._get_sparql()
+        sparql.setQuery(query)
+        for binding in get_sparql_bindings(sparql.query().convert()):
+            label = binding["label"]
+            labels.setdefault(binding["value"]["value"], {})[
+                label.get("xml:lang", NEUTRAL)
+            ] = label["value"]
+        return labels
+
+    # SHACL UI Label Resolution for value nodes: the label role of the value's
+    # shape, then rdfs:label in the data and in the shapes, then the local name.
+    def value_labels(
         self,
-        uri: str | URIRef,
-        entity_key: tuple[str | None, str | None],
+        shapes: Mapping[URIRef | Literal, str | None],
+        graph: Graph | Dataset | None = None,
+    ) -> dict[URIRef | Literal, str]:
+        labels: dict[URIRef | Literal, str] = {}
+        unlabelled = []
+        for value, shape in shapes.items():
+            if isinstance(value, Literal):
+                labels[value] = str(value)
+                continue
+            if self.has_label(shape):
+                label = self.entity_label(str(value), shape, graph)
+                if label is not None:
+                    labels[value] = label
+                    continue
+            unlabelled.append(value)
+        data_labels = self._data_labels(
+            [str(value) for value in unlabelled if isinstance(value, URIRef)], graph
+        )
+        for value in unlabelled:
+            labels[value] = (
+                localize(data_labels.get(str(value), {}))
+                or self.presentation.value_name(str(value))
+                or readable_local_name(str(value))
+            )
+        return labels
+
+    def value_label(
+        self,
+        value: URIRef | Literal | str,
+        entity_key: tuple[str | None, str | None] = (None, None),
         graph: Graph | Dataset | None = None,
     ) -> str:
-        uri_string = str(uri)
-        shape = self._shape_for(entity_key)
-        if not self.has_label(shape):
-            return uri_string
-        label = self.entity_label(uri_string, shape, graph)
-        if label is None:
-            msg = f"The label query returned no result for {uri_string}"
-            raise ValueError(msg)
-        return label
+        node = value if isinstance(value, URIRef | Literal) else URIRef(value)
+        return self.value_labels({node: self._shape_for(entity_key)}, graph)[node]
 
-    # The catalogue lists every instance of a type, also incomplete ones.
-    def catalogue_label(
-        self,
-        uri: str | URIRef,
-        entity_key: tuple[str | None, str | None],
-    ) -> str:
-        shape = self._shape_for(entity_key)
-        label = self.entity_label(uri, shape) if self.has_label(shape) else None
-        return str(uri) if label is None else label
-
-    # An entity with a type but no label is named after its type.
-    def entity_title(
-        self,
-        uri: str | URIRef,
-        entity_key: tuple[str | None, str | None],
-        graph: Graph | Dataset | None = None,
-    ) -> str:
-        class_uri, _ = entity_key
-        if class_uri is not None and not self.has_label(self._shape_for(entity_key)):
-            return self.human_readable_class(entity_key)
-        return self.human_readable_entity(uri, entity_key, graph)
+    def value_description(self, value: str) -> str | None:
+        return self.presentation.value_description(value)
 
     def format_source_reference(self, url: str | None) -> SourceRef:
         if not url:
@@ -218,19 +245,38 @@ def split_namespace(uri: str) -> tuple[str, str]:
     return first_part, last_part
 
 
-def format_uri_as_readable(uri: str) -> str:
-    _, last_part = split_namespace(uri)
+# A capital starts a word after a lowercase letter or a digit, or when it
+# closes an acronym and a lowercase letter follows: NCName gives NC and Name.
+def _starts_word(name: str, i: int) -> bool:
+    if i == 0 or not name[i].isupper():
+        return False
+    previous = name[i - 1]
+    if previous.islower() or previous.isdigit():
+        return True
+    return previous.isupper() and i + 1 < len(name) and name[i + 1].islower()
 
-    words = []
-    word = ""
-    for char in last_part:
-        if char.isupper() and word:
-            words.append(word)
-            word = char
-        else:
-            word += char
-    words.append(word)
-    return " ".join(words).capitalize()
+
+# Values that reach the server as text, such as the members of sh:in, are
+# literals unless they read as IRIs.
+def value_node(value: str) -> URIRef | Literal:
+    return URIRef(value) if is_valid_url(value) else Literal(value)
+
+
+def readable_local_name(uri: str) -> str:
+    return format_uri_as_readable(uri) or uri
+
+
+def format_uri_as_readable(uri: str) -> str:
+    _, name = split_namespace(uri)
+    words = [""]
+    for i, char in enumerate(name):
+        if _starts_word(name, i):
+            words.append("")
+        words[-1] += char
+    text = " ".join(
+        word if len(word) > 1 and word.isupper() else word.lower() for word in words
+    )
+    return text[:1].upper() + text[1:]
 
 
 def field_with_labels(details: dict, custom_filter: Filter) -> dict:
@@ -243,18 +289,24 @@ def field_with_labels(details: dict, custom_filter: Filter) -> dict:
         field["conditions"] = [
             alternative.as_condition() for alternative in field["conditions"]
         ]
-    entity_key = (field.get("subjectClass"), field.get("subjectShape"))
     has_value = field.get("hasValue")
     if has_value:
         field["hasValueLabel"] = (
             custom_filter.human_readable_class((has_value, None))
             if field.get("uri") == str(RDF.type)
-            else custom_filter.human_readable_predicate(has_value, entity_key)
+            else custom_filter.value_label(has_value)
         )
     if field.get("optionalValues"):
+        labels = custom_filter.value_labels(
+            {value_node(value): None for value in field["optionalValues"]}
+        )
         field["optionalValueLabels"] = {
-            value: custom_filter.human_readable_predicate(value, entity_key)
+            str(value): label for value, label in labels.items()
+        }
+        field["optionalValueDescriptions"] = {
+            value: description
             for value in field["optionalValues"]
+            if (description := custom_filter.value_description(value))
         }
     if field.get("nestedShape"):
         field["nestedShape"] = [

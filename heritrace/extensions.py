@@ -484,10 +484,7 @@ def init_sparql_services(
 def init_filters(
     presentation: ShapesPresentation, new_sparql: Callable[[], SparqlEndpoint]
 ) -> Filter:
-    with (Path(__file__).parent / "utils" / "context.json").open() as config_file:
-        context = json.load(config_file)["@context"]
-
-    return Filter(context, presentation, new_sparql)
+    return Filter(presentation, new_sparql)
 
 
 def init_request_handlers(app: Flask, redis: Redis) -> None:

@@ -109,7 +109,7 @@ def me() -> Response:
                 "app_title": current_app.config["APP_TITLE"],
                 "app_subtitle": current_app.config["APP_SUBTITLE"],
                 "shacl": bool(len(get_shacl_graph())),
-                "datatype_options": get_datatype_options(),
+                "datatype_options": get_datatype_options(get_custom_filter()),
             }
             if configured
             else None,
@@ -421,7 +421,7 @@ def _format_orphan_response(
         entity_key = (entity["type"], shape)
         return {
             "uri": entity["uri"],
-            "label": custom_filter.human_readable_entity(uri, entity_key),
+            "label": custom_filter.value_label(uri, entity_key),
             "type": custom_filter.human_readable_class(entity_key),
             "is_composite": is_composite,
         }

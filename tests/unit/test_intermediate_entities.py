@@ -119,16 +119,16 @@ def test_classes_with_multiple_shapes_come_from_the_shapes() -> None:
     assert ROLE_CLASS in identify_classes_with_multiple_shapes(_shapes())
 
 
-def test_the_catalogue_falls_back_to_the_iri_of_an_incomplete_entity() -> None:
+def test_an_incomplete_entity_is_named_after_its_local_name() -> None:
     shapes = _shapes()
     sparql = MagicMock()
-    sparql.query.return_value.convert.return_value = {
-        "head": {"vars": ["display"]},
-        "results": {"bindings": [{}]},
-    }
+    sparql.query.return_value.convert.side_effect = [
+        {"head": {"vars": ["display"]}, "results": {"bindings": [{}]}},
+        {"head": {"vars": ["value", "label"]}, "results": {"bindings": []}},
+    ]
 
-    label = Filter({}, read_presentation(shapes), lambda: sparql).catalogue_label(
+    label = Filter(read_presentation(shapes), lambda: sparql).value_label(
         "http://example.org/role", (ROLE_CLASS, "http://schema.org/AuthorShape")
     )
 
-    assert label == "http://example.org/role"
+    assert label == "Role"

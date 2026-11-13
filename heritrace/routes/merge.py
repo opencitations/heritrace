@@ -40,11 +40,7 @@ def _entity_summary(entity_uri: URIRef, entity_types: list[str]) -> dict:
     custom_filter = get_custom_filter()
     entity_type = get_highest_priority_class(entity_types)
     entity_shape = determine_shape_for_classes(entity_types)
-    label = (
-        custom_filter.human_readable_entity(entity_uri, (entity_type, entity_shape))
-        if entity_type
-        else str(entity_uri)
-    )
+    label = custom_filter.value_label(entity_uri, (entity_type, entity_shape))
     return {
         "uri": str(entity_uri),
         "label": label,
@@ -293,15 +289,10 @@ def _transform_results(
     shape_uri: str | None,
 ) -> list[dict[str, str]]:
     custom_filter = get_custom_filter()
-    transformed: list[dict[str, str]] = []
-    for uri in uris:
-        readable_label = (
-            custom_filter.human_readable_entity(uri, (entity_type, shape_uri))
-            if entity_type
-            else uri
-        )
-        transformed.append({"uri": uri, "label": readable_label or uri})
-    return transformed
+    return [
+        {"uri": uri, "label": custom_filter.value_label(uri, (entity_type, shape_uri))}
+        for uri in uris
+    ]
 
 
 @merge_bp.route("/similar", methods=["GET"])

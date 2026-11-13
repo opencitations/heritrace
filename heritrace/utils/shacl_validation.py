@@ -21,6 +21,7 @@ from heritrace.extensions import get_custom_filter, get_shacl_graph
 from heritrace.sparql import select_results
 from heritrace.utils.datatypes import DATATYPE_MAPPING
 from heritrace.utils.display_rules_utils import get_highest_priority_class
+from heritrace.utils.filters import value_node
 from heritrace.utils.shacl_patterns import read_pattern_alternatives
 from heritrace.utils.sparql_utils import (
     fetch_data_graph_for_subject,
@@ -364,9 +365,7 @@ def _validate_pattern_constraints(  # noqa: PLR0913
 def _type_error(
     new_value: str | URIRef | None, ctx: ValidationContext, type_labels: str
 ) -> str:
-    value_label = ctx.custom_filter.human_readable_predicate(
-        str(new_value), ctx.entity_key
-    )
+    value_label = str(new_value)
     predicate_label = ctx.custom_filter.human_readable_predicate(
         str(ctx.predicate), ctx.entity_key
     )
@@ -420,7 +419,9 @@ def _validate_datatype_constraint(
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
     valid_value = convert_to_matching_literal(new_value, datatypes)
     if valid_value is None:
-        datatype_labels = ", ".join(f"'{get_datatype_label(dt)}'" for dt in datatypes)
+        datatype_labels = ", ".join(
+            f"'{ctx.custom_filter.value_label(dt)}'" for dt in datatypes
+        )
         return None, ctx.old_value, _type_error(new_value, ctx, datatype_labels)
     requirement = bound_requirement(
         str(valid_value),
@@ -508,12 +509,10 @@ def _validate_optional_values(
     if not optional_values or new_value in optional_values:
         return None
     optional_value_labels = ", ".join(
-        f"'{ctx.custom_filter.human_readable_predicate(value, ctx.entity_key)}'"
+        f"'{ctx.custom_filter.value_label(value_node(value))}'"
         for value in optional_values
     )
-    value_label = ctx.custom_filter.human_readable_predicate(
-        str(new_value), ctx.entity_key
-    )
+    value_label = ctx.custom_filter.value_label(value_node(str(new_value)))
     predicate_label = ctx.custom_filter.human_readable_predicate(
         str(ctx.predicate), ctx.entity_key
     )
@@ -714,47 +713,3 @@ def convert_to_matching_literal(
             return Literal(object_value, datatype=datatype)
 
     return None
-
-
-def get_datatype_label(datatype_uri: str | URIRef | None) -> str | None:
-    if datatype_uri is None:
-        return None
-
-    # Map common XSD datatypes to human-readable labels
-    datatype_labels = {
-        str(XSD.string): "String",
-        str(XSD.integer): "Integer",
-        str(XSD.int): "Integer",
-        str(XSD.float): "Float",
-        str(XSD.double): "Double",
-        str(XSD.decimal): "Decimal",
-        str(XSD.boolean): "Boolean",
-        str(XSD.date): "Date",
-        str(XSD.time): "Time",
-        str(XSD.dateTime): "DateTime",
-        str(XSD.anyURI): "URI",
-    }
-
-    # Check if the datatype is in our mapping
-    if str(datatype_uri) in datatype_labels:
-        return datatype_labels[str(datatype_uri)]
-
-    # If not in our mapping, check DATATYPE_MAPPING
-    for dt_uri, _, dt_label in DATATYPE_MAPPING:
-        if str(dt_uri) == str(datatype_uri):
-            return dt_label
-
-    # If not found anywhere, return the URI as is
-    custom_filter = get_custom_filter()
-    if custom_filter:
-        custom_label = custom_filter.human_readable_predicate(datatype_uri, ("", ""))
-        # If the custom filter returns just the last part of the URI, return the full
-        # URI instead
-        if (
-            custom_label
-            and custom_label != datatype_uri
-            and datatype_uri.endswith(custom_label)
-        ):
-            return datatype_uri
-        return custom_label
-    return datatype_uri

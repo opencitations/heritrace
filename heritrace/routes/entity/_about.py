@@ -20,7 +20,7 @@ from heritrace.utils.display_rules_utils import (
     get_grouped_triples,
     get_highest_priority_class,
 )
-from heritrace.utils.filters import field_with_labels
+from heritrace.utils.filters import field_with_labels, value_node
 from heritrace.utils.shacl_presentation import is_inverse_path
 from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
 from heritrace.utils.shacl_validation import get_valid_predicates
@@ -163,13 +163,11 @@ def _field_for_group(
     return None
 
 
-def _value_label(
-    predicate: str, value: str, subject_class: str | None, subject_shape: str | None
-) -> str:
+def _value_label(predicate: str, value: str) -> str:
     custom_filter = get_custom_filter()
     if predicate == RDF_TYPE:
         return custom_filter.human_readable_class((value, None))
-    return custom_filter.human_readable_predicate(value, (subject_class, subject_shape))
+    return custom_filter.value_label(value_node(value))
 
 
 def _serialize_group(
@@ -180,7 +178,6 @@ def _serialize_group(
     optional_values: dict,
 ) -> dict:
     predicate = data["property"]
-    subject_class = data.get("subjectClass")
     subject_shape = data.get("subjectShape")
     object_shape = data.get("objectShape")
     predicate_mandatory = mandatory_values.get(predicate, [])
@@ -194,11 +191,9 @@ def _serialize_group(
             "external_entity": triple_data.get("external_entity"),
             "details": triple_data.get("details"),
             "is_mandatory": str(triple_data["object"]) in predicate_mandatory,
-            "label": _value_label(
-                predicate, str(triple_data["object"]), subject_class, subject_shape
-            )
+            "label": _value_label(predicate, str(triple_data["object"]))
             if predicate in optional_values
-            else None,
+            else triple_data.get("label"),
         }
         for triple_data in data["triples"]
     ]
@@ -282,7 +277,7 @@ def build_entity_view(subject: str) -> dict:
     entity_key = (highest_priority_class, entity_shape)
     return {
         "uri": subject,
-        "label": custom_filter.entity_title(subject, entity_key, context_snapshot),
+        "label": custom_filter.value_label(subject, entity_key, context_snapshot),
         "type": highest_priority_class,
         "type_label": custom_filter.human_readable_class(entity_key),
         "shape": entity_shape,
@@ -298,9 +293,8 @@ def build_entity_view(subject: str) -> dict:
             predicate: [
                 {
                     "value": value,
-                    "label": _value_label(
-                        predicate, value, highest_priority_class, entity_shape
-                    ),
+                    "label": _value_label(predicate, value),
+                    "description": custom_filter.value_description(value),
                 }
                 for value in values
             ]

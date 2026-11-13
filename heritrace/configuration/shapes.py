@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Literal as TypingLiteral
 from typing import cast
 
-from rdflib import OWL, RDF, XSD, BNode, Graph, Literal, URIRef
+from rdflib import OWL, RDF, RDFS, XSD, BNode, Graph, Literal, URIRef
 from rdflib.collection import Collection
 from rdflib.compare import isomorphic
 from rdflib.term import Node
@@ -99,9 +99,17 @@ class NodeShape:
 
 
 @dataclass
+class ValueTexts:
+    names: LocalizedText
+    descriptions: LocalizedText
+
+
+@dataclass
 class Shapes:
     prefixes: dict[str, str] = field(default_factory=dict)
     shapes: list[NodeShape] = field(default_factory=list)
+    # The rdfs:label and rdfs:comment that name and explain IRIs used as values.
+    value_texts: dict[str, ValueTexts] = field(default_factory=dict)
 
 
 def _text(graph: Graph, subject: Node, predicate: URIRef) -> str | None:
@@ -284,6 +292,22 @@ def _declaration_owners(graph: Graph) -> list[Node]:
     return list(graph.subjects(RDF.type, SH.ShapesGraph))
 
 
+def read_value_texts(graph: Graph) -> dict[str, ValueTexts]:
+    subjects = {
+        subject
+        for predicate in (RDFS.label, RDFS.comment)
+        for subject, text in graph.subject_objects(predicate)
+        if isinstance(subject, URIRef) and isinstance(text, Literal)
+    }
+    return {
+        str(subject): ValueTexts(
+            names=localized_texts(graph, subject, RDFS.label),
+            descriptions=localized_texts(graph, subject, RDFS.comment),
+        )
+        for subject in sorted(subjects)
+    }
+
+
 def read_shapes(graph: Graph) -> Shapes:
     prefixes = {
         str(graph.value(declaration, SH.prefix)): str(
@@ -310,7 +334,11 @@ def read_shapes(graph: Graph) -> Shapes:
                 duplicate_keys=read_duplicate_keys(graph, subject),
             )
         )
-    return Shapes(prefixes=dict(sorted(prefixes.items())), shapes=shapes)
+    return Shapes(
+        prefixes=dict(sorted(prefixes.items())),
+        shapes=shapes,
+        value_texts=read_value_texts(graph),
+    )
 
 
 def _add_list(graph: Graph, items: list[Node]) -> BNode:
@@ -454,6 +482,9 @@ def shapes_to_graph(shapes: Shapes) -> Graph:
             _add_property(graph, subject, prop)
         if shape.patterns:
             _add_pattern_rules(graph, subject, shape.patterns)
+    for value, texts in shapes.value_texts.items():
+        add_localized_texts(graph, URIRef(value), RDFS.label, texts.names)
+        add_localized_texts(graph, URIRef(value), RDFS.comment, texts.descriptions)
     return graph
 
 
@@ -477,6 +508,11 @@ def unsupported_parts(graph: Graph, shapes: Shapes) -> list[str]:
     covered = Graph()
     for owner in _declaration_owners(graph):
         covered += _cbd(graph, owner)
+    for value in shapes.value_texts:
+        for predicate in (RDFS.label, RDFS.comment):
+            for text in graph.objects(URIRef(value), predicate):
+                if isinstance(text, Literal):
+                    covered.add((URIRef(value), predicate, text))
     for subject in shape_subjects(graph):
         original = _cbd(graph, subject)
         covered += original

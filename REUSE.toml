@@ -51,7 +51,6 @@ path = [
     "example_configurations/**/*.json",
     "example_configurations/**/*.ttl",
     "docker/meta-settings.json",
-    "heritrace/utils/context.json",
     "prov_database/virtuoso.ini",
     "tests/settings.json",
     "tests/shacl.ttl",

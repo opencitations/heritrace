@@ -1045,7 +1045,7 @@ def test_format_snapshot_description_simple(
 
     # Create mock filter
     mock_filter = MagicMock()
-    mock_filter.human_readable_entity.return_value = "John Doe"
+    mock_filter.value_label.return_value = "John Doe"
 
     ctx = HistoryContext(
         entity_uri=entity_uri,
@@ -1067,7 +1067,7 @@ def test_format_snapshot_description_simple(
     # Verify results
     assert result == "Simple description"
     mock_determine_shape.assert_called_once_with([highest_priority_class])
-    mock_filter.human_readable_entity.assert_called_once_with(
+    mock_filter.value_label.assert_called_once_with(
         entity_uri,
         (highest_priority_class, "http://example.org/PersonShape"),
         context_snapshot,
@@ -1132,7 +1132,7 @@ def test_format_snapshot_description_merge_with_uri(
             return "Jane Doe"
         return "John Doe"
 
-    mock_filter.human_readable_entity.side_effect = _human_readable
+    mock_filter.value_label.side_effect = _human_readable
 
     ctx = HistoryContext(
         entity_uri=entity_uri,
@@ -1170,7 +1170,7 @@ def test_format_snapshot_description_no_merge(mock_determine_shape) -> None:
 
     # Create mock filter
     mock_filter = MagicMock()
-    mock_filter.human_readable_entity.return_value = "John Doe"
+    mock_filter.value_label.return_value = "John Doe"
 
     ctx = HistoryContext(
         entity_uri=entity_uri,
@@ -1217,7 +1217,7 @@ def test_format_snapshot_description_merge_invalid_uri(
 
     # Create mock filter
     mock_filter = MagicMock()
-    mock_filter.human_readable_entity.return_value = "John Doe"
+    mock_filter.value_label.return_value = "John Doe"
 
     ctx = HistoryContext(
         entity_uri=entity_uri,
@@ -1259,7 +1259,7 @@ def test_format_snapshot_description_entity_uri_replacement(
 
     # Create mock filter
     mock_filter = MagicMock()
-    mock_filter.human_readable_entity.return_value = "John Doe"
+    mock_filter.value_label.return_value = "John Doe"
 
     ctx = HistoryContext(
         entity_uri=entity_uri,
@@ -1300,7 +1300,7 @@ def test_format_snapshot_description_entity_same_as_uri(mock_determine_shape) ->
 
     # Create mock filter that returns the same URI
     mock_filter = MagicMock()
-    mock_filter.human_readable_entity.return_value = entity_uri
+    mock_filter.value_label.return_value = entity_uri
 
     ctx = HistoryContext(
         entity_uri=entity_uri,
@@ -1347,7 +1347,7 @@ def test_format_snapshot_description_merge_current_index_zero(
 
     # Create mock filter
     mock_filter = MagicMock()
-    mock_filter.human_readable_entity.return_value = "John Doe"
+    mock_filter.value_label.return_value = "John Doe"
 
     ctx = HistoryContext(
         entity_uri=entity_uri,
@@ -1384,7 +1384,7 @@ def test_format_snapshot_description_empty_description(mock_determine_shape) -> 
 
     # Create mock filter
     mock_filter = MagicMock()
-    mock_filter.human_readable_entity.return_value = "John Doe"
+    mock_filter.value_label.return_value = "John Doe"
 
     ctx = HistoryContext(
         entity_uri=entity_uri,

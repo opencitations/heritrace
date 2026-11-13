@@ -2,6 +2,10 @@
 #
 # SPDX-License-Identifier: ISC
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from rdflib import XSD, URIRef
 
 from heritrace.utils.datatypes_validation import (
@@ -52,60 +56,50 @@ from heritrace.utils.datatypes_validation import (
     validate_year_month_duration,
 )
 
+if TYPE_CHECKING:
+    from heritrace.utils.filters import Filter
 
-def get_datatype_options() -> list[dict[str, str]]:
+
+# The datatypes offered for a custom property, the most common first.
+DATATYPE_OPTIONS = (
+    XSD.string,
+    XSD.anyURI,
+    XSD.integer,
+    XSD.boolean,
+    XSD.date,
+    XSD.decimal,
+    XSD.dateTime,
+    XSD.gYear,
+    XSD.float,
+    XSD.time,
+    XSD.normalizedString,
+    XSD.language,
+    XSD.double,
+    XSD.token,
+    XSD.nonNegativeInteger,
+    XSD.positiveInteger,
+    XSD.nonPositiveInteger,
+    XSD.negativeInteger,
+    XSD.long,
+    XSD.short,
+    XSD.byte,
+    XSD.unsignedInt,
+    XSD.unsignedLong,
+    XSD.unsignedShort,
+    XSD.unsignedByte,
+    XSD.gMonth,
+    XSD.gDay,
+    XSD.duration,
+    XSD.hexBinary,
+    XSD.base64Binary,
+)
+
+
+def get_datatype_options(custom_filter: Filter) -> list[dict[str, str]]:
+    labels = custom_filter.value_labels(dict.fromkeys(DATATYPE_OPTIONS))
     return [
-        {"label": "Text (string)", "uri": str(XSD.string)},
-        {"label": "Web address (URL)", "uri": str(XSD.anyURI)},
-        {"label": "Whole number (integer)", "uri": str(XSD.integer)},
-        {"label": "True or False (boolean)", "uri": str(XSD.boolean)},
-        {"label": "Date (YYYY-MM-DD)", "uri": str(XSD.date)},
-        {"label": "Decimal number", "uri": str(XSD.decimal)},
-        {
-            "label": "Date and Time (YYYY-MM-DDThh:mm:ss)",
-            "uri": str(XSD.dateTime),
-        },
-        {"label": "Year (YYYY)", "uri": str(XSD.gYear)},
-        {"label": "Floating point number", "uri": str(XSD.float)},
-        {"label": "Time (hh:mm:ss)", "uri": str(XSD.time)},
-        {
-            "label": "Normalized text (no line breaks)",
-            "uri": str(XSD.normalizedString),
-        },
-        {"label": "Language code (e.g., en, it)", "uri": str(XSD.language)},
-        {
-            "label": "Double precision floating point number",
-            "uri": str(XSD.double),
-        },
-        {"label": "Tokenized text (single word)", "uri": str(XSD.token)},
-        {
-            "label": "Non-negative integer (0 or positive)",
-            "uri": str(XSD.nonNegativeInteger),
-        },
-        {
-            "label": "Positive integer (greater than 0)",
-            "uri": str(XSD.positiveInteger),
-        },
-        {
-            "label": "Non-positive integer (0 or negative)",
-            "uri": str(XSD.nonPositiveInteger),
-        },
-        {"label": "Negative integer", "uri": str(XSD.negativeInteger)},
-        {"label": "Long integer", "uri": str(XSD.long)},
-        {"label": "Short integer", "uri": str(XSD.short)},
-        {"label": "Byte-sized integer", "uri": str(XSD.byte)},
-        {"label": "Unsigned integer", "uri": str(XSD.unsignedInt)},
-        {"label": "Unsigned long integer", "uri": str(XSD.unsignedLong)},
-        {"label": "Unsigned short integer", "uri": str(XSD.unsignedShort)},
-        {"label": "Unsigned byte", "uri": str(XSD.unsignedByte)},
-        {"label": "Month (MM)", "uri": str(XSD.gMonth)},
-        {"label": "Day of the month (DD)", "uri": str(XSD.gDay)},
-        {
-            "label": "Duration (e.g., P1Y2M3DT4H5M6S)",
-            "uri": str(XSD.duration),
-        },
-        {"label": "Hexadecimal binary", "uri": str(XSD.hexBinary)},
-        {"label": "Base64 encoded binary", "uri": str(XSD.base64Binary)},
+        {"label": labels[datatype], "uri": str(datatype)}
+        for datatype in DATATYPE_OPTIONS
     ]
 
 

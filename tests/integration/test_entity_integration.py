@@ -8,13 +8,11 @@ These tests focus on the entity routes and functionality using real data on test
 databases.
 """
 
-import json
 import time
 import uuid
 from collections.abc import Generator
 from dataclasses import replace
 from datetime import datetime, timezone
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -1039,13 +1037,7 @@ def test_create_nested_entity(logged_in_client: FlaskClient, app: Flask) -> None
 
 def test_modification_entry(app: Flask) -> None:
     with app.app_context():
-        context_path = (
-            Path(__file__).parent.parent.parent / "heritrace" / "utils" / "context.json"
-        )
-        with context_path.open() as config_file:
-            context = json.load(config_file)["@context"]
-
-        real_filter = Filter(context, get_presentation(), MagicMock)
+        real_filter = Filter(get_presentation(), MagicMock)
         subject = URIRef("http://example.org/entity/1")
 
         def _make_ctx(classes_cache=None):
@@ -1096,7 +1088,7 @@ def test_modification_entry(app: Flask) -> None:
             "predicate": "http://purl.org/spar/pro/isDocumentContextFor",
             "predicate_label": "Author",
             "object": "http://example.org/role/1",
-            "object_label": "http://example.org/role/1",
+            "object_label": "1",
             "position": None,
         }
 

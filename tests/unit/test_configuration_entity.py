@@ -35,6 +35,7 @@ from heritrace.configuration.entity import (
 from heritrace.configuration.shapes import (
     read_duplicate_keys,
     read_shapes,
+    shapes_to_graph,
     unsupported_parts,
 )
 from heritrace.configuration.vocabulary import DASH, META, SH
@@ -803,3 +804,28 @@ def test_shapes_written_by_hand_have_one_name_for_each_language(
     )
 
     assert unsupported_parts(graph, read_shapes(graph)) == unsupported
+
+
+def test_named_values_keep_their_names_and_descriptions() -> None:
+    graph = Graph().parse(
+        data="""
+        @prefix sh: <http://www.w3.org/ns/shacl#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+        @prefix ex: <http://example.org/> .
+
+        ex:BookShape a sh:NodeShape ;
+          sh:targetClass ex:Book ;
+          sh:property [ sh:path ex:cover ; sh:in ( ex:hardcover ex:paperback ) ] .
+        ex:hardcover rdfs:label "Hardcover"@en, "Copertina rigida"@it ;
+          rdfs:comment "A cover made of board."@en .
+        ex:paperback a ex:Cover .
+        """,
+        format="turtle",
+    )
+    shapes = read_shapes(graph)
+    hardcover = URIRef("http://example.org/hardcover")
+
+    assert unsupported_parts(graph, shapes) == ["1 triples outside any shape"]
+    assert set(shapes_to_graph(shapes).triples((hardcover, None, None))) == set(
+        graph.triples((hardcover, None, None))
+    )

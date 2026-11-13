@@ -74,6 +74,7 @@ class FieldDef {
     required this.hasValueLabel,
     required this.optionalValues,
     required this.optionalValueLabels,
+    required this.optionalValueDescriptions,
     required this.conditions,
     required this.inputType,
     required this.orderedBy,
@@ -118,6 +119,13 @@ class FieldDef {
                 .entries)
           entry.key: entry.value as String,
       },
+      optionalValueDescriptions: {
+        for (final entry
+            in (json['optionalValueDescriptions'] as Map<String, dynamic>? ??
+                    {})
+                .entries)
+          entry.key: entry.value as String,
+      },
       conditions: (json['conditions'] as List<dynamic>? ?? [])
           .map((e) => FieldCondition.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -158,6 +166,7 @@ class FieldDef {
   final String? hasValueLabel;
   final List<String> optionalValues;
   final Map<String, String> optionalValueLabels;
+  final Map<String, String> optionalValueDescriptions;
   final List<FieldCondition> conditions;
   final String inputType;
   final String? orderedBy;
@@ -229,19 +238,45 @@ class FieldDef {
 
 bool isTrueLiteral(String value) => value == 'true' || value == '1';
 
-String _readableUri(String uri) {
-  final fragment = uri.contains('#')
-      ? uri.split('#').last
-      : uri.split('/').last;
-  final buffer = StringBuffer();
-  for (var i = 0; i < fragment.length; i++) {
-    final char = fragment[i];
-    if (i > 0 && char.toUpperCase() == char && char.toLowerCase() != char) {
-      buffer.write(' ');
-    }
-    buffer.write(char.toLowerCase());
+bool _isUpper(String char) =>
+    char.toUpperCase() == char && char.toLowerCase() != char;
+
+bool _isLower(String char) =>
+    char.toLowerCase() == char && char.toUpperCase() != char;
+
+bool _isDigit(String char) => '0123456789'.contains(char);
+
+// A capital starts a word after a lowercase letter or a digit, or when it
+// closes an acronym and a lowercase letter follows: NCName gives NC and Name.
+bool _startsWord(String name, int i) {
+  if (i == 0 || !_isUpper(name[i])) {
+    return false;
   }
-  return buffer.toString();
+  final previous = name[i - 1];
+  if (_isLower(previous) || _isDigit(previous)) {
+    return true;
+  }
+  return _isUpper(previous) && i + 1 < name.length && _isLower(name[i + 1]);
+}
+
+String _readableUri(String uri) {
+  final name = uri.contains('#') ? uri.split('#').last : uri.split('/').last;
+  final words = [StringBuffer()];
+  for (var i = 0; i < name.length; i++) {
+    if (_startsWord(name, i)) {
+      words.add(StringBuffer());
+    }
+    words.last.write(name[i]);
+  }
+  final text = words
+      .map((buffer) => buffer.toString())
+      .map(
+        (word) => word.length > 1 && word == word.toUpperCase()
+            ? word
+            : word.toLowerCase(),
+      )
+      .join(' ');
+  return text.isEmpty ? text : text[0].toUpperCase() + text.substring(1);
 }
 
 List<FieldDef> parseFormFields(List<dynamic> formFields) => [

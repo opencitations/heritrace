@@ -14,6 +14,7 @@ import '../form/widgets/boolean_field.dart';
 import '../form/widgets/field_group_widget.dart';
 import '../form/widgets/item_widgets.dart';
 import '../form/widgets/language_picker.dart';
+import '../form/widgets/option_sheet.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/entity_store.dart';
 import 'edit_session.dart';
@@ -243,19 +244,24 @@ class _ValueBody extends StatelessWidget {
       if (!editable) {
         return Text(triple.label ?? value.newValue);
       }
-      return AppMenuButton<String?>(
+      return OptionsButton<String?>(
+        title: value.group.displayName,
         value: options.any((o) => o.value == value.newValue)
             ? value.newValue
             : null,
         options: [
           for (final option in options)
-            AppMenuOption(option.value, option.label),
+            AppMenuOption(
+              option.value,
+              option.label,
+              description: option.description,
+            ),
         ],
         onChanged: (selected) => value.setValue(selected!),
       );
     }
     if (!editable) {
-      return Text(value.newValue);
+      return Text(triple.label ?? value.newValue);
     }
     final allowed = dateTypesFor(view.datatypes[triple.predicate] ?? const []);
     if (allowed.isNotEmpty) {

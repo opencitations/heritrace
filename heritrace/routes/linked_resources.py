@@ -155,7 +155,7 @@ def get_paginated_inverse_references(
             final_highest_priority_type = highest_priority_type
             final_shape = shape
 
-        label = custom_filter.human_readable_entity(
+        label = custom_filter.value_label(
             final_subject, (final_highest_priority_type, final_shape)
         )
         type_label = (

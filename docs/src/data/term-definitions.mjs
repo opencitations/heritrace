@@ -16,6 +16,8 @@ export const termDefinitions = {
   'owl:sameAs': 'https://www.w3.org/TR/owl2-syntax/#Individual_Equality',
   'rdf:langString': 'https://www.w3.org/TR/rdf11-concepts/#dfn-language-tagged-string',
   'rdf:type': 'https://www.w3.org/TR/rdf-schema/#ch_type',
+  'rdfs:comment': 'https://www.w3.org/TR/rdf-schema/#ch_comment',
+  'rdfs:label': 'https://www.w3.org/TR/rdf-schema/#ch_label',
   'sh:agentInstruction': 'https://w3c.github.io/data-shapes/shacl12-core/#agentInstruction',
   'sh:alternativePath': 'https://w3c.github.io/data-shapes/shacl12-core/#property-path-alternative',
   'sh:and': 'https://w3c.github.io/data-shapes/shacl12-core/#AndConstraintComponent',

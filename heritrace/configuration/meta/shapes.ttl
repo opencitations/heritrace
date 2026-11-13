@@ -30,14 +30,16 @@ meta:ShapesGraphShape
   sh:property [
     sh:path dcterms:hasPart ;
     sh:name "Resource types"@en, "Tipi di risorsa"@it ;
+    sh:description "The categories into which the resources of the dataset are divided"@en,
+      "Le categorie in cui si dividono le risorse del dataset"@it ;
     sh:order 1 ;
     sh:node meta:NodeShapeShape ;
   ] ;
   sh:property [
     sh:path sh:declare ;
     sh:name "Prefixes"@en, "Prefissi"@it ;
-    sh:description "Short names for namespaces, used to shorten the IRIs shown in this editor and in queries."@en,
-      "Nomi brevi per gli spazi dei nomi, usati per accorciare gli IRI mostrati in questo editor e nelle query."@it ;
+    sh:description "Each prefix shortens a namespace in the IRIs shown in this editor, also in label queries"@en,
+      "Ogni prefisso abbrevia un namespace negli IRI che compaiono in questo editor, anche nelle query delle etichette"@it ;
     sh:order 2 ;
     dash:composite true ;
     sh:node meta:PrefixDeclarationShape ;
@@ -129,6 +131,8 @@ meta:NodeShapeShape
   sh:property [
     sh:path sh:name ;
     sh:name "Name"@en, "Nome"@it ;
+    sh:description "The name that the interface shows for this type"@en,
+      "Il nome con cui l'interfaccia mostra questo tipo"@it ;
     sh:order 1 ;
     sh:or ( [ sh:datatype xsd:string ] [ sh:datatype rdf:langString ] ) ;
     sh:uniqueLang true ;
@@ -137,6 +141,8 @@ meta:NodeShapeShape
   sh:property [
     sh:path sh:targetClass ;
     sh:name "Class"@en, "Classe"@it ;
+    sh:description "The IRI of the class"@en,
+      "L'IRI della classe"@it ;
     sh:order 2 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
@@ -144,8 +150,8 @@ meta:NodeShapeShape
   sh:property [
     sh:path dash:hidden ;
     sh:name "Hidden"@en, "Nascosto"@it ;
-    sh:description "Resources of this type do not appear in the catalogue, in the recycle bin or among the types users can create. Other resources can still link to them."@en,
-      "Le risorse di questo tipo non compaiono nel catalogo, nel cestino né tra i tipi che si possono creare. Altre risorse possono comunque collegarsi a loro."@it ;
+    sh:description "Resources of this type do not appear in the catalogue, in the recycle bin or among the types users can create. Other resources can still link to them"@en,
+      "Le risorse di questo tipo non compaiono nel catalogo, nel cestino né tra i tipi che si possono creare. Altre risorse possono comunque collegarsi a loro"@it ;
     sh:order 3 ;
     sh:datatype xsd:boolean ;
     sh:maxCount 1 ;
@@ -153,6 +159,8 @@ meta:NodeShapeShape
   sh:property [
     sh:path sh:property ;
     sh:name "Fields"@en, "Campi"@it ;
+    sh:description "The fields of this type, in the order shown in forms and on resource pages. Dragging them changes the order"@en,
+      "I campi di questo tipo, nell'ordine in cui compaiono nei form e nelle pagine delle risorse. Trascinandoli si cambia l'ordine"@it ;
     sh:order 4 ;
     sh:node meta:PropertyShapeShape ;
   ] .
@@ -207,6 +215,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:name ;
     sh:name "Name"@en, "Nome"@it ;
+    sh:description "The label of the field"@en,
+      "L'etichetta del campo"@it ;
     sh:order 1 ;
     sh:or ( [ sh:datatype xsd:string ] [ sh:datatype rdf:langString ] ) ;
     sh:uniqueLang true ;
@@ -215,6 +225,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:path ;
     sh:name "Property"@en, "Proprietà"@it ;
+    sh:description "The IRI of the property"@en,
+      "L'IRI della proprietà"@it ;
     sh:order 2 ;
     sh:nodeKind sh:IRI ;
     sh:minCount 1 ;
@@ -223,8 +235,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:description ;
     sh:name "Description"@en, "Descrizione"@it ;
-    sh:description "Text shown under the field to help fill it in."@en,
-      "Testo mostrato sotto il campo per aiutare a compilarlo."@it ;
+    sh:description "Text shown under the field to help fill it in"@en,
+      "Testo mostrato sotto il campo per aiutare a compilarlo"@it ;
     sh:order 3 ;
     sh:or ( [ sh:datatype xsd:string ] [ sh:datatype rdf:langString ] ) ;
     sh:uniqueLang true ;
@@ -239,8 +251,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:minCount ;
     sh:name "Minimum number of values"@en, "Numero minimo di valori"@it ;
-    sh:description "Enter a whole number greater than or equal to 0."@en,
-      "Inserisci un numero intero maggiore o uguale a 0."@it ;
+    sh:description "Enter a whole number greater than or equal to 0"@en,
+      "Inserisci un numero intero maggiore o uguale a 0"@it ;
     sh:order 4 ;
     sh:datatype xsd:integer ;
     sh:minInclusive 0 ;
@@ -249,8 +261,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:maxCount ;
     sh:name "Maximum number of values"@en, "Numero massimo di valori"@it ;
-    sh:description "Enter a whole number greater than or equal to 0. Without it, there is no limit."@en,
-      "Inserisci un numero intero maggiore o uguale a 0. Senza questo valore non c'è limite."@it ;
+    sh:description "Enter a whole number greater than or equal to 0. Without it, there is no limit"@en,
+      "Inserisci un numero intero maggiore o uguale a 0. Senza questo valore non c'è limite"@it ;
     sh:order 5 ;
     sh:datatype xsd:integer ;
     sh:minInclusive 0 ;
@@ -259,15 +271,61 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:datatype ;
     sh:name "Datatype"@en, "Tipo di dato"@it ;
+    sh:description "The type of the value, such as text or a date. It also picks the input: for example, dates get a calendar, numbers a numeric keyboard"@en,
+      "Il tipo del valore, come un testo o una data. Determina anche l'input: per esempio, le date hanno un calendario, i numeri una tastiera numerica"@it ;
     sh:order 6 ;
-    sh:nodeKind sh:IRI ;
+    sh:in (
+      xsd:anyURI
+      xsd:base64Binary
+      xsd:boolean
+      xsd:byte
+      xsd:date
+      xsd:dateTime
+      xsd:dateTimeStamp
+      xsd:dayTimeDuration
+      xsd:decimal
+      xsd:double
+      xsd:duration
+      xsd:ENTITIES
+      xsd:ENTITY
+      xsd:float
+      xsd:gYear
+      xsd:gYearMonth
+      xsd:hexBinary
+      xsd:ID
+      xsd:IDREF
+      xsd:IDREFS
+      xsd:int
+      xsd:integer
+      rdf:langString
+      xsd:long
+      xsd:Name
+      xsd:NCName
+      xsd:negativeInteger
+      xsd:NMTOKEN
+      xsd:NMTOKENS
+      xsd:nonNegativeInteger
+      xsd:nonPositiveInteger
+      xsd:normalizedString
+      xsd:NOTATION
+      xsd:positiveInteger
+      xsd:QName
+      xsd:short
+      xsd:string
+      xsd:time
+      xsd:unsignedByte
+      xsd:unsignedInt
+      xsd:unsignedLong
+      xsd:unsignedShort
+      xsd:yearMonthDuration
+    ) ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path sh:minInclusive ;
     sh:name "Minimum value (included)"@en, "Valore minimo (incluso)"@it ;
-    sh:description "The smallest value accepted."@en,
-      "Il valore più piccolo accettato."@it ;
+    sh:description "The smallest value accepted"@en,
+      "Il valore più piccolo accettato"@it ;
     sh:order 7 ;
     sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:decimal ] ) ;
     sh:maxCount 1 ;
@@ -275,8 +333,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:maxInclusive ;
     sh:name "Maximum value (included)"@en, "Valore massimo (incluso)"@it ;
-    sh:description "The largest value accepted."@en,
-      "Il valore più grande accettato."@it ;
+    sh:description "The largest value accepted"@en,
+      "Il valore più grande accettato"@it ;
     sh:order 8 ;
     sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:decimal ] ) ;
     sh:maxCount 1 ;
@@ -284,8 +342,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:minExclusive ;
     sh:name "Minimum value (excluded)"@en, "Valore minimo (escluso)"@it ;
-    sh:description "Accepted values are greater than this number."@en,
-      "I valori accettati sono maggiori di questo numero."@it ;
+    sh:description "Accepted values are greater than this number"@en,
+      "I valori accettati sono maggiori di questo numero"@it ;
     sh:order 9 ;
     sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:decimal ] ) ;
     sh:maxCount 1 ;
@@ -293,22 +351,26 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:maxExclusive ;
     sh:name "Maximum value (excluded)"@en, "Valore massimo (escluso)"@it ;
-    sh:description "Accepted values are less than this number."@en,
-      "I valori accettati sono minori di questo numero."@it ;
+    sh:description "Accepted values are less than this number"@en,
+      "I valori accettati sono minori di questo numero"@it ;
     sh:order 10 ;
     sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:decimal ] ) ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path sh:node ;
-    sh:name "Nested resource type"@en, "Tipo di risorsa annidata"@it ;
+    sh:name "SHACL shape of the value"@en, "Shape SHACL del valore"@it ;
+    sh:description "The IRI of the SHACL shape that the value must conform to"@en,
+      "L'IRI della shape SHACL a cui il valore si deve conformare"@it ;
     sh:order 11 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path sh:class ;
-    sh:name "Class of the linked resource"@en, "Classe della risorsa collegata"@it ;
+    sh:name "Class of the value"@en, "Classe del valore"@it ;
+    sh:description "The IRI of the class that the value must belong to"@en,
+      "L'IRI della classe a cui il valore deve appartenere"@it ;
     sh:order 12 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
@@ -316,6 +378,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path shui:editor ;
     sh:name "Editor"@en, "Editor"@it ;
+    sh:description "How this field is edited"@en,
+      "Come si modifica questo campo"@it ;
     sh:order 13 ;
     sh:in ( shui:TextFieldEditor shui:TextAreaEditor shui:TextFieldWithLangEditor shui:TextAreaWithLangEditor shui:AutoCompleteEditor shui:DetailsEditor ) ;
     sh:maxCount 1 ;
@@ -323,6 +387,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path shui:viewer ;
     sh:name "Viewer"@en, "Visualizzatore"@it ;
+    sh:description "How this field is read"@en,
+      "Come si legge questo campo"@it ;
     sh:order 14 ;
     sh:in ( shui:DetailsViewer ) ;
     sh:maxCount 1 ;
@@ -330,8 +396,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path dash:composite ;
     sh:name "Points to a dependent resource"@en, "Punta a una risorsa dipendente"@it ;
-    sh:description "A resource reached through this property has no meaning without this link. The Dependent resources setting decides what happens when the link is removed."@en,
-      "Una risorsa raggiunta tramite questa proprietà non ha senso senza questo collegamento. Cosa succede quando il collegamento viene rimosso lo decide l'impostazione Risorse dipendenti."@it ;
+    sh:description "A resource reached through this property has no meaning without this link. The setting Configuration > System > Cleanup after a deletion > Dependent resources decides what happens when the link is removed"@en,
+      "Una risorsa raggiunta tramite questa proprietà non ha senso senza questo collegamento. Cosa succede quando il collegamento viene rimosso lo decide l'impostazione Configurazione > Sistema > Pulizia dopo un'eliminazione > Risorse dipendenti"@it ;
     sh:order 15 ;
     sh:datatype xsd:boolean ;
     sh:maxCount 1 ;
@@ -339,8 +405,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path dash:hidden ;
     sh:name "Hidden"@en, "Nascosto"@it ;
-    sh:description "The field does not appear in forms or on resource pages. Its values are still validated."@en,
-      "Il campo non compare nei form e nelle pagine delle risorse, ma i suoi valori vengono comunque validati."@it ;
+    sh:description "The field does not appear in forms or on resource pages. Its values are still validated"@en,
+      "Il campo non compare nei form e nelle pagine delle risorse, ma i suoi valori vengono comunque validati"@it ;
     sh:order 16 ;
     sh:datatype xsd:boolean ;
     sh:maxCount 1 ;
@@ -348,8 +414,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path ht:orderedBy ;
     sh:name "Link to the next value"@en, "Collegamento al valore successivo"@it ;
-    sh:description "The property that links each value to the next one. Values appear in this order and can be dragged into a new one."@en,
-      "La proprietà che collega ogni valore al successivo. I valori compaiono in quest'ordine e si possono trascinare in un ordine nuovo."@it ;
+    sh:description "Useful when the order of the values matters. The IRI of the property that links each value to the next one. With this property, the values appear in order and have handles to reorder them by dragging"@en,
+      "Utile se l'ordine dei valori conta. L'IRI della proprietà che collega ogni valore al successivo. Con questa proprietà, i valori compaiono in ordine e hanno delle maniglie per riordinarli trascinandoli"@it ;
     sh:order 17 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
@@ -357,16 +423,16 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:property ;
     sh:name "Fields shown in place"@en, "Campi mostrati sul posto"@it ;
-    sh:description "The fields of the nested resource that appear inside this resource. When the list is empty, all of them appear."@en,
-      "I campi della risorsa annidata che compaiono dentro questa risorsa. Se l'elenco è vuoto, compaiono tutti."@it ;
+    sh:description "Useful together with “Nested form” as the editor and “Details” as the viewer. Sets the fields of the nested resource that appear directly inside the editor and the viewer of the parent. Each entry is the IRI of a property of the nested resource. When the list is empty, all of them appear"@en,
+      "Utile in combinazione con “Form annidato” come editor e “Dettagli” come visualizzatore. Stabilisce i campi della risorsa annidata che compaiono direttamente dentro l'editor e il visualizzatore del genitore. Ogni voce è l'IRI di una proprietà della risorsa annidata. Se l'elenco è vuoto, compaiono tutti"@it ;
     sh:order 18 ;
     sh:node meta:DetailFieldShape ;
   ] ;
   sh:property [
     sh:path sh:uniqueLang ;
     sh:name "One value for each language"@en, "Un valore per ogni lingua"@it ;
-    sh:description "Two values of this field cannot have the same language."@en,
-      "Due valori di questo campo non possono avere la stessa lingua."@it ;
+    sh:description "Two values of this field cannot have the same language"@en,
+      "Due valori di questo campo non possono avere la stessa lingua"@it ;
     sh:order 19 ;
     sh:datatype xsd:boolean ;
     sh:maxCount 1 ;
@@ -385,6 +451,8 @@ meta:DetailFieldShape
   sh:property [
     sh:path sh:path ;
     sh:name "Property"@en, "Proprietà"@it ;
+    sh:description "The IRI of the property of the nested resource to show"@en,
+      "L'IRI della proprietà della risorsa annidata da mostrare"@it ;
     sh:nodeKind sh:IRI ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -417,6 +485,8 @@ meta:PrefixDeclarationShape
   sh:property [
     sh:path sh:prefix ;
     sh:name "Prefix"@en, "Prefisso"@it ;
+    sh:description "The short name that replaces the namespace at the start of an IRI"@en,
+      "Il nome breve che sostituisce il namespace all'inizio di un IRI"@it ;
     sh:order 1 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
@@ -424,9 +494,44 @@ meta:PrefixDeclarationShape
   ] ;
   sh:property [
     sh:path sh:namespace ;
-    sh:name "Namespace"@en, "Spazio dei nomi"@it ;
+    sh:name "Namespace"@en, "Namespace"@it ;
+    sh:description "The start of the IRIs that this prefix shortens"@en,
+      "La parte iniziale degli IRI che questo prefisso accorcia"@it ;
     sh:order 2 ;
     sh:datatype xsd:anyURI ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] .
+
+shui:TextFieldEditor
+  rdfs:label "Text field"@en, "Campo di testo"@it ;
+  rdfs:comment "One line of text"@en, "Una riga di testo"@it .
+
+shui:TextAreaEditor
+  rdfs:label "Text area"@en, "Area di testo"@it ;
+  rdfs:comment "Several lines of text"@en, "Più righe di testo"@it .
+
+shui:TextFieldWithLangEditor
+  rdfs:label "Text field with language"@en, "Campo di testo con lingua"@it ;
+  rdfs:comment "One line of text, with a menu for its language"@en,
+    "Una riga di testo, con un menu per la lingua"@it .
+
+shui:TextAreaWithLangEditor
+  rdfs:label "Text area with language"@en, "Area di testo con lingua"@it ;
+  rdfs:comment "Several lines of text, with a menu for their language"@en,
+    "Più righe di testo, con un menu per la lingua"@it .
+
+shui:AutoCompleteEditor
+  rdfs:label "Search"@en, "Ricerca"@it ;
+  rdfs:comment "A search field that finds the value among the existing resources"@en,
+    "Un campo di ricerca che trova il valore tra le risorse esistenti"@it .
+
+shui:DetailsEditor
+  rdfs:label "Nested form"@en, "Form annidato"@it ;
+  rdfs:comment "The fields of the value appear in place, inside this form"@en,
+    "I campi del valore compaiono sul posto, dentro questo form"@it .
+
+shui:DetailsViewer
+  rdfs:label "Details"@en, "Dettagli"@it ;
+  rdfs:comment "The fields of the value appear in place of the link"@en,
+    "I campi del valore compaiono al posto del collegamento"@it .

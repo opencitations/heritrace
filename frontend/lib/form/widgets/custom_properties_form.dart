@@ -15,6 +15,7 @@ import '../../session/session_models.dart';
 import '../form_model.dart';
 import '../form_repository.dart';
 import '../validator.dart';
+import 'option_sheet.dart';
 
 class CustomPropertiesController extends ChangeNotifier {
   final List<CustomProperty> properties = [];
@@ -205,7 +206,8 @@ class _CustomPropertyRowState extends ConsumerState<_CustomPropertyRow> {
               Expanded(
                 child: AppLabeledField(
                   label: t.ui.form.datatype,
-                  child: AppMenuButton<String?>(
+                  child: OptionsButton<String?>(
+                    title: t.ui.form.datatype,
                     value:
                         options.any((option) => option.uri == property.datatype)
                         ? property.datatype

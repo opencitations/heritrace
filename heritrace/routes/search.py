@@ -46,7 +46,7 @@ def search_entities() -> Response | tuple[Response, int]:
     uris = [binding["entity"]["value"] for binding in bindings]
     custom_filter = get_custom_filter()
     results = [
-        {"uri": uri, "label": custom_filter.human_readable_entity(uri, entity_key)}
+        {"uri": uri, "label": custom_filter.value_label(uri, entity_key)}
         for uri in uris[: search_request.limit]
     ]
     return jsonify(

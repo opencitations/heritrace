@@ -15,7 +15,7 @@ from heritrace.utils.filters import Filter
 def mock_custom_filter():
     filter_mock = MagicMock(spec=Filter)
     filter_mock.human_readable_class.return_value = "Person"
-    filter_mock.human_readable_entity.return_value = "Human Readable Entity"
+    filter_mock.value_label.return_value = "Human Readable Entity"
     return filter_mock
 
 
@@ -86,7 +86,7 @@ def test_get_object_label_uri(mock_custom_filter) -> None:
     )
 
     assert label == "Human Readable Entity"
-    mock_custom_filter.human_readable_entity.assert_called_once_with(
+    mock_custom_filter.value_label.assert_called_once_with(
         object_value, ("http://example.org/Person", None), snapshot
     )
 
@@ -109,7 +109,10 @@ def test_get_object_label_uri_no_snapshot(mock_custom_filter) -> None:
 
     label = get_object_label(object_value, predicate, None, None, ctx)
 
-    assert label == "http://example.org/some-entity"
+    assert label == "Human Readable Entity"
+    mock_custom_filter.value_label.assert_called_once_with(
+        object_value, (None, None), None
+    )
 
 
 def test_get_object_label_literal_value(mock_custom_filter) -> None:
@@ -138,4 +141,4 @@ def test_get_object_label_literal_value(mock_custom_filter) -> None:
 
     assert label == "Simple text value"
     mock_custom_filter.human_readable_predicate.assert_not_called()
-    mock_custom_filter.human_readable_entity.assert_not_called()
+    mock_custom_filter.value_label.assert_not_called()

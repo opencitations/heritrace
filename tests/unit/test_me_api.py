@@ -8,7 +8,6 @@ from flask.testing import FlaskClient
 from rdflib import XSD, Graph, Literal
 
 from heritrace.configuration.vocabulary import DASH, SH
-from heritrace.utils.datatypes import get_datatype_options
 from tests.test_config import TestConfig
 
 
@@ -19,12 +18,18 @@ def test_me_for_anonymous_users_exposes_only_the_config(client: FlaskClient) -> 
     payload = response.get_json()
     assert payload["user"] is None
     assert payload["default_primary_source"] is None
-    assert payload["config"] == {
+    config = payload.pop("config")
+    datatype_options = config.pop("datatype_options")
+    assert config == {
         "app_title": "ParaText Test",
         "app_subtitle": "Bibliographical database - Test Environment",
         "shacl": True,
-        "datatype_options": get_datatype_options(),
     }
+    assert datatype_options[:3] == [
+        {"label": "String", "uri": str(XSD.string)},
+        {"label": "Any URI", "uri": str(XSD.anyURI)},
+        {"label": "Integer", "uri": str(XSD.integer)},
+    ]
 
 
 def test_me_for_signed_in_users_includes_the_user_and_default_source(

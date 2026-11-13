@@ -164,7 +164,7 @@ def entity_history(entity_uri: str) -> Response:
             }
         )
 
-    entity_label = custom_filter.human_readable_entity(
+    entity_label = custom_filter.value_label(
         entity_uri, (highest_priority_class, snapshot_entity_shape), context_snapshot
     )
 
@@ -223,7 +223,7 @@ def _format_snapshot_description(
                         )
 
                         shape = determine_shape_for_classes(raw_merged_entity_classes)
-                        merged_entity_label = ctx.custom_filter.human_readable_entity(
+                        merged_entity_label = ctx.custom_filter.value_label(
                             merged_entity_uri_from_desc,
                             (highest_priority_merged_class, shape),
                             previous_snapshot_graph,
@@ -241,7 +241,7 @@ def _format_snapshot_description(
         if ctx.highest_priority_class
         else None
     )
-    entity_label_for_desc = ctx.custom_filter.human_readable_entity(
+    entity_label_for_desc = ctx.custom_filter.value_label(
         ctx.entity_uri, (ctx.highest_priority_class, shape), context_snapshot
     )
     if entity_label_for_desc and entity_label_for_desc != ctx.entity_uri:
@@ -493,7 +493,7 @@ def entity_version(entity_uri: str, timestamp: str) -> Response:
     return jsonify(
         {
             "entity_uri": entity_uri,
-            "entity_label": custom_filter.human_readable_entity(
+            "entity_label": custom_filter.value_label(
                 entity_uri, (highest_priority_class, entity_shape), context_version
             ),
             "type": highest_priority_class,

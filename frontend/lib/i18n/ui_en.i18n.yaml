@@ -66,6 +66,7 @@ form:
   draftLabelFailed: Could not update the resource label
   noLanguage: No language
   language: Language
+  searchOptions: Search
   searchLanguages: Search languages
   dateTypeDate: Date
   dateTypeMonth: Year and month

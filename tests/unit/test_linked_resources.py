@@ -73,9 +73,7 @@ def test_get_paginated_inverse_references_basic(
         mock_bindings, limit=limit, offset=offset
     )
     mock_get_sparql.return_value = mock_sparql_instance
-    mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, _t: (
-        f"{s}_label"
-    )
+    mock_get_filter.return_value.value_label.side_effect = lambda s, _t: f"{s}_label"
     # Updated to match the new tuple-based structure
     mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: (
         f"{p}_label"
@@ -126,9 +124,7 @@ def test_get_paginated_inverse_references_pagination_has_more(
         mock_bindings, limit=limit, offset=offset
     )
     mock_get_sparql.return_value = mock_sparql_instance
-    mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, _t: (
-        f"{s}_label"
-    )
+    mock_get_filter.return_value.value_label.side_effect = lambda s, _t: f"{s}_label"
     # Updated to match the new tuple-based structure
     mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: (
         f"{p}_label"
@@ -179,9 +175,7 @@ def test_get_paginated_inverse_references_pagination_no_more(
         all_bindings, limit=limit, offset=offset
     )
     mock_get_sparql.return_value = mock_sparql_instance
-    mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, _t: (
-        f"{s}_label"
-    )
+    mock_get_filter.return_value.value_label.side_effect = lambda s, _t: f"{s}_label"
     # Updated to match the new tuple-based structure
     mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: (
         f"{p}_label"
@@ -529,9 +523,7 @@ def test_get_paginated_inverse_references_with_composite_entity(
         ["http://example.org/SourceType"],  # types for source
     ]
 
-    mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, _t: (
-        f"{s}_label"
-    )
+    mock_get_filter.return_value.value_label.side_effect = lambda s, _t: f"{s}_label"
     mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: (
         f"{p}_label"
     )
@@ -604,9 +596,7 @@ def test_get_paginated_inverse_references_composite_same_as_original(
     # Mock entity types - only called once since resolved == original
     mock_get_types.return_value = ["http://example.org/CompositeType"]
 
-    mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, _t: (
-        f"{s}_label"
-    )
+    mock_get_filter.return_value.value_label.side_effect = lambda s, _t: f"{s}_label"
     mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: (
         f"{p}_label"
     )
@@ -650,9 +640,7 @@ def test_get_paginated_inverse_references_no_highest_priority_type(
     )
     mock_get_sparql.return_value = mock_sparql_instance
 
-    mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, _t: (
-        f"{s}_label"
-    )
+    mock_get_filter.return_value.value_label.side_effect = lambda s, _t: f"{s}_label"
     mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: (
         f"{p}_label"
     )

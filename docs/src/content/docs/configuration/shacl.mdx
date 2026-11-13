@@ -293,7 +293,7 @@ Add `dash:composite true` to a property shape when its values have a meaning onl
 
 Without `dash:composite`, removing a value removes only the link, and the linked entity stays.
 
-The **Points to a dependent resource** option of the [configuration editor](../editor/) sets this term on a field that links to another resource, through a **Nested resource type** (`sh:node`) or a **Class of the linked resource** (`sh:class`).
+The **Points to a dependent resource** option of the [configuration editor](../editor/) sets this term on a field that links to another resource, through a **SHACL shape of the value** (`sh:node`) or a **Class of the value** (`sh:class`).
 
 <Aside type="note" title="A HERITRACE rule, not a DASH one">
 Although DASH declares `dash:composite` on any property shape, it does not require the values to be nodes or entities ([DASH, section "Composites"](https://datashapes.org/dash.html#composites)). However, the term has no meaning on a property that does not point to another entity. HERITRACE therefore adds the following restriction to the shapes of its configuration editor:
@@ -348,7 +348,7 @@ sh:property [
 ] .
 ```
 
-Without `sh:name`, HERITRACE derives a readable name from the IRI, so `hasPublicationDate` becomes "has publication date".
+Without `sh:name`, HERITRACE derives a readable name from the IRI, so `hasPublicationDate` becomes "Has publication date" and `anyURI` becomes "Any URI".
 
 ### Descriptions (`sh:description`)
 
@@ -392,7 +392,7 @@ In the [configuration editor](../editor/), you set this order by dragging the fi
 
 ### Widgets (`shui:editor`)
 
-HERITRACE does its best to pick the right input from the constraints of each property. A property with `sh:in` becomes a list of values to choose from. A date datatype (`xsd:date`, `xsd:gYearMonth` or `xsd:gYear`) gets a calendar, and when the shape allows more than one of them, users also choose between a full date, a month and a year. Numbers and `xsd:anyURI` open the matching keyboard. Any other value gets a single-line text field.
+HERITRACE does its best to pick the right input from the constraints of each property. A property with `sh:in` becomes a menu of values to choose from; with more than ten values, the menu becomes a sheet with a search field. A date datatype (`xsd:date`, `xsd:gYearMonth` or `xsd:gYear`) gets a calendar, and when the shape allows more than one of them, users also choose between a full date, a month and a year. Numbers and `xsd:anyURI` open the matching keyboard. Any other value gets a single-line text field.
 
 The datatype cannot tell a short title from a long abstract, though, because both are strings. For such fields, `shui:editor` sets the input: `shui:TextAreaEditor` asks for a multi-line text area, and `shui:TextFieldEditor` for a single-line field.
 
@@ -499,9 +499,16 @@ When users save a new order, HERITRACE rewrites the chain. The first value has n
 
 The **Link to the next value** option of the [configuration editor](../editor/) sets this term on a field.
 
-### Entity labels (`shui:LabelRole`)
+### Labels (`shui:LabelRole` and `rdfs:label`)
 
-Each entity is identified by an IRI, such as `https://w3id.org/oc/meta/ra/0601`, which people cannot read. Its label is the text that HERITRACE shows in place of the IRI, such as "Maltezou, Helen C.". To define it, mark one property shape of the node shape with `shui:propertyRole shui:LabelRole`. Without it, HERITRACE shows the IRI.
+Each entity is identified by an IRI, such as `https://w3id.org/oc/meta/ra/0601`, which people cannot read. Its label is the text that HERITRACE shows in place of the IRI, such as "Maltezou, Helen C.". HERITRACE follows the label resolution of SHACL UI and stops at the first of these sources that gives a result:
+
+1. The property shape that the node shape of the entity marks with `shui:propertyRole shui:LabelRole`.
+2. The `rdfs:label` of the IRI in the data, in the language of the interface.
+3. The `rdfs:label` of the IRI in the shapes graph, in the same language.
+4. The local name of the IRI, made readable as for property names, so `https://w3id.org/oc/meta/ra/0601` becomes "0601".
+
+The same order names every IRI that appears as a value, including those that no node shape describes, such as the members of an `sh:in` list, the value of `sh:hasValue` or a datatype. Because such terms usually come from a vocabulary outside the dataset, the shapes graph is where to name them. An `rdfs:comment` beside the label explains the term, and menus show it under the name of each option.
 
 If the data already holds a readable name, give the role to the property shape of that name. Here an agent is labelled by its `foaf:name`:
 
@@ -546,7 +553,7 @@ The prefixes that the query uses are declared once for the whole shapes graph:
         [ sh:prefix "frbr" ; sh:namespace "http://purl.org/vocab/frbr/core#"^^xsd:anyURI ] .
 ```
 
-A select expression can also carry its own `sh:prefixes`. If a label query returns no result, HERITRACE reports the error.
+A select expression can also carry its own `sh:prefixes`. If a label query returns no result, HERITRACE moves on to the next source.
 
 A label query can also read the language of the interface from `$language`, which holds `"en"` or `"it"`. Use it to prefer the text in that language, as in `FILTER(LANG(?title) = $language)`.
 

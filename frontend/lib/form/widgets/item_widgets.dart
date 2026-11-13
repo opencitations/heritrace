@@ -18,6 +18,7 @@ import 'entity_form.dart';
 import 'field_group_widget.dart';
 import 'language_picker.dart';
 import 'nested_dialog.dart';
+import 'option_sheet.dart';
 
 TextInputType valueKeyboardType(FieldDef def) => def.isInteger
     ? TextInputType.numberWithOptions(signed: def.acceptsNegative)
@@ -276,14 +277,19 @@ class SelectField extends StatelessWidget {
     final def = item.def;
     return ListenableBuilder(
       listenable: item,
-      builder: (context, _) => AppMenuButton<String?>(
+      builder: (context, _) => OptionsButton<String?>(
+        title: def.displayName,
         value: item.value,
         focusNode: item.focusNode,
         errorText: itemErrorText(context, item),
         options: [
           AppMenuOption(null, t.ui.form.selectOption),
           for (final value in def.optionalValues)
-            AppMenuOption(value, def.optionalValueLabel(value)),
+            AppMenuOption(
+              value,
+              def.optionalValueLabel(value),
+              description: def.optionalValueDescriptions[value],
+            ),
         ],
         onChanged: (value) {
           item.setValue(value);

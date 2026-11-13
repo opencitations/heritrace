@@ -414,7 +414,7 @@ def test_grouped_triples_follow_the_shapes() -> None:
         patch(f"{module}.get_presentation", return_value=presentation),
         patch(
             f"{module}.get_custom_filter",
-            return_value=Filter({}, presentation, MagicMock),
+            return_value=Filter(presentation, MagicMock),
         ),
         patch(f"{module}.get_form_fields", return_value=form_fields),
         patch("heritrace.utils.shacl_utils.get_shacl_graph", return_value=shapes),
@@ -460,11 +460,11 @@ def test_grouped_triples_follow_the_shapes() -> None:
             "details": [
                 {
                     "name": "Role",
-                    "values": [{"label": ex + "author", "uri": None}],
+                    "values": [{"label": "Author", "uri": None}],
                 },
                 {
                     "name": "Held By",
-                    "values": [{"label": str(agent), "uri": str(agent)}],
+                    "values": [{"label": "Agent", "uri": str(agent)}],
                 },
             ],
         }
@@ -475,7 +475,8 @@ def test_grouped_triples_follow_the_shapes() -> None:
             "subjectClass": ex + "Article",
             "subjectShape": ex + "ArticleShape",
             "objectShape": ex + "EditorShape",
-            "triple": (str(article), ex + "contributor", editor),
+            "triple": (str(article), ex + "contributor", "Editor"),
+            "external_entity": str(editor),
         }
     ]
     assert grouped[ex + "extra"]["triples"] == []

@@ -314,10 +314,7 @@ def get_object_label(
         return ctx.custom_filter.human_readable_class((str(object_value), None))
 
     if is_valid_url(object_value):
-        if object_shape_uri or object_class:
-            return ctx.custom_filter.human_readable_entity(
-                object_value, (object_class, object_shape_uri), ctx.relevant_snapshot
-            )
-        return str(object_value)
-
+        return ctx.custom_filter.value_label(
+            object_value, (object_class, object_shape_uri), ctx.relevant_snapshot
+        )
     return str(object_value)

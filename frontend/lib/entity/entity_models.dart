@@ -5,15 +5,21 @@
 import '../form/field_def.dart';
 
 class OptionalValue {
-  const OptionalValue({required this.value, required this.label});
+  const OptionalValue({
+    required this.value,
+    required this.label,
+    this.description,
+  });
 
   factory OptionalValue.fromJson(Map<String, dynamic> json) => OptionalValue(
     value: json['value'] as String,
     label: json['label'] as String,
+    description: json['description'] as String?,
   );
 
   final String value;
   final String label;
+  final String? description;
 }
 
 class DetailValue {

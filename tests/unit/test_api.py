@@ -835,7 +835,7 @@ def test_check_orphans_with_orphans_delete_strategy(
     # Set up the mock custom filter to return static values to avoid serialization
     # issues
     custom_filter = MagicMock()
-    custom_filter.human_readable_entity.return_value = "Human Readable Entity"
+    custom_filter.value_label.return_value = "Human Readable Entity"
     custom_filter.human_readable_class.return_value = "Human Readable Type"
     mock_get_custom_filter.return_value = custom_filter
 
@@ -891,7 +891,7 @@ def test_check_orphans_with_proxies_delete_strategy(
     # Set up the mock custom filter to return static values to avoid serialization
     # issues
     custom_filter = MagicMock()
-    custom_filter.human_readable_entity.return_value = "Human Readable Entity"
+    custom_filter.value_label.return_value = "Human Readable Entity"
     custom_filter.human_readable_class.return_value = "Human Readable Type"
     mock_get_custom_filter.return_value = custom_filter
 
@@ -947,7 +947,7 @@ def test_check_orphans_with_orphans_ask_strategy(
     # Set up the mock custom filter to return static values to avoid serialization
     # issues
     custom_filter = MagicMock()
-    custom_filter.human_readable_entity.return_value = "Human Readable Entity"
+    custom_filter.value_label.return_value = "Human Readable Entity"
     custom_filter.human_readable_class.return_value = "Human Readable Type"
     mock_get_custom_filter.return_value = custom_filter
 
@@ -1003,7 +1003,7 @@ def test_check_orphans_with_proxies_ask_strategy(
     # Set up the mock custom filter to return static values to avoid serialization
     # issues
     custom_filter = MagicMock()
-    custom_filter.human_readable_entity.return_value = "Human Readable Entity"
+    custom_filter.value_label.return_value = "Human Readable Entity"
     custom_filter.human_readable_class.return_value = "Human Readable Type"
     mock_get_custom_filter.return_value = custom_filter
 
@@ -1059,7 +1059,7 @@ def test_check_orphans_with_both_orphans_and_proxies(
     # Set up the mock custom filter to return static values to avoid serialization
     # issues
     custom_filter = MagicMock()
-    custom_filter.human_readable_entity.return_value = "Human Readable Entity"
+    custom_filter.value_label.return_value = "Human Readable Entity"
     custom_filter.human_readable_class.return_value = "Human Readable Type"
     mock_get_custom_filter.return_value = custom_filter
 
@@ -1871,7 +1871,7 @@ def test_format_entities(mock_get_custom_filter, app: Flask) -> None:
         mock_get_custom_filter.return_value = mock_filter
 
         # Configure the mock to return readable values
-        mock_filter.human_readable_entity.return_value = "Entity Label"
+        mock_filter.value_label.return_value = "Entity Label"
         mock_filter.human_readable_predicate.return_value = "Entity Type"
 
         # Create test entities
@@ -1891,9 +1891,7 @@ def test_format_entities(mock_get_custom_filter, app: Flask) -> None:
             return [
                 {
                     "uri": entity["uri"],
-                    "label": mock_filter.human_readable_entity(
-                        entity["uri"], [entity["type"]]
-                    ),
+                    "label": mock_filter.value_label(entity["uri"], [entity["type"]]),
                     "type": mock_filter.human_readable_predicate(
                         entity["type"], [entity["type"]]
                     ),
@@ -2355,9 +2353,11 @@ def test_get_form_fields_adds_labels_for_fixed_values(
 ) -> None:
     custom_filter = MagicMock()
     custom_filter.human_readable_class.side_effect = lambda key: f"class:{key[0]}"
-    custom_filter.human_readable_predicate.side_effect = lambda value, _key: (
-        f"label:{value}"
-    )
+    custom_filter.value_label.side_effect = lambda value: f"label:{value}"
+    custom_filter.value_labels.side_effect = lambda shapes: {
+        value: f"option:{value}" for value in shapes
+    }
+    custom_filter.value_description.side_effect = lambda value: f"about:{value}"
     mock_get_custom_filter.return_value = custom_filter
     rdf_type = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     mock_get_form_fields.return_value = {
@@ -2402,7 +2402,10 @@ def test_get_form_fields_adds_labels_for_fixed_values(
     assert form_fields[0][1][0]["hasValueLabel"] == "class:http://example.org/class"
     role_field = form_fields[1][1][0]
     assert role_field["optionalValueLabels"] == {
-        "http://example.org/author": "label:http://example.org/author"
+        "http://example.org/author": "option:http://example.org/author"
+    }
+    assert role_field["optionalValueDescriptions"] == {
+        "http://example.org/author": "about:http://example.org/author"
     }
     option = role_field["or"][0]
     assert option["displayName"] == "class:http://example.org/Nested"

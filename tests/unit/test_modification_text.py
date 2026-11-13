@@ -122,7 +122,7 @@ def test_build_modifications_orders_groups_by_shape(mock_custom_filter) -> None:
             (URIRef(PERSON), URIRef(prop), URIRef("http://example.org/entity2")),
         ]
     }
-    mock_custom_filter.human_readable_entity.side_effect = lambda uri, *_a: str(uri)
+    mock_custom_filter.value_label.side_effect = lambda uri, *_a: str(uri)
     snapshot = Graph()
     snapshot.add((URIRef(PERSON), URIRef(NAME), Literal("John Doe")))
     with patch.multiple(

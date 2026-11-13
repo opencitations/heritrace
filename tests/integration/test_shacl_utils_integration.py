@@ -24,7 +24,6 @@ from heritrace.utils.shacl_utils import (
 from heritrace.utils.shacl_validation import (
     convert_to_matching_class,
     convert_to_matching_literal,
-    get_datatype_label,
     get_valid_predicates,
     validate_new_triple,
 )
@@ -955,58 +954,6 @@ def test_validate_new_triple_with_complex_conditions(
         assert str(valid_value) == "Test Title"
 
 
-def test_get_datatype_label() -> None:
-    """Test the get_datatype_label function."""
-    # Test with known datatype
-    assert get_datatype_label(str(XSD.string)) == "String"
-    assert get_datatype_label(str(XSD.date)) == "Date"
-
-    # Test with unknown datatype
-    with patch("heritrace.utils.shacl_validation.get_custom_filter", return_value=None):
-        assert (
-            get_datatype_label("http://example.org/unknown")
-            == "http://example.org/unknown"
-        )
-
-    # Test with None
-    assert get_datatype_label(None) is None
-
-
-def test_get_datatype_label_with_custom_filter(monkeypatch) -> None:
-    """Test get_datatype_label with custom filter scenarios."""
-
-    class MockCustomFilter:
-        @staticmethod
-        def human_readable_predicate(
-            uri: str, _entity_key: tuple[str | None, str | None]
-        ) -> str | None:
-            if "custom-type-1" in uri:
-                return "Custom Label"
-            if "custom-type-2" in uri:
-                return "type-2"  # This is the last part of the URI
-            return None
-
-    monkeypatch.setattr(
-        "heritrace.utils.shacl_validation.get_custom_filter", MockCustomFilter
-    )
-
-    # Test case 1: Custom filter returns a custom label that's not just the last part of
-    # the URI
-    custom_uri_1 = "http://example.org/custom-type-1"
-    assert get_datatype_label(custom_uri_1) == "Custom Label"
-
-    # Test case 2: Custom filter returns a label that's just the last part of the URI
-    # Should return the full URI instead
-    custom_uri_2 = "http://example.org/custom-type-2"
-    assert get_datatype_label(custom_uri_2) == custom_uri_2
-
-    # Test case 3: Custom filter returns None - should return the original URI
-    custom_uri_3 = "http://example.org/unknown-type"
-    # The function should return the original URI when custom filter returns None
-    # According to the implementation, it should return the original URI, not None
-    assert get_datatype_label(custom_uri_3) is None
-
-
 def test_convert_to_matching_literal_edge_cases() -> None:
     """Test convert_to_matching_literal with edge cases."""
     # Test with empty datatypes list
@@ -1721,6 +1668,7 @@ def test_validate_new_triple_with_datatype_conversion_failure() -> None:
 
         mock_custom_filter = Mock()
         mock_custom_filter.human_readable_predicate.return_value = "readable_value"
+        mock_custom_filter.value_label.return_value = "Integer"
 
         with (
             patch(
@@ -1756,7 +1704,7 @@ def test_validate_new_triple_with_datatype_conversion_failure() -> None:
 
             assert valid_value is None
             assert error == (
-                "'readable_value' is not a valid value. The 'readable_value'"
+                "'not-an-integer' is not a valid value. The 'readable_value'"
                 " property requires values of type 'Integer'"
             )
 
