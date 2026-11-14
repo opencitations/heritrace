@@ -23,7 +23,7 @@ The configuration pages do not offer to delete the configuration, an entity type
 
 ## Edit the remaining SHACL terms in the configuration editor
 
-The configuration editor does not show `sh:or`, which HERITRACE supports on fields, on entity types and inside qualified values. Each use is an RDF list of blank nodes, which the generic form cannot edit. Decide how the editor shows each use, one at a time. Points raised so far:
+The configuration editor shows the `sh:or` of a field but not the one of an entity type, which pairs a fixed value with a pattern, or the one inside a qualified value. Each use is an RDF list of blank nodes, which the generic form cannot edit. Decide how the editor shows each use, one at a time. Points raised so far:
 
 - The form could edit RDF lists and blank nodes directly, choosing the shape of a blank node from the property that links to it, or `shacl-editor.ttl` could hold typed helper resources that HERITRACE translates back into SHACL.
 - Removing a value from the configuration has to remove the resources that depend on it, whatever the deletion rules in the system settings say.

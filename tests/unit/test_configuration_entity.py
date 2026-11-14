@@ -967,12 +967,9 @@ def test_allowed_values_exclude_a_datatype(
         },
     )
 
-    assert (status, body["errors"]) == (
+    assert (status, [issue.split(": ", 1)[1] for issue in body["errors"]]) == (
         422,
-        [
-            "http://schema.org/VolumeShape: A field with allowed values has no"
-            " datatype, class or SHACL shape of the value"
-        ],
+        ["Datatype and Allowed values cannot be used together"],
     )
     assert isomorphic(read_shacl(config_app.config["CONFIG_DIR"]), before)
 
@@ -1030,6 +1027,283 @@ def test_allowed_values_are_removed_added_and_reordered(
         [f"{DATACITE}doi", f"{DATACITE}isbn"],
         [f"{DATACITE}isbn", f"{DATACITE}pmid"],
     ]
+
+
+SCHEMA = "http://schema.org/"
+
+
+@pytest.fixture
+def alternatives_app(tmp_path: Path) -> Generator[Flask, None, None]:
+    yield from _app_with(
+        tmp_path,
+        """[
+  sh:path dcterms:date ;
+  sh:name "Date" ;
+  sh:or (
+    [ sh:datatype xsd:date ] [ sh:datatype xsd:gYearMonth ] [ sh:datatype xsd:gYear ]
+  )
+] , [
+  sh:path frbr:partOf ;
+  sh:name "Container" ;
+  sh:or (
+    [ sh:node schema:JournalShape ; sh:class fabio:Journal ]
+    [ sh:node schema:VolumeShape ; sh:class fabio:JournalVolume ]
+  )
+]""",
+    )
+
+
+def _field_named(app: Flask, name: str) -> URIRef:
+    return URIRef(str(_data(app).value(predicate=SH.name, object=Literal(name))))
+
+
+def _alternative_group(client: FlaskClient, field: URIRef) -> dict:
+    groups = client.get(
+        f"/api/configuration/entity/{quote(str(field), safe='')}",
+        headers={"Accept-Language": "en"},
+    ).get_json()["groups"]
+    return next(group for group in groups if group["property"] == str(SH["or"]))
+
+
+def _saved_alternatives(graph: Graph, path: URIRef) -> list[dict[str, str]]:
+    field = graph.value(predicate=SH.path, object=path)
+    return [
+        {
+            str(predicate): str(value)
+            for predicate, value in graph.predicate_objects(item)
+        }
+        for item in Collection(graph, cast("Node", graph.value(field, SH["or"])))
+    ]
+
+
+def _shown_value(name: str, property_iri: URIRef, value: str, label: str) -> dict:
+    return {
+        "name": name,
+        "property": str(property_iri),
+        "values": [{"label": label, "uri": None, "value": value, "language": None}],
+    }
+
+
+def _value_alternative(constraints: dict[URIRef, str], temp_id: str) -> dict:
+    return {
+        "entity_type": str(HT.ValueAlternative),
+        "entity_shape": str(META.ValueAlternativeShape),
+        "properties": {
+            str(predicate): [value] for predicate, value in constraints.items()
+        },
+        "tempId": temp_id,
+    }
+
+
+def test_value_alternatives_are_shown_in_their_order(alternatives_app: Flask) -> None:
+    client = _signed_in(alternatives_app)
+    dates = _alternative_group(client, _field_named(alternatives_app, "Date"))
+    containers = _alternative_group(client, _field_named(alternatives_app, "Container"))
+
+    assert (
+        dates["is_draggable"],
+        [triple["details"] for triple in dates["triples"]],
+        [triple["details"] for triple in containers["triples"]],
+    ) == (
+        True,
+        [
+            [_shown_value("Datatype", SH.datatype, str(XSD[name]), str(XSD[name]))]
+            for name in ("date", "gYearMonth", "gYear")
+        ],
+        [
+            [
+                _shown_value("SHACL shape of the value", SH.node, shape, shape),
+                _shown_value(
+                    "Class of the value", SH["class"], f"{FABIO}{name}", f"fabio:{name}"
+                ),
+            ]
+            for shape, name in (
+                (f"{SCHEMA}JournalShape", "Journal"),
+                (f"{SCHEMA}VolumeShape", "JournalVolume"),
+            )
+        ],
+    )
+
+
+def test_value_alternatives_are_removed_added_and_reordered(
+    alternatives_app: Flask,
+) -> None:
+    client = _signed_in(alternatives_app)
+    field = _field_named(alternatives_app, "Date")
+    date, year_month, year = (
+        triple["object"] for triple in _alternative_group(client, field)["triples"]
+    )
+    base = {
+        "subject": str(field),
+        "predicate": str(SH["or"]),
+        "shape": str(META.ValueAlternativeShape),
+        "entity_type": str(SH.PropertyShape),
+        "entity_shape": str(META.PropertyShapeShape),
+    }
+    deletion = {**base, "action": "delete", "object": year_month}
+    orphans = client.post(
+        "/api/configuration/check_orphans",
+        json={"changes": [deletion], "entity_type": str(SH.PropertyShape)},
+    ).get_json()
+
+    response = client.post(
+        "/api/configuration/apply_changes",
+        json=[
+            {
+                **deletion,
+                "affected_entities": orphans["affected_entities"],
+                "delete_affected": orphans["should_delete"],
+            },
+            {
+                **base,
+                "action": "order",
+                "object": ["dateTime", year, date],
+                "newObject": str(RDF.rest),
+            },
+            {
+                "action": "create",
+                "subject": str(field),
+                "data": {
+                    "properties": {
+                        str(SH["or"]): [
+                            _value_alternative(
+                                {SH.datatype: str(XSD.dateTime)}, "dateTime"
+                            )
+                        ]
+                    }
+                },
+            },
+        ],
+    )
+
+    assert response.status_code == 200
+    saved = read_shacl(alternatives_app.config["CONFIG_DIR"])
+    assert _saved_alternatives(saved, DCTERMS.date) == [
+        {str(SH.datatype): str(XSD[name])} for name in ("dateTime", "gYear", "date")
+    ]
+
+
+def test_a_new_field_takes_value_alternatives(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    pairs = [
+        (f"{SCHEMA}JournalShape", "Journal"),
+        (f"{SCHEMA}VolumeShape", "JournalVolume"),
+    ]
+
+    status, _ = _add(
+        admin_client,
+        URIRef(f"{SCHEMA}BookShape"),
+        {
+            SH.property: {
+                "entity_type": str(SH.PropertyShape),
+                "entity_shape": str(META.PropertyShapeShape),
+                "properties": {
+                    str(SH.path): [str(DCTERMS.isPartOf)],
+                    str(SH["or"]): [
+                        _value_alternative(
+                            {SH.node: shape, SH["class"]: f"{FABIO}{name}"}, name
+                        )
+                        for shape, name in pairs
+                    ],
+                },
+            }
+        },
+    )
+
+    assert status == 200
+    saved = read_shacl(config_app.config["CONFIG_DIR"])
+    assert (
+        _saved_alternatives(saved, DCTERMS.isPartOf),
+        set(saved.subjects(RDF.type, HT.ValueAlternative)),
+    ) == (
+        [
+            {str(SH.node): shape, str(SH["class"]): f"{FABIO}{name}"}
+            for shape, name in pairs
+        ],
+        set(),
+    )
+
+
+DATE = {SH.datatype: str(XSD.date)}
+YEAR = {SH.datatype: str(XSD.gYear)}
+
+
+def _add_date_field(
+    client: FlaskClient,
+    alternatives: list[dict[URIRef, str]],
+    own: dict[URIRef, list[str]],
+) -> tuple[int, dict]:
+    return _add(
+        client,
+        URIRef(f"{SCHEMA}BookShape"),
+        {
+            SH.property: {
+                "entity_type": str(SH.PropertyShape),
+                "entity_shape": str(META.PropertyShapeShape),
+                "properties": {
+                    str(SH.path): [str(DCTERMS.date)],
+                    str(SH["or"]): [
+                        _value_alternative(constraints, str(index))
+                        for index, constraints in enumerate(alternatives)
+                    ],
+                    **{str(predicate): value for predicate, value in own.items()},
+                },
+            }
+        },
+    )
+
+
+def test_a_single_value_alternative_is_saved_as_the_constraint_of_its_field(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    status, _ = _add_date_field(admin_client, [DATE], {})
+
+    assert status == 200
+    saved = read_shacl(config_app.config["CONFIG_DIR"])
+    field = saved.value(predicate=SH.path, object=DCTERMS.date)
+    assert (
+        saved.value(field, SH.datatype),
+        saved.value(field, SH["or"]),
+    ) == (XSD.date, None)
+
+
+@pytest.mark.parametrize(
+    ("alternatives", "own", "error"),
+    [
+        (
+            [DATE, {SH["class"]: f"{FABIO}Journal"}],
+            {},
+            "The value alternatives of a field use the same constraint",
+        ),
+        (
+            [{**DATE, SH["class"]: f"{FABIO}Journal"}, YEAR],
+            {},
+            "Datatype and Class of the value cannot be used together",
+        ),
+        (
+            [DATE, YEAR],
+            {SH.datatype: [str(XSD.string)]},
+            "Datatype and Value alternatives cannot be used together",
+        ),
+    ],
+)
+def test_value_alternatives_are_checked_when_saved(
+    admin_client: FlaskClient,
+    config_app: Flask,
+    alternatives: list[dict[URIRef, str]],
+    own: dict[URIRef, list[str]],
+    error: str,
+) -> None:
+    before = read_shacl(config_app.config["CONFIG_DIR"])
+
+    status, body = _add_date_field(admin_client, alternatives, own)
+
+    assert (status, [issue.split(": ", 1)[1] for issue in body["errors"]]) == (
+        422,
+        [error],
+    )
+    assert isomorphic(read_shacl(config_app.config["CONFIG_DIR"]), before)
 
 
 def _criterion_group(client: FlaskClient, shape: URIRef, language: str = "en") -> dict:
@@ -1432,6 +1706,7 @@ def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -
         "Inverse path",
         "Label query",
         "Prefix",
+        "Value alternative",
         "Value to count",
         "Resource type",
         "Resource types",
@@ -1447,6 +1722,7 @@ def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -
         "Valore da contare",
         "Tipo di risorsa",
         "Valore ammesso",
+        "Vincolo alternativo",
     }
     assert _entity_types(admin_client, "fr") == english
 

@@ -154,6 +154,45 @@ void main() {
     expect(find.byType(EntityAutocompleteField), findsOneWidget);
   });
 
+  testWidgets('a new nested resource reads like a saved one', (tester) async {
+    const sh = 'http://www.w3.org/ns/shacl#';
+    Map<String, dynamic> constraint(String name, String label) => {
+      'uri': '$sh$name',
+      'displayName': label,
+      'description': 'About $label',
+      'entityType': 'https://w3id.org/heritrace#ValueAlternative',
+      'max': 1,
+    };
+    final field = EntityNode(
+      entityType: '${sh}PropertyShape',
+      entityShape: null,
+      fields: [
+        FieldDef.fromJson({
+          'uri': '${sh}or',
+          'displayName': 'Value alternatives',
+          'detailsEditor': true,
+          'nestedShape': [
+            constraint('node', 'SHACL shape'),
+            constraint('class', 'Class'),
+          ],
+        }),
+      ],
+      depth: 0,
+    );
+    addTearDown(field.dispose);
+    final alternative = field.groups.single.addItem() as NestedItem;
+
+    await pumpInForm(tester, NestedFields(item: alternative));
+
+    // Each name is the caption above the input and its placeholder.
+    expect(find.text('SHACL shape'), findsNWidgets(2));
+    expect(find.text('Class'), findsNWidgets(2));
+    expect(find.byType(CupertinoTextField), findsNWidgets(2));
+    expect(find.byType(AppCard), findsNothing);
+    expect(find.byType(AppButton), findsNothing);
+    expect(find.text('About Class'), findsNothing);
+  });
+
   testWidgets('a field shows its description under it', (tester) async {
     await pumpInForm(tester, EntityForm(node: root));
 
@@ -192,6 +231,43 @@ void main() {
       await tester.enterText(find.byType(CupertinoTextField), 'ex:AuthorShape');
       await tester.pump();
       expect(find.text('Part of the entity'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a field with excludedWith disappears while an excluded field has a value',
+    (tester) async {
+      const datatype = 'http://www.w3.org/ns/shacl#datatype';
+      const alternatives = 'http://www.w3.org/ns/shacl#or';
+      final field = EntityNode(
+        entityType: 'http://www.w3.org/ns/shacl#PropertyShape',
+        entityShape: null,
+        fields: [
+          FieldDef.fromJson({
+            'uri': datatype,
+            'displayName': 'Datatype',
+            'min': 1,
+            'max': 1,
+            'excludedWith': [alternatives],
+          }),
+          FieldDef.fromJson({
+            'uri': alternatives,
+            'displayName': 'Value alternatives',
+            'max': 1,
+            'excludedWith': [datatype],
+          }),
+        ],
+        depth: 0,
+      );
+      addTearDown(field.dispose);
+
+      await pumpInForm(tester, EntityForm(node: field));
+      expect(find.text('Value alternatives'), findsOneWidget);
+
+      await tester.enterText(find.byType(CupertinoTextField), 'xsd:date');
+      await tester.pump();
+      expect(find.byType(CupertinoTextField), findsOneWidget);
+      expect(find.text('Value alternatives'), findsNothing);
     },
   );
 

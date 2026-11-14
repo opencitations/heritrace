@@ -87,6 +87,7 @@ class FieldDef {
     required this.hidden,
     required this.withLanguage,
     required this.shownWith,
+    required this.excludedWith,
   });
 
   factory FieldDef.fromJson(Map<String, dynamic> json) {
@@ -145,6 +146,8 @@ class FieldDef {
       hidden: json['hidden'] == true,
       withLanguage: json['withLanguage'] == true,
       shownWith: (json['shownWith'] as List<dynamic>? ?? []).cast<String>(),
+      excludedWith: (json['excludedWith'] as List<dynamic>? ?? [])
+          .cast<String>(),
     );
   }
 
@@ -193,6 +196,11 @@ class FieldDef {
   /// The properties of the same entity of which at least one must have a
   /// value for this field to apply; the field always applies when empty.
   final List<String> shownWith;
+
+  /// The properties of the same entity that cannot have a value together with
+  /// this field. While one of them has a value, the field applies only if it
+  /// has a value itself.
+  final List<String> excludedWith;
 
   bool get isRequired => min > 0 && hasValue == null;
 

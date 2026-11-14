@@ -102,3 +102,42 @@ def read_shown_with(shacl: Graph) -> dict[tuple[str, str], list[str]]:
             str(row.trigger_path)
         )
     return shown_with
+
+
+_EXCLUDED_WITH_QUERY = prepareQuery(
+    """
+    SELECT ?shape ?path ?other_path
+    WHERE {
+        ?shape sh:or ?alternatives .
+        ?alternatives rdf:first ?first ;
+                      rdf:rest/rdf:first ?second ;
+                      rdf:rest/rdf:rest rdf:nil .
+        ?first sh:maxCount 0 .
+        ?second sh:maxCount 0 .
+        {
+            ?first sh:path ?path .
+            ?second sh:path ?other_path .
+        } UNION {
+            ?first sh:path ?other_path .
+            ?second sh:path ?path .
+        }
+    }
+    ORDER BY ?shape ?path ?other_path
+    """,
+    initNs={
+        "sh": "http://www.w3.org/ns/shacl#",
+        "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    },
+)
+
+
+# A node shape declares that two fields cannot both have a value with
+# sh:or ( [ sh:path P ; sh:maxCount 0 ] [ sh:path Q ; sh:maxCount 0 ] ). This
+# maps each (shape, path) to the paths it excludes.
+def read_excluded_with(shacl: Graph) -> dict[tuple[str, str], list[str]]:
+    excluded_with: dict[tuple[str, str], list[str]] = {}
+    for row in select_results(shacl.query(_EXCLUDED_WITH_QUERY)):
+        excluded_with.setdefault((str(row.shape), str(row.path)), []).append(
+            str(row.other_path)
+        )
+    return excluded_with

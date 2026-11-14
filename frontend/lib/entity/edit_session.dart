@@ -176,6 +176,12 @@ class EditableGroup extends ChangeNotifier {
     ];
     formGroup?.keptCount = () =>
         existing.where((value) => !value.markedForDeletion).length;
+    formGroup?.savedItemFields = () => [
+      for (final value in existing)
+        if (!value.markedForDeletion)
+          for (final detail in value.triple.details ?? const <EntityDetail>[])
+            detail.property,
+    ];
     formGroup?.addListener(notifyListeners);
   }
 
@@ -321,17 +327,17 @@ class EditSession extends ChangeNotifier {
 
   bool get showsCustomProperties => !view.shacl || !view.hasFormFields;
 
-  /// Whether [group] applies, given the values its `shownWith` fields hold.
-  bool applies(EditableGroup group) => switch (group.group.field) {
-    null => true,
-    final field =>
-      field.shownWith.isEmpty ||
-          groups.any(
-            (other) =>
-                field.shownWith.contains(other.group.property) &&
-                other.hasContent,
-          ),
-  };
+  /// Whether [group] applies, given the values its `shownWith` and
+  /// `excludedWith` fields hold.
+  bool applies(EditableGroup group) {
+    final field = group.group.field;
+    if (field == null) return true;
+    bool hasContent(List<String> properties) => groups.any(
+      (other) => properties.contains(other.group.property) && other.hasContent,
+    );
+    return (field.shownWith.isEmpty || hasContent(field.shownWith)) &&
+        (group.hasContent || !hasContent(field.excludedWith));
+  }
 
   bool get hasChanges =>
       groups.any(

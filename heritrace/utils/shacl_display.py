@@ -21,6 +21,7 @@ from heritrace.language import LocalizedText, localized_texts
 from heritrace.sparql import select_results
 from heritrace.utils.shacl_patterns import (
     PatternAlternative,
+    read_excluded_with,
     read_pattern_alternatives,
     read_shown_with,
 )
@@ -40,6 +41,7 @@ class ShaclProcessingContext:
     presentation: ShapesPresentation
     pattern_alternatives: list[PatternAlternative]
     shown_with: dict[tuple[str, str], list[str]]
+    excluded_with: dict[tuple[str, str], list[str]]
     app: Flask
     processed_shapes: set[str]
     shape_rows: dict[str, list[ResultRow]] = dataclass_field(default_factory=dict)
@@ -400,6 +402,7 @@ def _process_single_row(
         "detailPaths": parsed.detail_paths or None,
         "orderedBy": parsed.ordered_by,
         "shownWith": ctx.shown_with.get((parsed.subject_shape, parsed.predicate)),
+        "excludedWith": ctx.excluded_with.get((parsed.subject_shape, parsed.predicate)),
     }
     field_info.update({key: value for key, value in declared.items() if value})
 
@@ -590,6 +593,7 @@ def extract_shacl_form_fields(
         presentation=presentation,
         pattern_alternatives=read_pattern_alternatives(shacl),
         shown_with=read_shown_with(shacl),
+        excluded_with=read_excluded_with(shacl),
         app=app,
         processed_shapes=set(),
     )

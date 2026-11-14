@@ -224,6 +224,49 @@ class TestShaclUtils:
             "http://example.org/node": [None],
         }
 
+    def test_fields_that_exclude_each_other_are_marked_on_both_sides(
+        self,
+    ) -> None:
+        app = Flask(__name__)
+        app.config["DATASET_DB_URL"] = "http://example.org/sparql"
+        shacl = Graph().parse(
+            data="""
+            @prefix sh: <http://www.w3.org/ns/shacl#> .
+            @prefix ex: <http://example.org/> .
+
+            ex:FieldShape a sh:NodeShape ;
+              sh:targetClass ex:Field ;
+              sh:or (
+                [ sh:path ex:datatype ; sh:maxCount 0 ]
+                [ sh:path ex:or ; sh:maxCount 0 ]
+              ) ;
+              sh:or (
+                [ sh:path ex:in ; sh:maxCount 0 ]
+                [ sh:path ex:or ; sh:maxCount 0 ]
+              ) ;
+              sh:property [ sh:path ex:datatype ] ;
+              sh:property [ sh:path ex:in ] ;
+              sh:property [ sh:path ex:or ] .
+            """,
+            format="turtle",
+        )
+
+        form_fields = extract_shacl_form_fields(shacl, read_presentation(shacl), app)
+
+        fields = form_fields[
+            ("http://example.org/Field", "http://example.org/FieldShape")
+        ]
+        assert {
+            predicate: [details.get("excludedWith") for details in details_list]
+            for predicate, details_list in fields.items()
+        } == {
+            "http://example.org/datatype": [["http://example.org/or"]],
+            "http://example.org/in": [["http://example.org/or"]],
+            "http://example.org/or": [
+                ["http://example.org/datatype", "http://example.org/in"]
+            ],
+        }
+
     def test_an_iri_alternative_is_typed_under_the_field_name(self) -> None:
         app = Flask(__name__)
         app.config["DATASET_DB_URL"] = "http://example.org/sparql"
@@ -449,6 +492,7 @@ class TestShaclUtils:
                 presentation=read_presentation(shacl),
                 pattern_alternatives=[],
                 shown_with={},
+                excluded_with={},
                 app=app,
                 processed_shapes=processed_shapes,
             )
@@ -625,6 +669,7 @@ class TestShaclUtils:
                     )
                 ],
                 shown_with={},
+                excluded_with={},
                 app=app,
                 processed_shapes=processed_shapes,
             )

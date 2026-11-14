@@ -129,6 +129,12 @@ sh:property [
 ] .
 ```
 
+In the [configuration editor](../editor/), the **Value alternatives** of a field set `sh:or`. Each alternative sets one constraint: a datatype, a SHACL shape, a class or a value, and a SHACL shape can also carry the class it targets. All the alternatives of a field set the same kind of constraint, for example only datatypes or only SHACL shapes, and the editor refuses to save a mix. The alternatives also take the place of the constraints of the field itself: while a field has alternatives, the editor hides its datatype, class, SHACL shape, fixed value, allowed values and value to count. A single alternative is saved as the constraint of the field.
+
+<Aside type="caution" title="Limits of HERITRACE, not of SHACL">
+SHACL accepts any shape as an alternative, including alternatives that mix kinds of constraint, lists with a single member and alternatives next to other constraints of the same field ([SHACL, section 4.6.3](https://www.w3.org/TR/shacl/#OrConstraintComponent)). The rules above come from the current implementation of HERITRACE.
+</Aside>
+
 ### Numeric bounds (`sh:minInclusive`, `sh:maxInclusive`, `sh:minExclusive` and `sh:maxExclusive`)
 Limit a number to a range. With `sh:minInclusive` and `sh:maxInclusive` the range includes the bound value, while with `sh:minExclusive` and `sh:maxExclusive` the range excludes the bound value. HERITRACE compares numbers only: the property needs a numeric datatype, such as `xsd:integer` or `xsd:decimal`, and each bound must be an integer or a decimal. When a whole-number field cannot go below zero, the form also ignores the minus sign as the user types.
 
@@ -286,7 +292,7 @@ Add `dash:composite true` to a property shape when its values have a meaning onl
 
 Without `dash:composite`, removing a value removes only the link, and the linked entity stays.
 
-The **Points to a dependent resource** option of the [configuration editor](../editor/) sets this term on a field that links to another resource, through a **SHACL shape of the value** (`sh:node`) or a **Class of the value** (`sh:class`).
+The **Points to a dependent resource** option of the [configuration editor](../editor/) sets this term on a field that links to another resource, through a **SHACL shape of the value** (`sh:node`), a **Class of the value** (`sh:class`) or **Value alternatives** (`sh:or`).
 
 <Aside type="note" title="A HERITRACE rule, not a DASH one">
 Although DASH declares `dash:composite` on any property shape, it does not require the values to be nodes or entities ([DASH, section "Composites"](https://datashapes.org/dash.html#composites)). However, the term has no meaning on a property that does not point to another entity. HERITRACE therefore adds the following restriction to the shapes of its configuration editor:
@@ -296,6 +302,7 @@ sh:or (
     [ sh:path dash:composite ; sh:in ( false ) ]
     [ sh:path sh:node ; sh:minCount 1 ]
     [ sh:path sh:class ; sh:minCount 1 ]
+    [ sh:path sh:or ; sh:minCount 1 ]
 ) .
 ```
 </Aside>
@@ -548,7 +555,7 @@ The prefixes that the query uses are declared once for the whole shapes graph:
         [ sh:prefix "frbr" ; sh:namespace "http://purl.org/vocab/frbr/core#"^^xsd:anyURI ] .
 ```
 
-A select expression can also carry its own `sh:prefixes`. If a label query returns no result, HERITRACE moves on to the next source.
+If a label query returns no result, HERITRACE moves on to the next source.
 
 A label query can also read the language of the interface from `$language`, which holds `"en"` or `"it"`. Use it to prefer the text in that language, as in `FILTER(LANG(?title) = $language)`.
 

@@ -14,7 +14,6 @@ import '../field_def.dart';
 import '../form_model.dart';
 import '../form_scope.dart';
 import 'entity_autocomplete.dart';
-import 'entity_form.dart';
 import 'field_group_widget.dart';
 import 'language_picker.dart';
 import 'nested_dialog.dart';
@@ -503,8 +502,9 @@ class DateTypeMenu extends StatelessWidget {
   }
 }
 
-/// The fields of a nested entity edited in place (`shui:DetailsEditor`). A
-/// single field reads as the value itself, without a heading.
+/// The fields of a nested entity edited in place (`shui:DetailsEditor`), drawn
+/// as the saved values of such an entity are: a caption above each field. A
+/// single field reads as the value itself, without a caption.
 class NestedFields extends StatelessWidget {
   const NestedFields({required this.item, super.key});
 
@@ -512,11 +512,67 @@ class NestedFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final paths = item.def.detailPaths;
-    final shown = item.child.shownGroups(paths).toList();
-    if (shown.length == 1) {
-      return FieldGroupWidget(group: shown.single);
-    }
-    return EntityForm(node: item.child, paths: paths);
+    return ListenableBuilder(
+      listenable: item.child,
+      builder: (context, _) {
+        final shown = item.child.shownGroups(item.def.detailPaths).toList();
+        if (shown.length == 1) {
+          return _NestedField(group: shown.single);
+        }
+        final style = AppTextStyles.of(context).caption;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: appCaptionSpacing,
+          children: [
+            for (final group in shown)
+              if (group.def.isBoolean)
+                Row(
+                  children: [
+                    Expanded(
+                      child: PropertyHeading(
+                        label: group.def.displayName,
+                        style: style,
+                      ),
+                    ),
+                    CupertinoSwitch(
+                      value: group.isSwitchedOn,
+                      onChanged: group.switchTo,
+                    ),
+                  ],
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    PropertyHeading(
+                      label: group.def.displayName,
+                      style: style,
+                      required: group.def.isRequired,
+                    ),
+                    _NestedField(group: group),
+                  ],
+                ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// A field with a single value shows its input alone, as a saved value does;
+/// a field with several values keeps the controls that add and remove them.
+class _NestedField extends StatelessWidget {
+  const _NestedField({required this.group});
+
+  final FieldGroup group;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: group,
+      builder: (context, _) => group.def.max == 1 && group.items.length == 1
+          ? ItemWidget(item: group.items.single)
+          : FieldGroupWidget(group: group),
+    );
   }
 }

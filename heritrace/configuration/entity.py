@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from filelock import FileLock
 from pyshacl import validate
-from rdflib import DCTERMS, OWL, PROV, RDF, RDFS, BNode, Graph, URIRef
+from rdflib import DCTERMS, OWL, PROV, RDF, RDFS, BNode, Graph, Literal, URIRef
 from rdflib.collection import Collection
 from rdflib.compare import isomorphic
 from rdflib.term import Node
@@ -26,9 +26,11 @@ from heritrace.configuration.shapes import (
 from heritrace.configuration.store import SHACL_FILE, write_shacl
 from heritrace.configuration.validation import validate_shapes
 from heritrace.configuration.vocabulary import HT, SH, SHUI
+from heritrace.language import localized_texts
 from heritrace.rdf_files import load_rdf_file
 from heritrace.sparql import SPARQLWrapperWithRetry
 from heritrace.uri_generator.uri_generator import URIGenerator
+from heritrace.utils.shacl_patterns import read_excluded_with
 
 # Admins edit the whole SHACL configuration as one HERITRACE entity: a
 # sh:ShapesGraph with a fixed IRI that holds the node shapes through
@@ -73,6 +75,7 @@ _HELPER_TYPES = (
     HT.InversePath,
     HT.QualifiedValueShape,
     HT.AllowedValue,
+    HT.ValueAlternative,
     HT.DuplicateCriterion,
     HT.SelectExpression,
 )
@@ -87,6 +90,10 @@ def _is_helper_triple(graph: Graph, triple: tuple[Node, Node, Node]) -> bool:
         return True
     if predicate == SH["in"]:
         return (None, RDF.rest, value) in graph
+    if predicate == SH["or"]:
+        return (None, RDF.rest, value) in graph or _single_alternative(graph, value)
+    if predicate != RDF.rest and (subject, RDF.type, HT.ValueAlternative) in graph:
+        return True
     if predicate != RDF.type:
         return False
     return value in _HELPER_TYPES or (
@@ -109,6 +116,20 @@ def _add_allowed_values(graph: Graph, property_shape: Node) -> None:
         for cell in _list_cells(graph, head):
             graph.add((property_shape, SH["in"], cell))
             graph.add((cell, RDF.type, HT.AllowedValue))
+
+
+# The alternatives of a field are ordered in the same way, and each cell of the
+# list also takes the constraints of its alternative.
+def _add_value_alternatives(graph: Graph, property_shape: Node) -> None:
+    for head in list(graph.objects(property_shape, SH["or"])):
+        for cell in _list_cells(graph, head):
+            alternative = cast("Node", graph.value(cell, RDF.first))
+            for predicate, value in list(graph.predicate_objects(alternative)):
+                graph.add((cell, predicate, value))
+            graph.remove((alternative, None, None))
+            graph.remove((cell, RDF.first, alternative))
+            graph.add((property_shape, SH["or"], cell))
+            graph.add((cell, RDF.type, HT.ValueAlternative))
 
 
 # The properties of a key have no order, so the editor shows each key as a
@@ -182,6 +203,7 @@ def normalize(graph: Graph) -> Graph:
     for property_shape in set(result.objects(None, SH.property)):
         result.add((property_shape, RDF.type, SH.PropertyShape))
         _add_allowed_values(result, property_shape)
+        _add_value_alternatives(result, property_shape)
     for declaration in set(result.objects(ROOT, SH.declare)):
         result.add((declaration, RDF.type, SH.PrefixDeclaration))
     _type_nested_nodes(result)
@@ -189,12 +211,41 @@ def normalize(graph: Graph) -> Graph:
     return result
 
 
-def canonical(graph: Graph) -> Graph:
-    def restore(node: Node) -> Node:
-        if node == ROOT or str(node).startswith(GENID):
-            return BNode(str(node).rsplit("/", 1)[-1])
-        return node
+def _restore(node: Node) -> Node:
+    if node == ROOT or str(node).startswith(GENID):
+        return BNode(str(node).rsplit("/", 1)[-1])
+    return node
 
+
+def _single_alternative(graph: Graph, cell: Node) -> bool:
+    return (
+        (cell, RDF.type, HT.ValueAlternative) in graph
+        and (cell, RDF.rest, None) not in graph
+        and (None, RDF.rest, cell) not in graph
+    )
+
+
+# The cells of the ordered lists end with rdf:nil, and each alternative moves
+# back from its cell to a node of its own. A single alternative means the same
+# as the constraint it sets, which therefore goes on the field itself.
+def _restore_list_cells(graph: Graph, result: Graph) -> None:
+    for cell in graph.subjects(RDF.type, HT.AllowedValue):
+        if (cell, RDF.rest, None) not in graph:
+            result.add((_restore(cell), RDF.rest, RDF.nil))
+    for cell in graph.subjects(RDF.type, HT.ValueAlternative):
+        if _single_alternative(graph, cell):
+            target = cast("Node", graph.value(predicate=SH["or"], object=cell))
+        else:
+            target = BNode()
+            result.add((_restore(cell), RDF.first, target))
+            if (cell, RDF.rest, None) not in graph:
+                result.add((_restore(cell), RDF.rest, RDF.nil))
+        for predicate, value in graph.predicate_objects(cell):
+            if predicate not in (RDF.type, RDF.rest):
+                result.add((_restore(target), predicate, _restore(value)))
+
+
+def canonical(graph: Graph) -> Graph:
     result = Graph()
     for triple in graph:
         if _is_helper_triple(graph, triple):
@@ -202,19 +253,17 @@ def canonical(graph: Graph) -> Graph:
         subject, predicate, value = triple
         if subject == ROOT and predicate == RDF.type and len(graph.cbd(ROOT)) == 1:
             continue
-        result.add((restore(subject), predicate, restore(value)))
-    for cell in graph.subjects(RDF.type, HT.AllowedValue):
-        if (cell, RDF.rest, None) not in graph:
-            result.add((restore(cell), RDF.rest, RDF.nil))
+        result.add((_restore(subject), predicate, _restore(value)))
+    _restore_list_cells(graph, result)
     for criterion in graph.subjects(RDF.type, HT.DuplicateCriterion):
         properties = sorted(graph.objects(criterion, HT.keyProperty), key=str)
-        Collection(result, restore(criterion), properties)
+        Collection(result, _restore(criterion), properties)
     for shape, query in graph.subject_objects(HT.labelQuery):
         field = BNode()
-        result.add((restore(shape), SH.property, field))
+        result.add((_restore(shape), SH.property, field))
         result.add((field, SH.path, RDFS.label))
         result.add((field, SHUI.propertyRole, SHUI.LabelRole))
-        result.add((field, SH.values, restore(query)))
+        result.add((field, SH.values, _restore(query)))
     return result
 
 
@@ -277,41 +326,118 @@ def export_shacl(config_dir: Path, view: Graph) -> None:
     write_shacl(config_dir, canonical(view))
 
 
+def _meta_field(meta: Graph, shape: Node, path: str) -> tuple[int, str]:
+    field = next(
+        field
+        for field in meta.objects(shape, SH.property)
+        if (field, SH.path, URIRef(path)) in meta
+    )
+    order = cast("Literal", meta.value(field, SH.order))
+    return int(order), localized_texts(meta, field, SH.name)["en"]
+
+
+# The meta-shapes declare with sh:or which fields exclude each other, and
+# pyshacl reports a broken rule with the whole list. The fields that have a
+# value say which rule it is.
+def _exclusions(graph: Graph, meta: Graph, focus: Node, shape: Node) -> list[str]:
+    pairs = [
+        sorted((_meta_field(meta, shape, path), _meta_field(meta, shape, other)))
+        for (excluding_shape, path), others in read_excluded_with(meta).items()
+        if excluding_shape == str(shape)
+        for other in others
+        if (focus, URIRef(path), None) in graph
+        and (focus, URIRef(other), None) in graph
+    ]
+    return [
+        f"{focus}: {first} and {second} cannot be used together"
+        for (_, first), (_, second) in pairs
+    ]
+
+
 def _meta_violations(graph: Graph) -> list[str]:
-    conforms, report, _ = validate(graph, shacl_graph=load_rdf_file(META_SHAPES))
+    meta = load_rdf_file(META_SHAPES)
+    conforms, report, _ = validate(graph, shacl_graph=meta)
     if conforms:
         return []
     report = cast("Graph", report)
-    return sorted(
-        f"{report.value(result, SH.focusNode)} {report.value(result, SH.resultPath)}:"
-        f" {report.value(result, SH.resultMessage)}"
-        for result in report.subjects(RDF.type, SH.ValidationResult)
-    )
-
-
-# A field reads one kind of value, so a list of allowed values excludes the
-# other ways of describing it.
-def _allowed_value_conflicts(graph: Graph) -> list[str]:
-    return [
-        f"{shape}: A field with allowed values has no datatype, class or SHACL shape"
-        " of the value"
-        for shape, field in graph.subject_objects(SH.property)
-        if (field, SH["in"], None) in graph
-        and any(
-            (field, predicate, None) in graph
-            for predicate in (SH.datatype, SH["class"], SH.node)
+    results = set(report.subjects(RDF.type, SH.ValidationResult))
+    # pyshacl also reports each sh:node that leads to a node with results of its
+    # own, which only repeats them.
+    checked = {report.value(result, SH.focusNode) for result in results}
+    issues: set[str] = set()
+    for result in results:
+        if (
+            report.value(result, SH.sourceConstraintComponent)
+            == SH.NodeConstraintComponent
+            and report.value(result, SH.value) in checked
+        ):
+            continue
+        focus = cast("Node", report.value(result, SH.focusNode))
+        exclusions = (
+            _exclusions(
+                graph, meta, focus, cast("Node", report.value(result, SH.sourceShape))
+            )
+            if report.value(result, SH.sourceConstraintComponent)
+            == SH.OrConstraintComponent
+            else []
         )
+        issues.update(
+            exclusions
+            or [
+                f"{focus} {report.value(result, SH.resultPath)}:"
+                f" {report.value(result, SH.resultMessage)}"
+            ]
+        )
+    return sorted(issues)
+
+
+_ALTERNATIVE_KINDS: dict[frozenset[Node], str] = {
+    frozenset({SH.datatype}): "datatype",
+    frozenset({SH.node}): "node",
+    frozenset({SH.node, SH["class"]}): "node",
+    frozenset({SH["class"]}): "class",
+    frozenset({SH.hasValue}): "value",
+}
+
+
+# The meta-shapes keep each alternative to one constraint, while the
+# alternatives of a field together have to set the same kind.
+def _alternative_problems(graph: Graph, field: Node) -> list[str]:
+    constraints = [
+        frozenset(graph.predicates(cell)) - {RDF.type, RDF.rest}
+        for cell in graph.objects(field, SH["or"])
+    ]
+    kinds = {_ALTERNATIVE_KINDS.get(predicates) for predicates in constraints}
+    problems = []
+    if frozenset() in constraints:
+        problems.append(
+            "Each value alternative needs a datatype, SHACL shape, class or value"
+        )
+    if len(kinds - {None}) > 1:
+        problems.append("The value alternatives of a field use the same constraint")
+    return problems
+
+
+def _alternative_conflicts(graph: Graph) -> list[str]:
+    return [
+        f"{shape}: {problem}"
+        for shape, field in graph.subject_objects(SH.property)
+        if (field, SH["or"], None) in graph
+        for problem in _alternative_problems(graph, field)
     ]
 
 
 def check_configuration(graph: Graph) -> None:
     shapes_graph = canonical(graph)
     shapes = read_shapes(shapes_graph)
-    conflicts = _allowed_value_conflicts(shapes_graph)
-    # The parts that a conflict leaves out would only repeat it less readably.
-    unsupported = [] if conflicts else unsupported_parts(shapes_graph, shapes)
+    violations = _meta_violations(graph)
+    conflicts = _alternative_conflicts(graph)
+    # The parts that a violation leaves out would only repeat it less readably.
+    unsupported = (
+        [] if violations or conflicts else unsupported_parts(shapes_graph, shapes)
+    )
     issues = (
-        _meta_violations(graph)
+        violations
         + conflicts
         + [f"{issue.location}: {issue.message}" for issue in validate_shapes(shapes)]
         + [f"HERITRACE cannot represent {part}" for part in unsupported]

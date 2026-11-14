@@ -116,8 +116,9 @@ export const specifications: Specification[] = [
     sets: [
       {
         title: 'SPARQL-related features',
-        supported: ['sh:select', 'sh:prefixes', 'sh:declare', 'sh:prefix', 'sh:namespace'],
+        supported: ['sh:select', 'sh:declare', 'sh:prefix', 'sh:namespace'],
         unsupported: [
+          'sh:prefixes',
           'sh:sparqlExpr',
           'sh:sparql',
           'sh:SPARQLConstraintComponent',

@@ -56,13 +56,33 @@ class EntityNode extends ChangeNotifier {
         applies(group),
   );
 
-  /// Whether [group] applies, given the values its `shownWith` fields hold.
-  bool applies(FieldGroup group) =>
-      group.def.shownWith.isEmpty ||
-      groups.any(
-        (other) =>
-            group.def.shownWith.contains(other.def.uri) && other.hasContent,
-      );
+  /// Whether [group] applies, given the values its `shownWith` and
+  /// `excludedWith` fields hold. The resources of one list describe the same
+  /// kind of value, which is why a field also stays hidden while another
+  /// resource of the list has a value for a field it excludes.
+  bool applies(FieldGroup group) {
+    bool hasContent(List<String> properties) => groups.any(
+      (other) => properties.contains(other.def.uri) && other.hasContent,
+    );
+    final excluded = group.def.excludedWith;
+    return (group.def.shownWith.isEmpty || hasContent(group.def.shownWith)) &&
+        (group.hasContent ||
+            !(hasContent(excluded) || _siblingFields.any(excluded.contains)));
+  }
+
+  /// The fields that the other resources of the list holding this one have
+  /// values for.
+  Set<String> get _siblingFields {
+    final list = parentItem?.group;
+    if (list == null) return const {};
+    return {
+      ...list.savedItemFields(),
+      for (final item in list.items)
+        if (item is NestedItem && item.child != this)
+          for (final group in item.child.groups)
+            if (group.hasContent) group.def.uri,
+    };
+  }
 
   @override
   void dispose() {
@@ -88,6 +108,10 @@ class FieldGroup extends ChangeNotifier {
   /// The number of values a resource already holds and keeps, when the form
   /// edits it. They count towards [FieldDef.min] and [FieldDef.max].
   int Function() keptCount = () => 0;
+
+  /// The fields that the nested resources a resource already holds have
+  /// values for, when the form edits it.
+  Iterable<String> Function() savedItemFields = () => const [];
 
   bool get canAdd => def.max == null || keptCount() + items.length < def.max!;
 
@@ -350,6 +374,23 @@ class NestedItem extends FormItem {
       parentEntityType: group.owner.entityType,
     );
     node.parentItem = this;
+    if (def.detailsEditor) {
+      // Like the saved values of the entity, a field that takes a single value
+      // offers its input from the start.
+      for (final group in node.groups) {
+        if (group.def.max == 1 &&
+            group.items.isEmpty &&
+            !group.def.hidden &&
+            !group.def.isBoolean &&
+            const {
+              FieldKind.literal,
+              FieldKind.select,
+              FieldKind.date,
+            }.contains(group.def.kind)) {
+          group.addItem(notify: false);
+        }
+      }
+    }
     node.addListener(_onChildChanged);
     return node;
   }
