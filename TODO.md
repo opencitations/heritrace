@@ -23,7 +23,7 @@ The configuration pages do not offer to delete the configuration, an entity type
 
 ## Edit the remaining SHACL terms in the configuration editor
 
-The configuration editor shows the prefixes (`sh:declare`) but not several terms that HERITRACE supports: `sh:in`, `sh:or` on fields, on entity types and inside qualified values, `owl:hasKey`, and the label role with `sh:values` and `sh:select`. Many of these terms are RDF lists or blank nodes, which the generic form cannot edit. Decide how the editor shows each term, one term at a time. Points raised so far:
+The configuration editor shows the prefixes (`sh:declare`) but not several terms that HERITRACE supports: `sh:or` on fields, on entity types and inside qualified values, `owl:hasKey`, and the label role with `sh:values` and `sh:select`. Many of these terms are RDF lists or blank nodes, which the generic form cannot edit. Decide how the editor shows each term, one term at a time. Points raised so far:
 
 - The form could edit RDF lists and blank nodes directly, choosing the shape of a blank node from the property that links to it, or `shacl-editor.ttl` could hold typed helper resources that HERITRACE translates back into SHACL.
 - `owl:hasKey` reads better as "Duplicate criteria", one box per criterion, with the properties of a criterion as plain values, without order or links.
@@ -37,9 +37,9 @@ A save can break a rule of the configuration, such as a value to count with neit
 - A rule that the meta-shapes can state, such as the occurrence counts of a value to count, belongs in the form: a resource-level `sh:or` with an `sh:message`, which the form and the server would both honour. The form reads a resource-level `sh:or` only for conditional patterns.
 - For the other errors, the server could name the field resource and return a code that the client translates, as the system settings already do with the location of each field.
 
-## Accept literals as fixed values
+## Accept literals as fixed and allowed values
 
-SHACL lets `sh:hasValue` be any RDF term. HERITRACE handles only IRIs: the shapes model leaves out a literal, forms and saves treat the fixed value as a plain string, and the count of qualified values compares IRIs. Support literals, with their datatype or language, wherever `sh:hasValue` applies, both on a field and inside a value to count. Points raised so far:
+SHACL lets `sh:hasValue` and the members of `sh:in` be any RDF term. HERITRACE handles only IRIs: the shapes model turns a literal into an IRI or leaves it out, forms and saves treat the value as a plain string, and the count of qualified values compares IRIs. Support literals, with their datatype or language, wherever `sh:hasValue` and `sh:in` apply: on a field, inside a value to count and among the allowed values. Points raised so far:
 
 - When a form sends a value equal to a literal that the shape declares, the server can restore its datatype and language from the shape, leaving the client unchanged.
 - The editor needs a picker for the kind of value, like the one of the property field, declared in the meta-shapes as an `sh:or` of `sh:nodeKind sh:IRI` and some `sh:datatype`. The form would then turn each datatype into an entry of the picker and send the chosen datatype, which the server guesses from the value today.
@@ -52,10 +52,6 @@ A search on a link can match too many entities to browse: in OpenCitations Meta,
 ## Accept the shapes in any RDF format and under any file name
 
 HERITRACE reads the shapes only from a file called `shacl.ttl`, written in Turtle. Let administrators choose the name of the file and write it in any RDF serialization that rdflib reads, such as JSON-LD, RDF/XML or N-Triples. When the app rewrites the file after a change, it keeps the name and the format the administrator chose.
-
-## Keep the order of values created inside a new nested entity
-
-When a form creates a nested entity together with its values, the values of an ordered property get no position: neither an `sh:order` index nor an `ht:orderedBy` chain. This holds in the dataset and in the configuration editor. Give these values their position as for values created at the first level.
 
 ## Choose widgets by score
 

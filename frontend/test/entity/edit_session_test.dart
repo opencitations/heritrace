@@ -221,6 +221,12 @@ void main() {
     expect((created.single as Map)['tempId'], authorItem.tempId);
   });
 
+  test('a new item left empty stays out of the order', () {
+    group(documentContext).formGroup!.addItem();
+
+    expect(session.buildChanges(), isEmpty);
+  });
+
   test('undoing a deletion restores the original state', () {
     final value = group(documentContext).existing.first;
     value.markForDeletion();

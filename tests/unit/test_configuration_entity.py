@@ -15,6 +15,7 @@ from filelock import Timeout
 from flask import Flask
 from flask.testing import FlaskClient
 from rdflib import DCTERMS, FOAF, OWL, PROV, RDF, XSD, Dataset, Graph, Literal, URIRef
+from rdflib.collection import Collection
 from rdflib.compare import isomorphic
 from rdflib.term import Node
 from rdflib_ocdm.counter_handler.in_memory_counter_handler import InMemoryCounterHandler
@@ -665,7 +666,12 @@ def test_an_inverse_path_is_shown_in_place(inverse_path_app: Flask) -> None:
     ] == [
         (
             "Inverse path",
-            [{"name": "Property", "values": [{"label": "Is part of", "uri": None}]}],
+            [
+                {
+                    "name": "Property",
+                    "values": [{"label": "dcterms:isPartOf", "uri": None}],
+                }
+            ],
         )
     ]
 
@@ -739,7 +745,7 @@ def test_qualified_values_are_shown_in_place(qualified_app: Flask) -> None:
     assert details == [
         {
             "name": "Value",
-            "values": [{"label": "Expression", "uri": None}],
+            "values": [{"label": "fabio:Expression", "uri": None}],
         }
     ]
     assert _label(client, qualified, "en") == "fabio:Expression"
@@ -809,6 +815,184 @@ def test_qualified_values_need_a_number_to_count(
         ["Add the minimum or maximum occurrences of the value to count"],
     )
     assert isomorphic(read_shacl(config_app.config["CONFIG_DIR"]), before)
+
+
+DATACITE = "http://purl.org/spar/datacite/"
+USES_SCHEME = URIRef(f"{DATACITE}usesIdentifierScheme")
+
+
+def _allowed_values(graph: Graph, path: URIRef) -> list[list[str]]:
+    return sorted(
+        [str(value) for value in Collection(graph, head)]
+        for field in graph.subjects(SH.path, path)
+        for head in graph.objects(field, SH["in"])
+    )
+
+
+def _allowed_value_group(client: FlaskClient, field: URIRef) -> dict:
+    groups = client.get(
+        f"/api/configuration/entity/{quote(str(field), safe='')}",
+        headers={"Accept-Language": "en"},
+    ).get_json()["groups"]
+    return next(group for group in groups if group["property"] == str(SH["in"]))
+
+
+def _allowed_value(value: str, temp_id: str) -> dict:
+    return {
+        "entity_type": str(HT.AllowedValue),
+        "entity_shape": str(META.AllowedValueShape),
+        "properties": {str(RDF.first): [value]},
+        "tempId": temp_id,
+    }
+
+
+def _scheme_field(app: Flask) -> URIRef:
+    data = _data(app)
+    return next(
+        URIRef(str(field))
+        for field in data.objects(IDENTIFIER_SHAPE, SH.property)
+        if (field, SH.path, USES_SCHEME) in data
+    )
+
+
+def test_allowed_values_are_shown_in_their_order(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    group = _allowed_value_group(admin_client, _scheme_field(config_app))
+
+    assert (
+        group["is_draggable"],
+        [triple["details"] for triple in group["triples"]],
+    ) == (
+        True,
+        [
+            [
+                {
+                    "name": "Value",
+                    "values": [{"label": f"datacite:{scheme}", "uri": None}],
+                }
+            ]
+            for scheme in ("doi", "pmid")
+        ],
+    )
+
+
+def test_a_new_field_keeps_the_order_of_its_allowed_values(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    status, _ = _add(
+        admin_client,
+        URIRef("http://schema.org/VolumeShape"),
+        {
+            SH.property: {
+                "entity_type": str(SH.PropertyShape),
+                "entity_shape": str(META.PropertyShapeShape),
+                "properties": {
+                    str(SH.path): [str(DCTERMS.format)],
+                    str(SH["in"]): [
+                        _allowed_value(f"{DATACITE}{scheme}", scheme)
+                        for scheme in ("pmid", "isbn", "doi")
+                    ],
+                },
+            }
+        },
+    )
+
+    assert status == 200
+    saved = read_shacl(config_app.config["CONFIG_DIR"])
+    assert (
+        _allowed_values(saved, DCTERMS.format),
+        set(saved.subjects(RDF.type, HT.AllowedValue)),
+    ) == (
+        [[f"{DATACITE}pmid", f"{DATACITE}isbn", f"{DATACITE}doi"]],
+        set(),
+    )
+
+
+def test_allowed_values_exclude_a_datatype(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    before = read_shacl(config_app.config["CONFIG_DIR"])
+
+    status, body = _add(
+        admin_client,
+        URIRef("http://schema.org/VolumeShape"),
+        {
+            SH.property: {
+                "entity_type": str(SH.PropertyShape),
+                "entity_shape": str(META.PropertyShapeShape),
+                "properties": {
+                    str(SH.path): [str(DCTERMS.format)],
+                    str(SH.datatype): [str(XSD.string)],
+                    str(SH["in"]): [_allowed_value(f"{DATACITE}doi", "doi")],
+                },
+            }
+        },
+    )
+
+    assert (status, body["errors"]) == (
+        422,
+        [
+            "http://schema.org/VolumeShape: A field with allowed values has no"
+            " datatype, class or SHACL shape of the value"
+        ],
+    )
+    assert isomorphic(read_shacl(config_app.config["CONFIG_DIR"]), before)
+
+
+def test_allowed_values_are_removed_added_and_reordered(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    field = _scheme_field(config_app)
+    doi, pmid = (
+        triple["object"]
+        for triple in _allowed_value_group(admin_client, field)["triples"]
+    )
+    base = {
+        "subject": str(field),
+        "predicate": str(SH["in"]),
+        "shape": str(META.AllowedValueShape),
+        "entity_type": str(SH.PropertyShape),
+        "entity_shape": str(META.PropertyShapeShape),
+    }
+    deletion = {**base, "action": "delete", "object": doi}
+    orphans = admin_client.post(
+        "/api/configuration/check_orphans",
+        json={"changes": [deletion], "entity_type": str(SH.PropertyShape)},
+    ).get_json()
+
+    response = admin_client.post(
+        "/api/configuration/apply_changes",
+        json=[
+            {
+                **deletion,
+                "affected_entities": orphans["affected_entities"],
+                "delete_affected": orphans["should_delete"],
+            },
+            {
+                **base,
+                "action": "order",
+                "object": ["isbn", pmid],
+                "newObject": str(RDF.rest),
+            },
+            {
+                "action": "create",
+                "subject": str(field),
+                "data": {
+                    "properties": {
+                        str(SH["in"]): [_allowed_value(f"{DATACITE}isbn", "isbn")]
+                    }
+                },
+            },
+        ],
+    )
+
+    assert response.status_code == 200
+    saved = read_shacl(config_app.config["CONFIG_DIR"])
+    assert _allowed_values(saved, USES_SCHEME) == [
+        [f"{DATACITE}doi", f"{DATACITE}isbn"],
+        [f"{DATACITE}isbn", f"{DATACITE}pmid"],
+    ]
 
 
 def test_the_first_start_leaves_the_shapes_file_as_written(config_app: Flask) -> None:
@@ -984,6 +1168,7 @@ def _entity_types(client: FlaskClient, language: str) -> set[str]:
 
 def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -> None:
     english = {
+        "Allowed value",
         "Field",
         "Inverse path",
         "Prefix",
@@ -999,6 +1184,7 @@ def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -
         "Tipi di risorsa",
         "Valore da contare",
         "Tipo di risorsa",
+        "Valore ammesso",
     }
     assert _entity_types(admin_client, "fr") == english
 

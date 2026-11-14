@@ -3,16 +3,19 @@
 # SPDX-License-Identifier: ISC
 
 from collections import OrderedDict
+from functools import partial
 from unittest.mock import MagicMock, patch
 
 from flask import Flask
-from rdflib import SH, Graph, Literal, URIRef
+from rdflib import RDF, SH, Graph, Literal, URIRef
 
 from heritrace.configuration.entity import META_SHAPES
+from heritrace.editor import Editor
 from heritrace.rdf_files import load_rdf_file
 from heritrace.routes.api import ChangeOperation, index_logic
 from heritrace.routes.entity._creation import (
     CreationContext,
+    create_nested_entity,
     process_ordered_properties,
 )
 from heritrace.utils.display_rules_utils import GroupingContext, process_index_ordering
@@ -170,6 +173,7 @@ def test_index_logic_renumbers_values_and_keeps_their_iris() -> None:
 def test_new_values_receive_their_position(mock_process) -> None:
     mock_process.side_effect = [URIRef(EX + "x"), URIRef(EX + "y")]
     editor = MagicMock()
+    editor.place_in_order = partial(Editor.place_in_order, editor)
     ctx = CreationContext(
         editor=editor,
         entity_uri=URIRef(EX + "album"),
@@ -182,4 +186,44 @@ def test_new_values_receive_their_position(mock_process) -> None:
     assert [call.args for call in editor.create.call_args_list] == [
         (URIRef(EX + "x"), SH.order, Literal(1), None),
         (URIRef(EX + "y"), SH.order, Literal(2), None),
+    ]
+
+
+def test_the_values_of_a_new_nested_resource_receive_their_position() -> None:
+    editor = MagicMock()
+    editor.place_in_order = partial(Editor.place_in_order, editor)
+    album = URIRef(EX + "album")
+    authors = [URIRef(EX + "a"), URIRef(EX + "b")]
+    presentation = read_presentation(Graph().parse(data=SHAPES, format="turtle"))
+
+    with (
+        patch(
+            "heritrace.routes.entity._creation.get_form_fields",
+            return_value={(EX + "Album", EX + "AlbumShape"): {}},
+        ),
+        patch(
+            "heritrace.routes.entity._creation.get_presentation",
+            return_value=presentation,
+        ),
+    ):
+        create_nested_entity(
+            editor,
+            album,
+            {
+                "entity_type": EX + "Album",
+                "entity_shape": EX + "AlbumShape",
+                "properties": {
+                    EX + "hasAuthor": [
+                        {"is_existing_entity": True, "entity_uri": str(author)}
+                        for author in authors
+                    ]
+                },
+            },
+        )
+
+    assert [call.args for call in editor.create.call_args_list] == [
+        (album, RDF.type, URIRef(EX + "Album"), None),
+        (album, URIRef(EX + "hasAuthor"), authors[0], None),
+        (album, URIRef(EX + "hasAuthor"), authors[1], None),
+        (authors[0], URIRef(EX + "next"), authors[1], None),
     ]

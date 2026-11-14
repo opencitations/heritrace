@@ -133,6 +133,10 @@ def test_a_nested_entity_writes_its_inverse_values() -> None:
             "heritrace.routes.entity._creation.generate_unique_uri",
             return_value=URIRef(CITATION),
         ),
+        patch(
+            "heritrace.routes.entity._creation.get_presentation",
+            **{"return_value.ordering.return_value": None},
+        ),
     ):
         create_nested_entity(editor, URIRef(ARTICLE), nested, None)
 

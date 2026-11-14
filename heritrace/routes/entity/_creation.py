@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 from dataclasses import dataclass
+from typing import cast
 
 from flask import Response, jsonify, request
 from flask_login import current_user, login_required
@@ -309,37 +310,19 @@ def create_nested_entity(
         predicate_uri = URIRef(predicate)
         values = raw_values if isinstance(raw_values, list) else [raw_values]
         field_definitions = form_fields[matching_key].get(predicate, [])
-
-        for value in values:
-            if isinstance(value, dict) and "entity_type" in value:
-                nested_uri = generate_unique_uri(value["entity_type"])
-                editor.create(entity_uri, predicate_uri, nested_uri, graph_uri)
-                create_nested_entity(editor, nested_uri, value, graph_uri)
-            elif isinstance(value, dict) and value.get("is_existing_entity", False):
-                existing_entity_uri = value.get("entity_uri")
-                if existing_entity_uri:
-                    editor.create(
-                        entity_uri,
-                        predicate_uri,
-                        URIRef(existing_entity_uri),
-                        graph_uri,
-                    )
-            elif is_tagged(value):
-                editor.create(
-                    entity_uri, predicate_uri, tagged_literal(value), graph_uri
-                )
-            else:
-                str_value = str(value)
-                if is_valid_url(str_value):
-                    object_value: URIRef | Literal = URIRef(str_value)
-                else:
-                    datatype = XSD.string
-                    datatype_uris = []
-                    if field_definitions:
-                        datatype_uris = field_definitions[0].get("datatypes", [])
-                    datatype = determine_datatype(str_value, datatype_uris)
-                    object_value = Literal(str_value, datatype=datatype)
-                editor.create(entity_uri, predicate_uri, object_value, graph_uri)
+        ctx = CreationContext(editor, entity_uri, predicate_uri, graph_uri)
+        ordering = get_presentation().ordering(entity_shape, predicate)
+        if ordering is not None:
+            process_ordered_properties(
+                ctx,
+                values,
+                URIRef(cast("str", ordering.ordered_by)),
+                indexed=ordering.indexed,
+            )
+        else:
+            process_unordered_properties(
+                ctx, values, field_definitions[0] if field_definitions else None
+            )
 
     _create_inverse_values(editor, entity_data, entity_uri, graph_uri)
 
@@ -434,32 +417,15 @@ def process_ordered_properties(
     *,
     indexed: bool = False,
 ) -> None:
-    values_by_shape = {}
-    for value in values:
-        shape = value.get("entity_shape")
-        if not shape:
-            shape = "default_shape"
-        if shape not in values_by_shape:
-            values_by_shape[shape] = []
-        values_by_shape[shape].append(value)
-
-    for shape_values in values_by_shape.values():
-        previous_entity = None
-        for position, value in enumerate(shape_values, start=1):
-            nested_uri = _process_ordered_entity_value(ctx, value)
-
-            if indexed:
-                ctx.editor.create(
-                    nested_uri, ordered_by, Literal(position), ctx.default_graph_uri
-                )
-            elif previous_entity:
-                ctx.editor.create(
-                    previous_entity,
-                    ordered_by,
-                    nested_uri,
-                    ctx.default_graph_uri,
-                )
-            previous_entity = nested_uri
+    ctx.editor.place_in_order(
+        [
+            (value.get("entity_shape"), _process_ordered_entity_value(ctx, value))
+            for value in values
+        ],
+        ordered_by,
+        ctx.default_graph_uri,
+        indexed=indexed,
+    )
 
 
 def process_unordered_properties(

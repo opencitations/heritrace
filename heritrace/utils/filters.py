@@ -165,7 +165,7 @@ class Filter:
         graph: Graph | Dataset | None = None,
     ) -> dict[URIRef | Literal, str]:
         labels: dict[URIRef | Literal, str] = {}
-        unlabelled = []
+        unlabelled: list[URIRef] = []
         for value, shape in shapes.items():
             if isinstance(value, Literal):
                 labels[value] = str(value)
@@ -176,16 +176,19 @@ class Filter:
                     labels[value] = label
                     continue
             unlabelled.append(value)
-        data_labels = self._data_labels(
-            [str(value) for value in unlabelled if isinstance(value, URIRef)], graph
-        )
-        for value in unlabelled:
-            labels[value] = (
-                localize(data_labels.get(str(value), {}))
-                or self.presentation.value_name(str(value))
-                or readable_local_name(str(value))
-            )
+        labels.update(self._iri_labels(unlabelled, graph))
         return labels
+
+    def _iri_labels(
+        self, values: list[URIRef], graph: Graph | Dataset | None
+    ) -> dict[URIRef | Literal, str]:
+        data_labels = self._data_labels([str(value) for value in values], graph)
+        return {
+            value: localize(data_labels.get(str(value), {}))
+            or self.presentation.value_name(str(value))
+            or readable_local_name(str(value))
+            for value in values
+        }
 
     def value_label(
         self,

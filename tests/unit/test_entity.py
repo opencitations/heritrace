@@ -8,12 +8,14 @@ These tests focus on the modification, references, and snapshot functionality.
 """
 
 from datetime import datetime, timezone
+from functools import partial
 from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 
+from heritrace.editor import Editor
 from heritrace.routes.entity import (
     CreationContext,
     EntityRenderContext,
@@ -1786,6 +1788,7 @@ def test_process_ordered_properties_single_shape(mock_process_ordered) -> None:
         URIRef("http://example.org/entity3"),
     ]
     mock_editor = MagicMock()
+    mock_editor.place_in_order = partial(Editor.place_in_order, mock_editor)
 
     # Test data
     entity_uri = URIRef("http://example.org/parent")
@@ -1812,14 +1815,20 @@ def test_process_ordered_properties_single_shape(mock_process_ordered) -> None:
     for value in values:
         mock_process_ordered.assert_any_call(ctx, value)
 
-    # Get actual calls to editor.create for ordering
-    ordering_calls = [
-        call
-        for call in mock_editor.create.call_args_list
-        if len(call[0]) == 4 and call[0][1] == ordered_by
+    assert [call.args for call in mock_editor.create.call_args_list] == [
+        (
+            URIRef("http://example.org/entity1"),
+            ordered_by,
+            URIRef("http://example.org/entity2"),
+            default_graph_uri,
+        ),
+        (
+            URIRef("http://example.org/entity2"),
+            ordered_by,
+            URIRef("http://example.org/entity3"),
+            default_graph_uri,
+        ),
     ]
-
-    assert len(ordering_calls) == 2
 
 
 @patch("heritrace.routes.entity._creation._process_ordered_entity_value")
@@ -1833,6 +1842,7 @@ def test_process_ordered_properties_multiple_shapes(mock_process_ordered) -> Non
         URIRef("http://example.org/org2"),
     ]
     mock_editor = MagicMock()
+    mock_editor.place_in_order = partial(Editor.place_in_order, mock_editor)
 
     # Test data with different shapes
     entity_uri = URIRef("http://example.org/parent")
@@ -1860,16 +1870,20 @@ def test_process_ordered_properties_multiple_shapes(mock_process_ordered) -> Non
     for value in values:
         mock_process_ordered.assert_any_call(ctx, value)
 
-    # Verify ordering relationships were created within each shape group
-    ordering_calls = [
-        call
-        for call in mock_editor.create.call_args_list
-        if len(call[0]) == 4 and call[0][1] == ordered_by
+    assert [call.args for call in mock_editor.create.call_args_list] == [
+        (
+            URIRef("http://example.org/person1"),
+            ordered_by,
+            URIRef("http://example.org/person2"),
+            default_graph_uri,
+        ),
+        (
+            URIRef("http://example.org/org1"),
+            ordered_by,
+            URIRef("http://example.org/org2"),
+            default_graph_uri,
+        ),
     ]
-
-    # Should have 2 ordering calls: one within PersonShape group, one within OrgShape
-    # group
-    assert len(ordering_calls) == 2
 
 
 @patch("heritrace.routes.entity._creation._process_ordered_entity_value")
@@ -1881,6 +1895,7 @@ def test_process_ordered_properties_default_shape(mock_process_ordered) -> None:
         URIRef("http://example.org/entity2"),
     ]
     mock_editor = MagicMock()
+    mock_editor.place_in_order = partial(Editor.place_in_order, mock_editor)
 
     # Test data without entity_shape
     entity_uri = URIRef("http://example.org/parent")
@@ -1906,14 +1921,14 @@ def test_process_ordered_properties_default_shape(mock_process_ordered) -> None:
     for value in values:
         mock_process_ordered.assert_any_call(ctx, value)
 
-    # Verify ordering relationship was created (both values in default_shape group)
-    ordering_calls = [
-        call
-        for call in mock_editor.create.call_args_list
-        if len(call[0]) == 4 and call[0][1] == ordered_by
+    assert [call.args for call in mock_editor.create.call_args_list] == [
+        (
+            URIRef("http://example.org/entity1"),
+            ordered_by,
+            URIRef("http://example.org/entity2"),
+            default_graph_uri,
+        ),
     ]
-
-    assert len(ordering_calls) == 1
 
 
 @patch("heritrace.routes.entity._creation.process_entity_value")

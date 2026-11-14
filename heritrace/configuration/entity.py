@@ -67,15 +67,42 @@ class SkolemURIGenerator(URIGenerator):
         pass
 
 
+_HELPER_TYPES = (
+    SH.PrefixDeclaration,
+    HT.InversePath,
+    HT.QualifiedValueShape,
+    HT.AllowedValue,
+)
+
+
 def _is_helper_triple(graph: Graph, triple: tuple[Node, Node, Node]) -> bool:
     subject, predicate, value = triple
     if subject == ROOT and predicate == DCTERMS.hasPart:
         return True
+    if predicate == SH["in"]:
+        return (None, RDF.rest, value) in graph
     if predicate != RDF.type:
         return False
-    return value in (SH.PrefixDeclaration, HT.InversePath, HT.QualifiedValueShape) or (
+    return value in _HELPER_TYPES or (
         value == SH.PropertyShape and (None, SH.property, subject) in graph
     )
+
+
+def _list_cells(graph: Graph, head: Node) -> list[Node]:
+    cells = []
+    while head != RDF.nil:
+        cells.append(head)
+        head = cast("Node", graph.value(head, RDF.rest))
+    return cells
+
+
+# The editor shows the allowed values of a field as ordered resources: each
+# cell of the list belongs to the field and leads to the next one.
+def _add_allowed_values(graph: Graph, property_shape: Node) -> None:
+    for head in list(graph.objects(property_shape, SH["in"])):
+        for cell in _list_cells(graph, head):
+            graph.add((property_shape, SH["in"], cell))
+            graph.add((cell, RDF.type, HT.AllowedValue))
 
 
 def normalize(graph: Graph) -> Graph:
@@ -99,6 +126,7 @@ def normalize(graph: Graph) -> Graph:
         result.add((shape, RDF.type, SH.NodeShape))
     for property_shape in set(result.objects(None, SH.property)):
         result.add((property_shape, RDF.type, SH.PropertyShape))
+        _add_allowed_values(result, property_shape)
     for declaration in set(result.objects(ROOT, SH.declare)):
         result.add((declaration, RDF.type, SH.PrefixDeclaration))
     for inverse_path in set(result.subjects(SH.inversePath)):
@@ -122,6 +150,9 @@ def canonical(graph: Graph) -> Graph:
         if subject == ROOT and predicate == RDF.type and len(graph.cbd(ROOT)) == 1:
             continue
         result.add((restore(subject), predicate, restore(value)))
+    for cell in graph.subjects(RDF.type, HT.AllowedValue):
+        if (cell, RDF.rest, None) not in graph:
+            result.add((restore(cell), RDF.rest, RDF.nil))
     return result
 
 
@@ -196,16 +227,32 @@ def _meta_violations(graph: Graph) -> list[str]:
     )
 
 
+# A field reads one kind of value, so a list of allowed values excludes the
+# other ways of describing it.
+def _allowed_value_conflicts(graph: Graph) -> list[str]:
+    return [
+        f"{shape}: A field with allowed values has no datatype, class or SHACL shape"
+        " of the value"
+        for shape, field in graph.subject_objects(SH.property)
+        if (field, SH["in"], None) in graph
+        and any(
+            (field, predicate, None) in graph
+            for predicate in (SH.datatype, SH["class"], SH.node)
+        )
+    ]
+
+
 def check_configuration(graph: Graph) -> None:
     shapes_graph = canonical(graph)
     shapes = read_shapes(shapes_graph)
+    conflicts = _allowed_value_conflicts(shapes_graph)
+    # The parts that a conflict leaves out would only repeat it less readably.
+    unsupported = [] if conflicts else unsupported_parts(shapes_graph, shapes)
     issues = (
         _meta_violations(graph)
+        + conflicts
         + [f"{issue.location}: {issue.message}" for issue in validate_shapes(shapes)]
-        + [
-            f"HERITRACE cannot represent {part}"
-            for part in unsupported_parts(shapes_graph, shapes)
-        ]
+        + [f"HERITRACE cannot represent {part}" for part in unsupported]
     )
     if issues:
         raise ConfigurationRejectedError(issues)

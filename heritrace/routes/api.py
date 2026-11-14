@@ -949,6 +949,7 @@ def get_graph_uri_from_context(graph_context: Graph | URIRef) -> URIRef:
 
 class CreateEntityData(TypedDict, total=False):
     entity_type: str
+    entity_shape: str
     # TODO(arcangelo): tighten this type after normalizing
     # the frontend payload to a consistent shape
     properties: dict[str, list | dict | str]
@@ -968,10 +969,10 @@ def _handle_property_value(
     value: dict | str,
     subject: URIRef,
     predicate: URIRef,
-) -> None:
+) -> URIRef | None:
     if isinstance(value, dict) and "entity_type" in value:
         nested_subject = generate_unique_uri(value["entity_type"])
-        create_logic(
+        return create_logic(
             ctx.editor,
             cast("CreateEntityData", value),
             nested_subject,
@@ -981,14 +982,14 @@ def _handle_property_value(
             ctx.temp_id_to_uri,
             parent_entity_type=ctx.entity_type,
         )
-    elif isinstance(value, dict) and value.get("is_existing_entity", False):
+    if isinstance(value, dict) and value.get("is_existing_entity", False):
         entity_uri = value.get("entity_uri")
-        if entity_uri:
-            ctx.editor.create(subject, predicate, URIRef(entity_uri), ctx.graph_uri)
-        else:
+        if not entity_uri:
             msg = "Missing entity_uri in existing entity reference"
             raise ValueError(msg)
-    elif isinstance(value, dict) and value.get("is_custom_property", False):
+        ctx.editor.create(subject, predicate, URIRef(entity_uri), ctx.graph_uri)
+        return URIRef(entity_uri)
+    if isinstance(value, dict) and value.get("is_custom_property", False):
         if value["type"] == "uri":
             object_value = URIRef(value["value"])
         elif value["type"] == "literal":
@@ -999,25 +1000,23 @@ def _handle_property_value(
             raise ValueError(msg)
 
         ctx.editor.create(subject, predicate, object_value, ctx.graph_uri)
-    else:
-        text, language = (
-            (value["value"], value["language"])
-            if is_tagged(value)
-            else (str(value), None)
-        )
-        object_value, _, error_message = validate_new_triple(
-            subject,
-            predicate,
-            text,
-            "create",
-            entity_types=ctx.entity_type,
-            language=language,
-        )
-        if error_message:
-            raise ValueError(error_message)
-
-        if object_value is not None:
-            ctx.editor.create(subject, predicate, object_value, ctx.graph_uri)
+        return None
+    text, language = (
+        (value["value"], value["language"]) if is_tagged(value) else (str(value), None)
+    )
+    object_value, _, error_message = validate_new_triple(
+        subject,
+        predicate,
+        text,
+        "create",
+        entity_types=ctx.entity_type,
+        language=language,
+    )
+    if error_message:
+        raise ValueError(error_message)
+    if object_value is not None:
+        ctx.editor.create(subject, predicate, object_value, ctx.graph_uri)
+    return None
 
 
 def _setup_parent_relations(
@@ -1083,8 +1082,24 @@ def create_logic(  # noqa: PLR0913
     for predicate_str, values in properties.items():
         predicate = URIRef(predicate_str)
         values_list = values if isinstance(values, list) else [values]
-        for value in values_list:
-            _handle_property_value(ctx, value, subject, predicate)
+        created = [
+            (value, _handle_property_value(ctx, value, subject, predicate))
+            for value in values_list
+        ]
+        ordering = get_presentation().ordering(data.get("entity_shape"), predicate_str)
+        # The form orders the values of the edited resource with an order change,
+        # but a new nested resource reaches the server with its values only.
+        if parent_subject is not None and ordering is not None:
+            editor.place_in_order(
+                [
+                    (value.get("entity_shape"), resource)
+                    for value, resource in created
+                    if isinstance(value, dict) and resource is not None
+                ],
+                URIRef(cast("str", ordering.ordered_by)),
+                graph_uri,
+                indexed=ordering.indexed,
+            )
 
     return subject
 

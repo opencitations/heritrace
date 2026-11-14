@@ -5,6 +5,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from itertools import pairwise
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
@@ -161,6 +162,27 @@ class Editor:
                 resp_agent=self.resp_agent,
                 primary_source=self.source,
             )
+
+    # The values of each shape form a chain of their own: each value gets its
+    # position, or a link to the next one.
+    def place_in_order(
+        self,
+        values: list[tuple[str | None, URIRef]],
+        ordered_by: URIRef,
+        graph: URIRef | None,
+        *,
+        indexed: bool,
+    ) -> None:
+        chains: dict[str | None, list[URIRef]] = {}
+        for shape, value in values:
+            chains.setdefault(shape, []).append(value)
+        for chain in chains.values():
+            if indexed:
+                for position, value in enumerate(chain, start=1):
+                    self.create(value, ordered_by, Literal(position), graph)
+            else:
+                for previous, value in pairwise(chain):
+                    self.create(previous, ordered_by, value, graph)
 
     def update(
         self,

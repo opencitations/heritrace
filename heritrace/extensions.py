@@ -46,6 +46,7 @@ from heritrace.configuration.entity import (
     provenance_counter_handler,
     shacl_mtime,
 )
+from heritrace.configuration.labels import ConfigurationFilter
 from heritrace.configuration.runtime import SetupRequiredError, request_reload
 from heritrace.configuration.store import SHACL_FILE
 from heritrace.configuration.vocabulary import SH
@@ -251,7 +252,7 @@ def build_configuration_state(app: Flask) -> AppState:
     presentation = read_presentation(meta_shapes)
     return replace(
         placeholder,
-        custom_filter=init_filters(presentation, backend.sparql),
+        custom_filter=ConfigurationFilter(presentation, backend.sparql),
         presentation=presentation,
         form_fields_cache=form_fields_cache,
         shacl_graph=meta_shapes,

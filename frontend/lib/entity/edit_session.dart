@@ -118,14 +118,11 @@ class EditableGroup extends ChangeNotifier {
     for (final value in existing)
       if (!value.markedForDeletion) value.triple.object,
     for (final item in formGroup?.items ?? const <FormItem>[])
-      if (item.tempId != null) item.tempId!,
+      if (item.tempId != null && collectItem(item) != null) item.tempId!,
   ];
 
   bool get orderChanged =>
-      group.orderedBy != null &&
-      (existing.any((value) => value.markedForDeletion) ||
-          (formGroup?.items.isNotEmpty ?? false) ||
-          !listEquals(originalOrder, currentOrder));
+      group.orderedBy != null && !listEquals(originalOrder, currentOrder);
 
   bool get isSwitchedOn =>
       existing.any(
