@@ -460,13 +460,30 @@ def test_grouped_triples_follow_the_shapes() -> None:
             "details": [
                 {
                     "name": "Role",
-                    "values": [{"label": "Author", "uri": None}],
+                    "property": ex + "withRole",
+                    "values": [
+                        {
+                            "label": "Author",
+                            "uri": None,
+                            "value": ex + "author",
+                            "language": None,
+                        }
+                    ],
                 },
                 {
                     "name": "Held By",
-                    "values": [{"label": "Agent", "uri": str(agent)}],
+                    "property": ex + "heldBy",
+                    "values": [
+                        {
+                            "label": "Agent",
+                            "uri": str(agent),
+                            "value": str(agent),
+                            "language": None,
+                        }
+                    ],
                 },
             ],
+            "details_shape": ex + "AuthorShape",
         }
     ]
     assert grouped["Editor"]["triples"] == [

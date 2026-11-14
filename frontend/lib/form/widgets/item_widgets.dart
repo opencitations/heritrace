@@ -120,11 +120,10 @@ class _LiteralFieldState extends State<LiteralField> {
   @override
   Widget build(BuildContext context) {
     final def = widget.item.def;
-    final multiline = def.inputType == 'textarea';
     final field = AppTextField(
       controller: _controller,
       focusNode: widget.item.focusNode,
-      maxLines: multiline ? 5 : 1,
+      multiline: def.inputType == 'textarea',
       keyboardType: valueKeyboardType(def),
       inputFormatters: valueInputFormatters(def),
       placeholder: def.displayName,

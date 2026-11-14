@@ -234,7 +234,7 @@ class _ValueBody extends StatelessWidget {
       return _Details(
         details: details,
         alternative: triple.alternative,
-        linked: !editable,
+        edits: editable ? value.detailEdits : null,
       );
     }
     if (triple.externalEntity != null) {
@@ -293,17 +293,18 @@ class _ValueBody extends StatelessWidget {
   }
 }
 
-/// The fields of a linked entity, shown in place of the link.
+/// The fields of a linked entity, shown in place of the link. In edit mode,
+/// [edits] holds the values the user can change there.
 class _Details extends StatelessWidget {
   const _Details({
     required this.details,
     required this.alternative,
-    required this.linked,
+    required this.edits,
   });
 
   final List<EntityDetail> details;
   final String? alternative;
-  final bool linked;
+  final Map<DetailValue, DetailEdit>? edits;
 
   @override
   Widget build(BuildContext context) {
@@ -320,7 +321,9 @@ class _Details extends StatelessWidget {
               if (details.length > 1)
                 Text(detail.name, style: AppTextStyles.of(context).caption),
               for (final value in detail.values)
-                if (linked && value.uri != null)
+                if (edits?[value] case final edit?)
+                  _DetailField(edit: edit)
+                else if (edits == null && value.uri != null)
                   _EntityLink(
                     uri: value.uri!,
                     child: ConstrainedBox(
@@ -342,10 +345,42 @@ class _Details extends StatelessWidget {
   }
 }
 
+class _DetailField extends StatelessWidget {
+  const _DetailField({required this.edit});
+
+  final DetailEdit edit;
+
+  @override
+  Widget build(BuildContext context) {
+    final field = edit.field;
+    if (field.optionalValues.isEmpty) {
+      return _TextValueField(value: edit, field: field);
+    }
+    return ListenableBuilder(
+      listenable: edit,
+      builder: (context, _) => OptionsButton<String?>(
+        title: field.displayName,
+        value: field.optionalValues.contains(edit.newValue)
+            ? edit.newValue
+            : null,
+        options: [
+          for (final option in field.optionalValues)
+            AppMenuOption(
+              option,
+              field.optionalValueLabel(option),
+              description: field.optionalValueDescriptions[option],
+            ),
+        ],
+        onChanged: (selected) => edit.setValue(selected!),
+      ),
+    );
+  }
+}
+
 class _TextValueField extends StatefulWidget {
   const _TextValueField({required this.value, required this.field});
 
-  final ExistingValue value;
+  final EditedValue value;
   final FieldDef? field;
 
   @override
@@ -381,7 +416,7 @@ class _TextValueFieldState extends State<_TextValueField> {
     final field = widget.field;
     return AppTextField(
       controller: _controller,
-      maxLines: field?.inputType == 'textarea' ? 5 : 1,
+      multiline: field?.inputType == 'textarea',
       keyboardType: field == null ? null : valueKeyboardType(field),
       inputFormatters: field == null ? null : valueInputFormatters(field),
       onChanged: widget.value.setValue,

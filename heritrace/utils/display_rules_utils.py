@@ -66,7 +66,10 @@ def _value_shapes(
     from heritrace.utils.shacl_utils import (  # noqa: PLC0415
         determine_shape_for_entity_triples,
     )
-    from heritrace.utils.sparql_utils import get_triples_from_graph  # noqa: PLC0415
+    from heritrace.utils.sparql_utils import (  # noqa: PLC0415
+        binding_to_node,
+        get_triples_from_graph,
+    )
 
     values = sorted(
         {
@@ -92,14 +95,11 @@ def _value_shapes(
         )
         sparql.setReturnFormat(JSON)
         for binding in get_sparql_bindings(sparql.query().convert()):
-            obj = binding["o"]
             value_triples[binding["s"]["value"]].append(
                 (
                     URIRef(binding["s"]["value"]),
                     URIRef(binding["p"]["value"]),
-                    URIRef(obj["value"])
-                    if obj["type"] == "uri"
-                    else Literal(obj["value"]),
+                    binding_to_node(binding["o"]),
                 )
             )
     shapes = {
@@ -139,7 +139,9 @@ def _shown_details(
     ctx: GroupingContext, value: str, field: dict, extra: dict[str, object]
 ) -> dict[str, object]:
     details = _details(ctx, value, field)
-    return {"details": details, **extra} if details else {}
+    if not details:
+        return {}
+    return {"details": details, "details_shape": field["nodeShape"], **extra}
 
 
 def _detail_value(
@@ -147,15 +149,22 @@ def _detail_value(
 ) -> dict[str, str | None]:
     custom_filter = get_custom_filter()
     if isinstance(value, Literal):
-        return {"label": str(value), "uri": None}
+        return {
+            "label": str(value),
+            "uri": None,
+            "value": str(value),
+            "language": value.language,
+        }
+    stored = {"value": str(value), "language": None}
     if nested["uri"] == str(RDF.type):
         return {
             "label": custom_filter.human_readable_class((str(value), None)),
             "uri": None,
+            **stored,
         }
     shape = nested["nodeShape"] if nested["nodeShapes"] else None
     label = custom_filter.value_label(value, (None, shape), ctx.historical_snapshot)
-    return {"label": label, "uri": str(value) if shape else None}
+    return {"label": label, "uri": str(value) if shape else None, **stored}
 
 
 def _details(ctx: GroupingContext, value: str, field: dict) -> list[dict[str, object]]:
@@ -171,7 +180,13 @@ def _details(ctx: GroupingContext, value: str, field: dict) -> list[dict[str, ob
             if str(linked_predicate) == nested["uri"]
         ]
         if values:
-            details.append({"name": localize(nested["displayName"]), "values": values})
+            details.append(
+                {
+                    "name": localize(nested["displayName"]),
+                    "property": nested["uri"],
+                    "values": values,
+                }
+            )
     return details
 
 

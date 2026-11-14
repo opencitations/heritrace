@@ -615,7 +615,7 @@ def warm_catalogue(
     )
 
 
-def _binding_to_node(binding: dict[str, str]) -> Literal | URIRef:
+def binding_to_node(binding: dict[str, str]) -> Literal | URIRef:
     if binding["type"] not in {"literal", "typed-literal"}:
         return URIRef(binding["value"])
     if "datatype" in binding:
@@ -660,7 +660,7 @@ def fetch_data_graph_for_subject(subject: URIRef) -> Graph | Dataset:
     bindings = get_sparql_bindings(sparql.query().convert())
 
     for result in bindings:
-        value = _binding_to_node(result["object"])
+        value = binding_to_node(result["object"])
 
         # Add triple/quad based on store type
         if get_dataset_is_quadstore():
@@ -932,7 +932,7 @@ def _expand_with_current_state(graph: Graph) -> None:
                 (
                     URIRef(binding["subject"]["value"]),
                     URIRef(binding["predicate"]["value"]),
-                    _binding_to_node(binding["object"]),
+                    binding_to_node(binding["object"]),
                 )
             )
         missing = frontier - {binding["subject"]["value"] for binding in bindings}

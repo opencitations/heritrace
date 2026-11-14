@@ -23,27 +23,48 @@ class OptionalValue {
 }
 
 class DetailValue {
-  const DetailValue({required this.label, required this.uri});
+  const DetailValue({
+    required this.label,
+    required this.uri,
+    required this.value,
+    required this.language,
+  });
 
-  factory DetailValue.fromJson(Map<String, dynamic> json) =>
-      DetailValue(label: json['label'] as String, uri: json['uri'] as String?);
+  factory DetailValue.fromJson(Map<String, dynamic> json) => DetailValue(
+    label: json['label'] as String,
+    uri: json['uri'] as String?,
+    value: json['value'] as String,
+    language: json['language'] as String?,
+  );
 
   final String label;
+
+  /// The linked entity whose page the value opens.
   final String? uri;
+
+  /// The value as stored, which [label] may show in a readable form.
+  final String value;
+  final String? language;
 }
 
 /// A field of a linked entity shown in place of the link (`shui:DetailsViewer`).
 class EntityDetail {
-  const EntityDetail({required this.name, required this.values});
+  const EntityDetail({
+    required this.name,
+    required this.property,
+    required this.values,
+  });
 
   factory EntityDetail.fromJson(Map<String, dynamic> json) => EntityDetail(
     name: json['name'] as String,
+    property: json['property'] as String,
     values: (json['values'] as List<dynamic>)
         .map((e) => DetailValue.fromJson(e as Map<String, dynamic>))
         .toList(),
   );
 
   final String name;
+  final String property;
   final List<DetailValue> values;
 }
 
@@ -58,6 +79,7 @@ class EntityTriple {
     required this.isMandatory,
     required this.label,
     required this.details,
+    required this.detailsShape,
     required this.alternative,
   });
 
@@ -73,6 +95,7 @@ class EntityTriple {
     details: (json['details'] as List<dynamic>?)
         ?.map((e) => EntityDetail.fromJson(e as Map<String, dynamic>))
         .toList(),
+    detailsShape: json['details_shape'] as String?,
     alternative: json['alternative'] as String?,
   );
 
@@ -87,6 +110,9 @@ class EntityTriple {
   final bool isMandatory;
   final String? label;
   final List<EntityDetail>? details;
+
+  /// The node shape whose fields make up the [details].
+  final String? detailsShape;
 
   /// The `sh:or` alternative the linked entity matches, named above its
   /// [details].

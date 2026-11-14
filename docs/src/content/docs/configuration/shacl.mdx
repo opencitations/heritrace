@@ -427,6 +427,8 @@ By default, HERITRACE shows a linked entity as a link. On the entity page, the l
 
 `shui:DetailsEditor` shows the fields of the linked entity inside the form, next to the fields of the entity being edited. `shui:DetailsViewer` does the same on the entity page, where the fields of the linked entity take the place of the link. These widgets suit entities that act as proxies, such as blank nodes or entities that only bridge two others and add properties to the link between them.
 
+While you edit the entity page, the values that `shui:DetailsViewer` shows in place become inputs, and saving updates the linked entity directly.
+
 The fields come from the `sh:node` shape. To show only some of them, list them with `sh:property` on the property shape: HERITRACE takes their definition from the `sh:node` shape, and the other fields keep their values and constraints. Here an author role shows only the person who holds it:
 
 ```ttl
@@ -550,12 +552,18 @@ A select expression can also carry its own `sh:prefixes`. If a label query retur
 
 A label query can also read the language of the interface from `$language`, which holds `"en"` or `"it"`. Use it to prefer the text in that language, as in `FILTER(LANG(?title) = $language)`.
 
+HERITRACE checks every label query before it accepts the shapes, whether they come from the editor or from `shacl.ttl`: the query has to be valid SPARQL that uses only declared prefixes and returns a single variable.
+
 <Aside type="caution" title="Labels that follow incoming references">
 A label query can use `$this` as an object and build the label from the entities that point at it. HERITRACE detects this and loads those entities on history pages, which is expensive when an entity has many referrers. Such a label also resolves only for snapshots taken after the referring entity existed, so prefer following references away from the entity.
 </Aside>
 
 <Aside type="caution" title="$language is a HERITRACE extension">
 `$language` works only in HERITRACE: it is not part of <a href="https://w3c.github.io/data-shapes/shacl12-sparql/#SelectExpression" target="_blank" rel="noopener noreferrer">SHACL 1.2 SPARQL-Related Features</a>.
+</Aside>
+
+<Aside type="caution" title="The label query in the configuration editor">
+SHACL attaches the label query to a property shape, while the [configuration editor](../editor/) shows it on the resource type. This simplification follows from HERITRACE computing `sh:values` only for the label. Nonetheless, saving writes the standard form shown above.
 </Aside>
 
 ## Duplicate detection (`owl:hasKey`)

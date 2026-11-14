@@ -38,6 +38,7 @@ EditableGroup editableGroup(List<String> values, {bool addable = true}) =>
               isMandatory: false,
               label: null,
               details: null,
+              detailsShape: null,
               alternative: null,
             ),
         ],

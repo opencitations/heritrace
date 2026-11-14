@@ -6,6 +6,11 @@ import re
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
+from pyparsing import ParseException
+from rdflib.plugins.sparql.algebra import translateQuery, traverse
+from rdflib.plugins.sparql.parser import parseQuery
+from rdflib.plugins.sparql.parserutils import CompValue
+
 from heritrace.apis.orcid import is_valid_orcid_id, normalize_orcid
 from heritrace.configuration.settings import STRATEGIES, Settings
 from heritrace.configuration.shapes import (
@@ -95,7 +100,56 @@ def _validate_bounds(issues: list[Issue], location: str, prop: PropertyShape) ->
     )
 
 
-def _validate_property(issues: list[Issue], location: str, prop: PropertyShape) -> None:
+def _used_prefixes(tree: object) -> set[str]:
+    used: set[str] = set()
+
+    def visit(node: object) -> None:
+        if isinstance(node, CompValue) and node.name == "pname":
+            used.add(node.prefix or "")
+
+    traverse(tree, visitPre=visit)
+    return used
+
+
+# HERITRACE runs a label query after the prefixes of the shapes graph, with
+# $this and $language replaced by values.
+def _label_query_problem(query: str, prefixes: dict[str, str]) -> str | None:
+    declarations = "".join(
+        f"PREFIX {prefix}: <{namespace}>\n" for prefix, namespace in prefixes.items()
+    )
+    try:
+        tree = parseQuery(declarations + query)
+    except ParseException as error:
+        return f"The query is not valid SPARQL: {error}"
+    declared = {
+        declaration.prefix or ""
+        for declaration in tree[0]
+        if declaration.name == "PrefixDecl"
+    }
+    undeclared = sorted(_used_prefixes(tree) - declared)
+    if undeclared:
+        return f"The query uses undeclared prefixes: {', '.join(undeclared)}"
+    algebra = translateQuery(tree).algebra
+    if algebra.name != "SelectQuery" or len(algebra["PV"]) != 1:
+        return "The query must be a SELECT that returns one variable"
+    return None
+
+
+def _validate_label_query(
+    issues: list[Issue], location: str, prop: PropertyShape, prefixes: dict[str, str]
+) -> None:
+    if prop.label_query is None:
+        return
+    if not prop.label:
+        issues.append(Issue(location, "A label query needs the display label role"))
+    problem = _label_query_problem(prop.label_query, prefixes)
+    if problem is not None:
+        issues.append(Issue(location, problem))
+
+
+def _validate_property(
+    issues: list[Issue], location: str, prop: PropertyShape, prefixes: dict[str, str]
+) -> None:
     _check_iri(issues, f"{location}.path", prop.path)
     _check_iri(issues, f"{location}.orderedBy", prop.ordered_by)
     for key, count in (("minCount", prop.min_count), ("maxCount", prop.max_count)):
@@ -127,13 +181,16 @@ def _validate_property(issues: list[Issue], location: str, prop: PropertyShape) 
         _check_iri(issues, f"{location}.values", value)
     for detail_path in prop.details:
         _check_iri(issues, f"{location}.details", detail_path)
+    _validate_label_query(issues, f"{location}.labelQuery", prop, prefixes)
 
 
-def _validate_shape(issues: list[Issue], location: str, shape: NodeShape) -> None:
+def _validate_shape(
+    issues: list[Issue], location: str, shape: NodeShape, prefixes: dict[str, str]
+) -> None:
     _check_iri(issues, f"{location}.iri", shape.iri)
     _check_iri(issues, f"{location}.targetClass", shape.target_class)
     for index, prop in enumerate(shape.properties):
-        _validate_property(issues, f"{location}.properties.{index}", prop)
+        _validate_property(issues, f"{location}.properties.{index}", prop, prefixes)
     for index, key in enumerate(shape.duplicate_keys):
         key_location = f"{location}.duplicateKeys.{index}"
         if not key:
@@ -165,5 +222,5 @@ def validate_shapes(shapes: Shapes) -> list[Issue]:
             issues.append(
                 Issue(f"shapes.{index}.iri", "Another entity type uses this IRI")
             )
-        _validate_shape(issues, f"shapes.{index}", shape)
+        _validate_shape(issues, f"shapes.{index}", shape, shapes.prefixes)
     return issues

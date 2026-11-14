@@ -166,11 +166,23 @@ meta:NodeShapeShape
     sh:node meta:PropertyShapeShape ;
   ] ;
   sh:property [
+    sh:path ht:labelQuery ;
+    sh:name "Label query"@en, "Query dell'etichetta"@it ;
+    sh:description "A SPARQL query that builds the label of the resources of this type from the data and returns it in its only variable. In the query, you can use $this to refer to the resource and $language to refer to the language of the interface, useful for returning a different label depending on the language the user chose"@en,
+      "Una query SPARQL che compone l'etichetta delle risorse di questo tipo a partire dai dati e la restituisce nella sua unica variabile. Nella query puoi usare $this per riferirti alla risorsa e $language per riferirti alla lingua dell'interfaccia, utile per restituire etichette diverse in base alla lingua scelta dall'utente"@it ;
+    sh:order 5 ;
+    dash:composite true ;
+    sh:node meta:SelectExpressionShape ;
+    shui:editor shui:DetailsEditor ;
+    shui:viewer shui:DetailsViewer ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
     sh:path owl:hasKey ;
     sh:name "Criteria for finding duplicates"@en, "Criteri per individuare i duplicati"@it ;
     sh:description "Two resources of this type may be duplicates when they share a value for every property of a criterion. Matching one criterion is enough"@en,
       "Due risorse di questo tipo possono essere duplicati quando hanno un valore in comune per ogni proprietà di un criterio. Basta un solo criterio"@it ;
-    sh:order 5 ;
+    sh:order 6 ;
     dash:composite true ;
     sh:node meta:DuplicateCriterionShape ;
     shui:editor shui:DetailsEditor ;
@@ -716,6 +728,37 @@ meta:DuplicateCriterionShape
       "Gli IRI delle proprietà di cui le due risorse devono condividere un valore"@it ;
     sh:nodeKind sh:IRI ;
     sh:minCount 1 ;
+  ] .
+
+meta:SelectExpressionShape
+  a sh:NodeShape ;
+  sh:name "Label query"@en, "Query dell'etichetta"@it ;
+  sh:targetClass ht:SelectExpression ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue ht:SelectExpression ;
+    dash:hidden true ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?label WHERE {
+          BIND(IF($language = "it", "Query dell'etichetta", "Label query") AS ?label)
+        }
+      """ ;
+    ] ;
+  ] ;
+  sh:property [
+    sh:path sh:select ;
+    sh:name "SPARQL query"@en, "Query SPARQL"@it ;
+    sh:datatype xsd:string ;
+    shui:editor shui:TextAreaEditor ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
   ] .
 
 meta:PrefixDeclarationShape

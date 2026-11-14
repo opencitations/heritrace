@@ -7,6 +7,7 @@ import shutil
 import time
 from collections.abc import Generator
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 from urllib.parse import quote
 
@@ -14,7 +15,19 @@ import pytest
 from filelock import Timeout
 from flask import Flask
 from flask.testing import FlaskClient
-from rdflib import DCTERMS, FOAF, OWL, PROV, RDF, XSD, Dataset, Graph, Literal, URIRef
+from rdflib import (
+    DCTERMS,
+    FOAF,
+    OWL,
+    PROV,
+    RDF,
+    RDFS,
+    XSD,
+    Dataset,
+    Graph,
+    Literal,
+    URIRef,
+)
 from rdflib.collection import Collection
 from rdflib.compare import isomorphic
 from rdflib.term import Node
@@ -28,6 +41,7 @@ from heritrace.configuration.entity import (
     ROOT,
     SHAPE_NAMESPACE,
     SYSTEM_AGENT,
+    ConfigurationRejectedError,
     canonical,
     configuration_lock,
     ensure_configuration_entity,
@@ -39,7 +53,7 @@ from heritrace.configuration.shapes import (
     shapes_to_graph,
     unsupported_parts,
 )
-from heritrace.configuration.vocabulary import DASH, HT, META, SH
+from heritrace.configuration.vocabulary import DASH, HT, META, SH, SHUI
 from heritrace.scripts.seed_config import seed_config
 from tests.test_config import TestConfig, test_example_dir
 
@@ -207,7 +221,6 @@ def test_fields_are_listed_by_name(admin_client: FlaskClient) -> None:
     )
     assert sorted(triple["value"] for triple in fields["triples"]) == [
         "Description",
-        "Display label",
         "Journal",
         "Number",
         "Type (fabio:Expression)",
@@ -669,7 +682,15 @@ def test_an_inverse_path_is_shown_in_place(inverse_path_app: Flask) -> None:
             [
                 {
                     "name": "Property",
-                    "values": [{"label": "dcterms:isPartOf", "uri": None}],
+                    "property": str(SH.inversePath),
+                    "values": [
+                        {
+                            "label": "dcterms:isPartOf",
+                            "uri": None,
+                            "value": str(DCTERMS.isPartOf),
+                            "language": None,
+                        }
+                    ],
                 }
             ],
         )
@@ -745,7 +766,15 @@ def test_qualified_values_are_shown_in_place(qualified_app: Flask) -> None:
     assert details == [
         {
             "name": "Value",
-            "values": [{"label": "fabio:Expression", "uri": None}],
+            "property": str(SH.hasValue),
+            "values": [
+                {
+                    "label": "fabio:Expression",
+                    "uri": None,
+                    "value": f"{FABIO}Expression",
+                    "language": None,
+                }
+            ],
         }
     ]
     assert _label(client, qualified, "en") == "fabio:Expression"
@@ -869,7 +898,15 @@ def test_allowed_values_are_shown_in_their_order(
             [
                 {
                     "name": "Value",
-                    "values": [{"label": f"datacite:{scheme}", "uri": None}],
+                    "property": str(RDF.first),
+                    "values": [
+                        {
+                            "label": f"datacite:{scheme}",
+                            "uri": None,
+                            "value": f"{DATACITE}{scheme}",
+                            "language": None,
+                        }
+                    ],
                 }
             ]
             for scheme in ("doi", "pmid")
@@ -1069,6 +1106,153 @@ def test_duplicate_criteria_are_removed_and_added(
     ) == ([[str(DCTERMS.issued), str(DCTERMS.title)], [str(HAS_IDENTIFIER)]], set())
 
 
+def _label_query(app: Flask) -> tuple[URIRef, Literal]:
+    data = _data(app)
+    query = cast("Node", data.value(IDENTIFIER_SHAPE, HT.labelQuery))
+    return URIRef(str(query)), cast("Literal", data.value(query, SH.select))
+
+
+def test_a_label_query_is_shown_on_its_resource_type(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    expression, select = _label_query(config_app)
+    groups = admin_client.get(
+        f"/api/configuration/entity/{quote(str(IDENTIFIER_SHAPE), safe='')}",
+        headers={"Accept-Language": "en"},
+    ).get_json()["groups"]
+    fields = next(group for group in groups if group["property"] == str(SH.property))
+    query = next(group for group in groups if group["property"] == str(HT.labelQuery))
+
+    assert sorted(triple["value"] for triple in fields["triples"]) == [
+        "Identifier Scheme",
+        "Literal Value",
+        "Type (datacite:Identifier)",
+    ]
+    assert [(triple["object"], triple["details"]) for triple in query["triples"]] == [
+        (
+            str(expression),
+            [
+                {
+                    "name": "SPARQL query",
+                    "property": str(SH.select),
+                    "values": [
+                        {
+                            "label": str(select),
+                            "uri": None,
+                            "value": str(select),
+                            "language": None,
+                        }
+                    ],
+                }
+            ],
+        )
+    ]
+    assert _label(admin_client, expression, "it") == "Query dell'etichetta"
+
+
+def _saved_label_queries(saved: Graph) -> list[Node]:
+    return [
+        cast("Node", saved.value(query, SH.select))
+        for field in saved.objects(IDENTIFIER_SHAPE, SH.property)
+        if (field, SH.path, RDFS.label) in saved
+        for query in saved.objects(field, SH.values)
+    ]
+
+
+LABEL_QUERY_ERROR = "shapes.4.properties.3.labelQuery: "
+
+
+@pytest.mark.parametrize(
+    ("query", "result"),
+    [
+        ("SELECT ?label WHERE { $this dcterms:title ?label }", (200, None)),
+        (
+            "SELECT ?label WHERE { $this schema:name ?label }",
+            (422, "The query uses undeclared prefixes: schema"),
+        ),
+        (
+            "SELECT ?label WHERE { $this dcterms:title ?label",
+            (
+                422,
+                "The query is not valid SPARQL: Expected SelectQuery, found end of"
+                " text  (at char 298), (line:6, col:49)",
+            ),
+        ),
+        (
+            "SELECT ?label ?title WHERE { $this dcterms:title ?label, ?title }",
+            (422, "The query must be a SELECT that returns one variable"),
+        ),
+    ],
+)
+def test_a_label_query_is_checked_when_saved(
+    admin_client: FlaskClient,
+    config_app: Flask,
+    query: str,
+    result: tuple[int, str | None],
+) -> None:
+    expression, select = _label_query(config_app)
+
+    status, body = _update(admin_client, expression, SH.select, str(select), query)
+
+    if result[1] is None:
+        saved = read_shacl(config_app.config["CONFIG_DIR"])
+        assert (status, _saved_label_queries(saved)) == (200, [Literal(query)])
+        assert (None, RDF.type, HT.SelectExpression) not in saved
+    else:
+        assert (status, body["errors"]) == (
+            result[0],
+            [LABEL_QUERY_ERROR + result[1]],
+        )
+
+
+def test_a_label_query_written_by_hand_needs_the_label_role(
+    config_app: Flask,
+) -> None:
+    config_dir = config_app.config["CONFIG_DIR"]
+    shacl_path = config_dir / "shacl.ttl"
+    edited = Graph().parse(shacl_path, format="turtle")
+    label_field = next(
+        field
+        for field in edited.objects(IDENTIFIER_SHAPE, SH.property)
+        if (field, SH.path, RDFS.label) in edited
+    )
+    edited.remove((label_field, SHUI.propertyRole, SHUI.LabelRole))
+    edited.serialize(shacl_path, format="turtle")
+
+    with pytest.raises(ConfigurationRejectedError) as rejection:
+        ensure_configuration_entity(config_dir)
+
+    assert rejection.value.issues == [
+        LABEL_QUERY_ERROR + "A label query needs the display label role"
+    ]
+
+
+def test_a_label_field_with_a_name_stays_a_field(config_app: Flask) -> None:
+    config_dir = config_app.config["CONFIG_DIR"]
+    shacl_path = config_dir / "shacl.ttl"
+    edited = Graph().parse(shacl_path, format="turtle")
+    label_field = next(
+        field
+        for field in edited.objects(IDENTIFIER_SHAPE, SH.property)
+        if (field, SH.path, RDFS.label) in edited
+    )
+    edited.add((label_field, SH.name, Literal("Label")))
+    edited.serialize(shacl_path, format="turtle")
+
+    ensure_configuration_entity(config_dir)
+
+    data = _data(config_app)
+    fields_with_a_query = [
+        data.value(field, SH.name)
+        for field in data.objects(IDENTIFIER_SHAPE, SH.property)
+        if (field, SH.values, None) in data
+    ]
+    assert (data.value(IDENTIFIER_SHAPE, HT.labelQuery), fields_with_a_query) == (
+        None,
+        [Literal("Label")],
+    )
+
+
 def test_the_first_start_leaves_the_shapes_file_as_written(config_app: Flask) -> None:
     config_dir = config_app.config["CONFIG_DIR"]
 
@@ -1201,8 +1385,8 @@ def test_removing_a_prefix_removes_its_declaration(
     admin_client: FlaskClient, config_app: Flask
 ) -> None:
     data = _data(config_app)
-    declaration = next(data.objects(ROOT, SH.declare))
-    prefix = str(data.value(declaration, SH.prefix))
+    prefix = "pro"
+    declaration = next(data.subjects(SH.prefix, Literal(prefix)))
     deletion = {
         "action": "delete",
         "subject": str(ROOT),
@@ -1246,6 +1430,7 @@ def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -
         "Criterion for finding duplicates",
         "Field",
         "Inverse path",
+        "Label query",
         "Prefix",
         "Value to count",
         "Resource type",
@@ -1257,6 +1442,7 @@ def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -
         "Criterio per individuare i duplicati",
         "Percorso inverso",
         "Prefisso",
+        "Query dell'etichetta",
         "Tipi di risorsa",
         "Valore da contare",
         "Tipo di risorsa",

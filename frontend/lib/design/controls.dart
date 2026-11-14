@@ -166,7 +166,7 @@ class AppTextField extends StatelessWidget {
     this.focusNode,
     this.placeholder,
     this.errorText,
-    this.maxLines = 1,
+    this.multiline = false,
     this.keyboardType,
     this.inputFormatters,
     this.onChanged,
@@ -180,7 +180,9 @@ class AppTextField extends StatelessWidget {
   final FocusNode? focusNode;
   final String? placeholder;
   final String? errorText;
-  final int maxLines;
+
+  /// A multiline field starts at three lines and grows with its text.
+  final bool multiline;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final ValueChanged<String>? onChanged;
@@ -196,7 +198,8 @@ class AppTextField extends StatelessWidget {
         controller: controller,
         focusNode: focusNode,
         placeholder: placeholder,
-        maxLines: maxLines,
+        minLines: multiline ? 3 : null,
+        maxLines: multiline ? null : 1,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         onChanged: onChanged,

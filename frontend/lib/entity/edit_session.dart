@@ -16,14 +16,81 @@ import 'entity_repository.dart';
 
 const lockRenewalInterval = Duration(seconds: 240);
 
-class ExistingValue extends ChangeNotifier {
+/// A value whose text the user can change in edit mode.
+abstract interface class EditedValue implements Listenable {
+  String get newValue;
+  void setValue(String value);
+}
+
+/// A value of a nested entity shown in place of the link, edited from the
+/// page of the entity that links to it.
+class DetailEdit extends ChangeNotifier implements EditedValue {
+  DetailEdit({required this.subject, required this.field, required this.value})
+    : newValue = value.value;
+
+  final String subject;
+  final FieldDef field;
+  final DetailValue value;
+  @override
+  String newValue;
+
+  bool get isModified => newValue != value.value;
+
+  @override
+  void setValue(String value) {
+    newValue = value;
+    notifyListeners();
+  }
+
+  void reset() => setValue(value.value);
+}
+
+class ExistingValue extends ChangeNotifier implements EditedValue {
   ExistingValue({required this.triple, required this.group})
     : newValue = triple.value,
       newLanguage = triple.language,
-      dateType = _dateTypeFor(triple.value);
+      dateType = _dateTypeFor(triple.value) {
+    for (final edit in detailEdits.values) {
+      edit.addListener(notifyListeners);
+    }
+  }
 
   final EntityTriple triple;
   final PropertyGroup group;
+
+  /// The values of the nested entity shown in place that the user can change:
+  /// literals and IRIs typed by hand, not links to other entities.
+  late final Map<DetailValue, DetailEdit> detailEdits = {
+    if (triple.details case final details?)
+      for (final detail in details)
+        if (_detailField(detail.property) case final field?
+            when field.hasValue == null)
+          for (final value in detail.values)
+            if (value.uri == null)
+              value: DetailEdit(
+                subject: triple.externalEntity!,
+                field: field,
+                value: value,
+              ),
+  };
+
+  FieldDef? _detailField(String property) {
+    final field = group.field;
+    final fields = [
+      ...?field?.nestedShape,
+      for (final alternative in field?.or ?? const <FieldDef>[])
+        ...?alternative.nestedShape,
+    ];
+    return fields
+        .where(
+          (nested) =>
+              nested.uri == property &&
+              nested.subjectShape == triple.detailsShape,
+        )
+        .firstOrNull;
+  }
+
+  @override
   String newValue;
   String? newLanguage;
   DateType dateType;
@@ -31,6 +98,9 @@ class ExistingValue extends ChangeNotifier {
 
   bool get isModified =>
       newValue != triple.value || newLanguage != triple.language;
+
+  Iterable<DetailEdit> get modifiedDetails =>
+      detailEdits.values.where((edit) => edit.isModified);
 
   bool get isEntityLink => triple.externalEntity != null;
 
@@ -40,6 +110,7 @@ class ExistingValue extends ChangeNotifier {
     _ => DateType.date,
   };
 
+  @override
   void setValue(String value) {
     newValue = value;
     notifyListeners();
@@ -73,7 +144,18 @@ class ExistingValue extends ChangeNotifier {
     newLanguage = triple.language;
     dateType = _dateTypeFor(triple.value);
     markedForDeletion = false;
+    for (final edit in detailEdits.values) {
+      edit.reset();
+    }
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    for (final edit in detailEdits.values) {
+      edit.dispose();
+    }
+    super.dispose();
   }
 }
 
@@ -254,7 +336,12 @@ class EditSession extends ChangeNotifier {
   bool get hasChanges =>
       groups.any(
         (group) =>
-            group.existing.any((v) => v.isModified || v.markedForDeletion) ||
+            group.existing.any(
+              (v) =>
+                  v.isModified ||
+                  v.markedForDeletion ||
+                  v.modifiedDetails.isNotEmpty,
+            ) ||
             group.orderChanged,
       ) ||
       _newProperties().isNotEmpty ||
@@ -346,6 +433,20 @@ class EditSession extends ChangeNotifier {
             if (group.group.field?.withLanguage ?? false)
               'newLanguage': value.newLanguage ?? '',
           });
+        }
+        if (!dropped && !value.markedForDeletion) {
+          for (final edit in value.modifiedDetails) {
+            changes.add({
+              'action': 'update',
+              'subject': edit.subject,
+              'predicate': edit.field.uri,
+              'entity_type': edit.field.entityType,
+              'entity_shape': edit.field.subjectShape,
+              'object': edit.value.value,
+              'newObject': edit.newValue,
+              'language': ?edit.value.language,
+            });
+          }
         }
       }
       if (!dropped && group.orderChanged) {

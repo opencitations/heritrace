@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from filelock import FileLock
 from pyshacl import validate
-from rdflib import DCTERMS, OWL, PROV, RDF, BNode, Graph, URIRef
+from rdflib import DCTERMS, OWL, PROV, RDF, RDFS, BNode, Graph, URIRef
 from rdflib.collection import Collection
 from rdflib.compare import isomorphic
 from rdflib.term import Node
@@ -25,7 +25,7 @@ from heritrace.configuration.shapes import (
 )
 from heritrace.configuration.store import SHACL_FILE, write_shacl
 from heritrace.configuration.validation import validate_shapes
-from heritrace.configuration.vocabulary import HT, SH
+from heritrace.configuration.vocabulary import HT, SH, SHUI
 from heritrace.rdf_files import load_rdf_file
 from heritrace.sparql import SPARQLWrapperWithRetry
 from heritrace.uri_generator.uri_generator import URIGenerator
@@ -74,14 +74,16 @@ _HELPER_TYPES = (
     HT.QualifiedValueShape,
     HT.AllowedValue,
     HT.DuplicateCriterion,
+    HT.SelectExpression,
 )
 
 
 def _is_helper_triple(graph: Graph, triple: tuple[Node, Node, Node]) -> bool:
     subject, predicate, value = triple
-    if (
-        subject == ROOT and predicate == DCTERMS.hasPart
-    ) or predicate == HT.keyProperty:
+    if (subject == ROOT and predicate == DCTERMS.hasPart) or predicate in (
+        HT.keyProperty,
+        HT.labelQuery,
+    ):
         return True
     if predicate == SH["in"]:
         return (None, RDF.rest, value) in graph
@@ -123,6 +125,40 @@ def _add_duplicate_criteria(graph: Graph) -> None:
         graph.add((head, RDF.type, HT.DuplicateCriterion))
 
 
+_LABEL_FIELD = {SH.path, SHUI.propertyRole, SH.values}
+
+
+# HERITRACE computes sh:values only for the label of a resource, which is why
+# the editor shows the label query on the resource type. A label field written
+# by hand in another form stays a field.
+def _move_label_queries(graph: Graph) -> None:
+    for field in set(graph.subjects(SHUI.propertyRole, SHUI.LabelRole)):
+        owners = list(graph.subjects(SH.property, field))
+        if (
+            len(owners) != 1
+            or set(graph.predicates(field)) != _LABEL_FIELD
+            or graph.value(field, SH.path) != RDFS.label
+        ):
+            continue
+        graph.add(
+            (owners[0], HT.labelQuery, cast("Node", graph.value(field, SH.values)))
+        )
+        graph.remove((owners[0], SH.property, field))
+        graph.remove((field, None, None))
+
+
+# The meta-shapes reach the blank nodes nested in a field through their type.
+def _type_nested_nodes(graph: Graph) -> None:
+    for inverse_path in set(graph.subjects(SH.inversePath)):
+        graph.add((inverse_path, RDF.type, HT.InversePath))
+    for predicate, helper_type in (
+        (SH.qualifiedValueShape, HT.QualifiedValueShape),
+        (HT.labelQuery, HT.SelectExpression),
+    ):
+        for node in set(graph.objects(None, predicate)):
+            graph.add((node, RDF.type, helper_type))
+
+
 def normalize(graph: Graph) -> Graph:
     owners = list(graph.subjects(RDF.type, SH.ShapesGraph))
     if len(owners) > 1:
@@ -142,15 +178,13 @@ def normalize(graph: Graph) -> Graph:
     for shape in shape_subjects(result):
         result.add((ROOT, DCTERMS.hasPart, shape))
         result.add((shape, RDF.type, SH.NodeShape))
+    _move_label_queries(result)
     for property_shape in set(result.objects(None, SH.property)):
         result.add((property_shape, RDF.type, SH.PropertyShape))
         _add_allowed_values(result, property_shape)
     for declaration in set(result.objects(ROOT, SH.declare)):
         result.add((declaration, RDF.type, SH.PrefixDeclaration))
-    for inverse_path in set(result.subjects(SH.inversePath)):
-        result.add((inverse_path, RDF.type, HT.InversePath))
-    for qualified_shape in set(result.objects(None, SH.qualifiedValueShape)):
-        result.add((qualified_shape, RDF.type, HT.QualifiedValueShape))
+    _type_nested_nodes(result)
     _add_duplicate_criteria(result)
     return result
 
@@ -175,6 +209,12 @@ def canonical(graph: Graph) -> Graph:
     for criterion in graph.subjects(RDF.type, HT.DuplicateCriterion):
         properties = sorted(graph.objects(criterion, HT.keyProperty), key=str)
         Collection(result, restore(criterion), properties)
+    for shape, query in graph.subject_objects(HT.labelQuery):
+        field = BNode()
+        result.add((restore(shape), SH.property, field))
+        result.add((field, SH.path, RDFS.label))
+        result.add((field, SHUI.propertyRole, SHUI.LabelRole))
+        result.add((field, SH.values, restore(query)))
     return result
 
 
