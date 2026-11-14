@@ -224,10 +224,34 @@ def _presentation_sort_key(
     )
 
 
+# A qualified value is fixed only when the minimum number of qualified values
+# requires it. Otherwise it is a value that forms offer and that may be missing.
+def fixed_value_pattern(property_shape: str, value: str) -> str:
+    return f"""
+        {{ {property_shape} sh:hasValue {value} . }}
+        UNION
+        {{
+            {property_shape} sh:qualifiedValueShape/sh:hasValue {value} ;
+                sh:qualifiedMinCount {value}QualifiedMin .
+            FILTER({value}QualifiedMin >= 1)
+        }}"""
+
+
+def qualified_option_pattern(property_shape: str, value: str) -> str:
+    return f"""
+        {property_shape} sh:qualifiedValueShape/sh:hasValue {value} .
+        FILTER NOT EXISTS {{
+            {property_shape} sh:qualifiedMinCount {value}QualifiedMin .
+            FILTER({value}QualifiedMin >= 1)
+        }}"""
+
+
 def _fixed_values(graph: Graph, property_shape: Node) -> set[Node]:
     fixed = set(graph.objects(property_shape, SH.hasValue))
-    for qualified_shape in graph.objects(property_shape, SH.qualifiedValueShape):
-        fixed |= set(graph.objects(qualified_shape, SH.hasValue))
+    min_count = graph.value(property_shape, SH.qualifiedMinCount)
+    if isinstance(min_count, Literal) and cast("int", min_count.toPython()) >= 1:
+        for qualified_shape in graph.objects(property_shape, SH.qualifiedValueShape):
+            fixed |= set(graph.objects(qualified_shape, SH.hasValue))
     return fixed
 
 

@@ -109,6 +109,13 @@ def _validate_property(issues: list[Issue], location: str, prop: PropertyShape) 
         issues.append(
             Issue(f"{location}.maxCount", "The maximum is lower than the minimum")
         )
+    if prop.qualified and prop.min_count is None and prop.max_count is None:
+        issues.append(
+            Issue(
+                f"{location}.qualifiedMinCount",
+                "Add the minimum or maximum occurrences of the value to count",
+            )
+        )
     _validate_bounds(issues, location, prop)
     if prop.editor is not None and prop.editor not in EDITORS:
         issues.append(Issue(f"{location}.editor", "Unknown editor"))

@@ -73,7 +73,7 @@ def _is_helper_triple(graph: Graph, triple: tuple[Node, Node, Node]) -> bool:
         return True
     if predicate != RDF.type:
         return False
-    return value in (SH.PrefixDeclaration, HT.InversePath) or (
+    return value in (SH.PrefixDeclaration, HT.InversePath, HT.QualifiedValueShape) or (
         value == SH.PropertyShape and (None, SH.property, subject) in graph
     )
 
@@ -103,6 +103,8 @@ def normalize(graph: Graph) -> Graph:
         result.add((declaration, RDF.type, SH.PrefixDeclaration))
     for inverse_path in set(result.subjects(SH.inversePath)):
         result.add((inverse_path, RDF.type, HT.InversePath))
+    for qualified_shape in set(result.objects(None, SH.qualifiedValueShape)):
+        result.add((qualified_shape, RDF.type, HT.QualifiedValueShape))
     return result
 
 

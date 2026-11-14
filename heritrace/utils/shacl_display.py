@@ -26,8 +26,10 @@ from heritrace.utils.shacl_patterns import (
 )
 from heritrace.utils.shacl_presentation import (
     ShapesPresentation,
+    fixed_value_pattern,
     inverse_path_key,
     inverse_predicate,
+    qualified_option_pattern,
 )
 from heritrace.utils.value_bounds import Bound, bound_number
 
@@ -155,14 +157,17 @@ COMMON_SPARQL_QUERY = prepareQuery(
         OPTIONAL { ?property sh:maxInclusive ?max_inclusive . }
         OPTIONAL { ?property sh:minExclusive ?min_exclusive . }
         OPTIONAL { ?property sh:maxExclusive ?max_exclusive . }
-        OPTIONAL {
-            { ?property sh:hasValue ?has_value . }
-            UNION
-            { ?property sh:qualifiedValueShape/sh:hasValue ?has_value . }
+        OPTIONAL {"""
+    + fixed_value_pattern("?property", "?has_value")
+    + """
         }
         OPTIONAL {
             ?property sh:in ?list .
             ?list rdf:rest*/rdf:first ?optional_value .
+        }
+        OPTIONAL {"""
+    + qualified_option_pattern("?property", "?optional_value")
+    + """
         }
         OPTIONAL { ?property shui:editor ?editor . }
         OPTIONAL { ?property shui:viewer ?viewer . }

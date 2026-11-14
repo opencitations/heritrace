@@ -164,12 +164,16 @@ sh:property [
 HERITRACE renders a property constrained with `sh:hasValue` as a read-only field: the value is
 displayed, marked as mandatory, and cannot be edited, added, or removed.
 
+In the [configuration editor](../editor/), the **Fixed value** of a field sets `sh:hasValue`.
+
 ### Occurrences of a specific value (`sh:qualifiedValueShape`)
 Constrain how many values of a property match a given condition, leaving the other values
 unconstrained.
 
 - `sh:qualifiedValueShape`: The condition that the counted values must satisfy.
 - `sh:qualifiedMinCount` and `sh:qualifiedMaxCount`: How many values may satisfy it.
+
+Give at least one of the two counts, because a condition without them constrains nothing. A missing minimum sets no lower bound, and a missing maximum no upper one. If the minimum is 1 or more, the value becomes mandatory: the data editor fills it in for every resource, and users cannot delete it.
 
 Use this instead of `sh:hasValue` with `sh:minCount`/`sh:maxCount` whenever the property carries
 several values at once. A common case is an entity typed with both a general and a specific
@@ -192,22 +196,7 @@ sh:property [
 ] .
 ```
 
-Nesting `sh:or` inside the qualified shape turns the constraint into a choice among values,
-which HERITRACE renders as a dropdown:
-
-```ttl
-# At most one further type, picked from the listed ones
-sh:property [
-    sh:path rdf:type ;
-    sh:qualifiedValueShape [
-      sh:or (
-        [ sh:hasValue fabio:Book ]
-        [ sh:hasValue fabio:Thesis ]
-      )
-    ] ;
-    sh:qualifiedMaxCount 1 ;
-] .
-```
+In the configuration editor, **Value to count** holds the condition, whose **Value** is the IRI to count, while **Minimum occurrences** and **Maximum occurrences** set the counts. The editor rejects a condition without either count.
 
 ### Shape reference (`sh:node`)
 Specify that a property's value must conform to another shape. This is used to validate complex objects or relationships.

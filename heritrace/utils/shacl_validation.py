@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from rdflib.query import ResultRow
+    from rdflib.term import Identifier
 
 from heritrace.extensions import get_custom_filter, get_shacl_graph
 from heritrace.sparql import select_results
@@ -23,6 +24,10 @@ from heritrace.utils.datatypes import DATATYPE_MAPPING
 from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.filters import value_node
 from heritrace.utils.shacl_patterns import read_pattern_alternatives
+from heritrace.utils.shacl_presentation import (
+    fixed_value_pattern,
+    qualified_option_pattern,
+)
 from heritrace.utils.sparql_utils import (
     fetch_data_graph_for_subject,
     get_triples_from_graph,
@@ -104,14 +109,13 @@ def get_valid_predicates(
             VALUES ?type {{<{highest_priority_class}>}}
             ?property sh:path ?predicate .
             OPTIONAL {{?property sh:datatype ?datatype .}}
-            OPTIONAL {{
-                {{?property sh:hasValue ?hasValue .}}
-                UNION
-                {{?property sh:qualifiedValueShape/sh:hasValue ?hasValue .}}
+            OPTIONAL {{{fixed_value_pattern("?property", "?hasValue")}
             }}
             OPTIONAL {{
                 ?property sh:in ?list .
                 ?list rdf:rest*/rdf:first ?optionalValue .
+            }}
+            OPTIONAL {{{qualified_option_pattern("?property", "?optionalValue")}
             }}
             OPTIONAL {{
                 {{?property sh:or ?orList .}}
@@ -219,7 +223,7 @@ def _query_shacl_constraints(
 ) -> list[ResultRow]:
     query = f"""
         PREFIX sh: <http://www.w3.org/ns/shacl#>
-        SELECT DISTINCT ?path ?datatype ?a_class ?maxCount ?minCount ?shape
+        SELECT DISTINCT ?path ?datatype ?a_class ?shape
             ?minInclusive ?maxInclusive ?minExclusive ?maxExclusive ?uniqueLang
             (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS
             ?optionalValues)
@@ -231,16 +235,6 @@ def _query_shacl_constraints(
             FILTER NOT EXISTS {{?propertyShape sh:values ?computed .}}
             VALUES ?type {{<{"> <".join(str(t) for t in s_types)}>}}
             OPTIONAL {{?propertyShape sh:datatype ?datatype .}}
-            OPTIONAL {{
-                {{?propertyShape sh:maxCount ?maxCount .}}
-                UNION
-                {{?propertyShape sh:qualifiedMaxCount ?maxCount .}}
-            }}
-            OPTIONAL {{
-                {{?propertyShape sh:minCount ?minCount .}}
-                UNION
-                {{?propertyShape sh:qualifiedMinCount ?minCount .}}
-            }}
             OPTIONAL {{?propertyShape sh:class ?a_class .}}
             OPTIONAL {{?propertyShape sh:minInclusive ?minInclusive .}}
             OPTIONAL {{?propertyShape sh:maxInclusive ?maxInclusive .}}
@@ -258,7 +252,7 @@ def _query_shacl_constraints(
                 ?list rdf:rest*/rdf:first ?optionalValue .
             }}
         }}
-        GROUP BY ?path ?datatype ?a_class ?maxCount ?minCount ?shape
+        GROUP BY ?path ?datatype ?a_class ?shape
             ?minInclusive ?maxInclusive ?minExclusive ?maxExclusive ?uniqueLang
     """
     shacl = get_shacl_graph()
@@ -273,28 +267,98 @@ def _entity_key(
     return str(highest_priority_class or ""), str(shape or "")
 
 
+def _query_count_constraints(predicate: URIRef, s_types: list[str]) -> list[ResultRow]:
+    query = f"""
+        PREFIX sh: <http://www.w3.org/ns/shacl#>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        SELECT ?propertyShape ?shape ?minCount ?maxCount ?qualifiedMin ?qualifiedMax
+            (GROUP_CONCAT(?qualifiedValue; separator=" ") AS ?qualifiedValues)
+        WHERE {{
+            ?shape sh:targetClass ?type ;
+                sh:property ?propertyShape .
+            ?propertyShape sh:path <{predicate}> .
+            FILTER NOT EXISTS {{?propertyShape sh:values ?computed .}}
+            VALUES ?type {{<{"> <".join(str(t) for t in s_types)}>}}
+            OPTIONAL {{?propertyShape sh:minCount ?minCount .}}
+            OPTIONAL {{?propertyShape sh:maxCount ?maxCount .}}
+            OPTIONAL {{
+                ?propertyShape sh:qualifiedValueShape ?qualified .
+                ?qualified (sh:hasValue|sh:or/rdf:rest*/rdf:first/sh:hasValue)
+                    ?qualifiedValue .
+                OPTIONAL {{?propertyShape sh:qualifiedMinCount ?qualifiedMin .}}
+                OPTIONAL {{?propertyShape sh:qualifiedMaxCount ?qualifiedMax .}}
+            }}
+        }}
+        GROUP BY ?propertyShape ?shape ?minCount ?maxCount ?qualifiedMin ?qualifiedMax
+    """
+    return list(select_results(get_shacl_graph().query(query)))
+
+
+def _values(count: int) -> str:
+    return f"{count} value" if count == 1 else f"{count} values"
+
+
+def _count_error(
+    predicate_label: str,
+    count: int,
+    limits: tuple[Identifier | None, Identifier | None],
+    condition: str,
+) -> str | None:
+    min_count, max_count = limits
+    if max_count is not None and count > int(max_count):
+        return (
+            f"The property {predicate_label} allows at most"
+            f" {_values(int(max_count))}{condition}"
+        )
+    if min_count is not None and count < int(min_count):
+        return (
+            f"The property {predicate_label} requires at least"
+            f" {_values(int(min_count))}{condition}"
+        )
+    return None
+
+
+def _qualified_condition(qualified_values: list[str]) -> str:
+    labels = ", ".join(
+        f"'{get_custom_filter().value_label(value)}'" for value in qualified_values
+    )
+    return f" equal to {labels}" if len(qualified_values) == 1 else f" among {labels}"
+
+
 # The number of values a save leaves on a property, checked once all its
 # changes are applied, so that a value can be replaced within the same save.
+# Each field of the property sets its own limits, and a qualified one counts
+# only the values that meet its condition.
 def cardinality_error(
     data_graph: Graph | Dataset, subject: URIRef, predicate: URIRef
 ) -> str | None:
     s_types, highest_priority_class = _collect_subject_types(data_graph, subject, None)
     if not s_types:
         return None
-    results_list = _query_shacl_constraints(predicate, s_types)
+    results_list = _query_count_constraints(predicate, s_types)
     if not results_list:
         return None
-    _, _, _, max_count, min_count = _extract_shacl_constraints(results_list)
-    count = len(set(get_triples_from_graph(data_graph, (subject, predicate, None))))
+    values = {
+        triple[2]
+        for triple in get_triples_from_graph(data_graph, (subject, predicate, None))
+    }
     predicate_label = get_custom_filter().human_readable_predicate(
         str(predicate), _entity_key(results_list, highest_priority_class)
     )
-    if max_count is not None and count > max_count:
-        value = "value" if max_count == 1 else "values"
-        return f"The property {predicate_label} allows at most {max_count} {value}"
-    if min_count is not None and count < min_count:
-        value = "value" if min_count == 1 else "values"
-        return f"The property {predicate_label} requires at least {min_count} {value}"
+    for row in results_list:
+        qualified_values = row.qualifiedValues.split() if row.qualifiedValues else []
+        error = _count_error(
+            predicate_label, len(values), (row.minCount, row.maxCount), ""
+        )
+        if error is None and qualified_values:
+            error = _count_error(
+                predicate_label,
+                len(values & {URIRef(value) for value in qualified_values}),
+                (row.qualifiedMin, row.qualifiedMax),
+                _qualified_condition(qualified_values),
+            )
+        if error:
+            return error
     return None
 
 
@@ -447,7 +511,7 @@ def _resolve_old_value(
 
 def _extract_shacl_constraints(
     results_list: list[ResultRow],
-) -> tuple[list[URIRef], list[URIRef], list[str], int | None, int | None]:
+) -> tuple[list[URIRef], list[URIRef], list[str]]:
     datatypes: list[URIRef] = [
         URIRef(str(row.datatype)) for row in results_list if row.datatype is not None
     ]
@@ -460,12 +524,7 @@ def _extract_shacl_constraints(
     optional_values_str = optional_values_str[0] if optional_values_str else ""
     optional_values = [value for value in optional_values_str.split(",") if value]
 
-    max_count_list = [row.maxCount for row in results_list if row.maxCount]
-    min_count_list = [row.minCount for row in results_list if row.minCount]
-    max_count = int(max_count_list[0]) if max_count_list else None
-    min_count = int(min_count_list[0]) if min_count_list else None
-
-    return datatypes, classes, optional_values, max_count, min_count
+    return datatypes, classes, optional_values
 
 
 def _validate_optional_values(
@@ -537,7 +596,7 @@ def _typed_value(
     results_list: list[ResultRow],
     s_types: list[str],
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
-    datatypes, classes, _, _, _ = _extract_shacl_constraints(results_list)
+    datatypes, classes, _ = _extract_shacl_constraints(results_list)
     language_result = _validate_language(
         new_value, language, ctx, datatypes, results_list
     )
@@ -586,7 +645,7 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
             return (None, old_value, "No entity type specified")
         return _coerce_value_without_shacl(new_value, old_value, XSD.string)
 
-    _, _, optional_values, _, _ = _extract_shacl_constraints(results_list)
+    _, _, optional_values = _extract_shacl_constraints(results_list)
 
     if action == "delete":
         return None, old_value, ""

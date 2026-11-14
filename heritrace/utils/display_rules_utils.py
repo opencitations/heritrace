@@ -123,15 +123,23 @@ def _details_view(
         if "or" in field:
             for option in field["or"]:
                 if option.get("nodeShape") == value_shape and option["detailsViewer"]:
-                    return {
-                        "details": _details(ctx, value, option),
-                        "alternative": get_custom_filter().human_readable_class(
-                            (option["entityType"], value_shape)
-                        ),
-                    }
+                    alternative = get_custom_filter().human_readable_class(
+                        (option["entityType"], value_shape)
+                    )
+                    return _shown_details(
+                        ctx, value, option, {"alternative": alternative}
+                    )
         elif field["detailsViewer"] and field.get("nodeShape") == object_shape:
-            return {"details": _details(ctx, value, field)}
+            return _shown_details(ctx, value, field, {})
     return {}
+
+
+# A value whose shown fields are all empty keeps its label in place of them.
+def _shown_details(
+    ctx: GroupingContext, value: str, field: dict, extra: dict[str, object]
+) -> dict[str, object]:
+    details = _details(ctx, value, field)
+    return {"details": details, **extra} if details else {}
 
 
 def _detail_value(

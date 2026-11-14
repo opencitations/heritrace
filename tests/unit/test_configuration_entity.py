@@ -209,8 +209,8 @@ def test_fields_are_listed_by_name(admin_client: FlaskClient) -> None:
         "Display label",
         "Journal",
         "Number",
-        "Type",
-        "Type",
+        "Type (fabio:Expression)",
+        "Type (fabio:JournalVolume)",
     ]
 
 
@@ -585,13 +585,9 @@ def test_a_required_value_is_not_removed_without_a_replacement(
     assert set(_data(config_app).objects(field, SH.path)) == {LITERAL_VALUE}
 
 
-@pytest.fixture
-def inverse_path_app(tmp_path: Path) -> Generator[Flask, None, None]:
+def _app_with(tmp_path: Path, volume_field: str) -> Generator[Flask, None, None]:
     (tmp_path / "shacl.ttl").write_text(
-        EDITOR_SHAPES.read_text()
-        + """
-schema:VolumeShape sh:property [ sh:path [ sh:inversePath dcterms:isPartOf ] ] .
-"""
+        EDITOR_SHAPES.read_text() + f"schema:VolumeShape sh:property {volume_field} .\n"
     )
     seed_config(tmp_path, test_example_dir)
 
@@ -601,6 +597,11 @@ schema:VolumeShape sh:property [ sh:path [ sh:inversePath dcterms:isPartOf ] ] .
     app = create_app(Config)
     with app.app_context():
         yield app
+
+
+@pytest.fixture
+def inverse_path_app(tmp_path: Path) -> Generator[Flask, None, None]:
+    yield from _app_with(tmp_path, "[ sh:path [ sh:inversePath dcterms:isPartOf ] ]")
 
 
 def _inverse_path_field(app: Flask) -> tuple[URIRef, URIRef]:
@@ -667,6 +668,147 @@ def test_an_inverse_path_is_shown_in_place(inverse_path_app: Flask) -> None:
             [{"name": "Property", "values": [{"label": "Is part of", "uri": None}]}],
         )
     ]
+
+
+FABIO = "http://purl.org/spar/fabio/"
+
+
+@pytest.fixture
+def qualified_app(tmp_path: Path) -> Generator[Flask, None, None]:
+    yield from _app_with(
+        tmp_path,
+        f"""[
+  sh:path rdf:type ;
+  sh:name "Kind" ;
+  sh:qualifiedValueShape [ sh:hasValue <{FABIO}Expression> ] ;
+  sh:qualifiedMinCount 1 ;
+  sh:qualifiedMaxCount 1
+] , [
+  sh:path dcterms:type ;
+  sh:name "Genre" ;
+  sh:qualifiedValueShape [
+    sh:or ( [ sh:hasValue <{FABIO}Book> ] [ sh:hasValue <{FABIO}Thesis> ] )
+  ] ;
+  sh:qualifiedMaxCount 1
+]""",
+    )
+
+
+def _volume_field(app: Flask, name: str) -> tuple[URIRef, URIRef]:
+    data = _data(app)
+    return next(
+        (URIRef(str(field)), URIRef(str(qualified)))
+        for field, qualified in data.subject_objects(SH.qualifiedValueShape)
+        if (field, SH.name, Literal(name)) in data
+    )
+
+
+def test_qualified_values_are_shown_in_place(qualified_app: Flask) -> None:
+    client = _signed_in(qualified_app)
+    field, qualified = _volume_field(qualified_app, "Kind")
+    genre, _ = _volume_field(qualified_app, "Genre")
+    groups, genre_groups = (
+        client.get(
+            f"/api/configuration/entity/{quote(str(entity), safe='')}",
+            headers={"Accept-Language": "en"},
+        ).get_json()["groups"]
+        for entity in (field, genre)
+    )
+
+    shown = {
+        group["display_name"]: [triple["value"] for triple in group["triples"]]
+        for group in groups
+    }
+    details = next(
+        triple["details"]
+        for group in groups
+        for triple in group["triples"]
+        if group["property"] == str(SH.qualifiedValueShape)
+    )
+    assert _label(client, field, "en") == "Kind (fabio:Expression)"
+    assert {
+        name: shown[name]
+        for name in (
+            "Minimum occurrences",
+            "Maximum occurrences",
+        )
+    } == {
+        "Minimum occurrences": ["1"],
+        "Maximum occurrences": ["1"],
+    }
+    assert details == [
+        {
+            "name": "Value",
+            "values": [{"label": "Expression", "uri": None}],
+        }
+    ]
+    assert _label(client, qualified, "en") == "fabio:Expression"
+    assert [
+        (triple["value"], triple["details"])
+        for group in genre_groups
+        if group["property"] == str(SH.qualifiedValueShape)
+        for triple in group["triples"]
+    ] == [("fabio:Book, fabio:Thesis", None)]
+
+
+def _add_qualified_field(
+    client: FlaskClient, counts: dict[URIRef, list[str]]
+) -> tuple[int, dict]:
+    return _add(
+        client,
+        URIRef("http://schema.org/VolumeShape"),
+        {
+            SH.property: {
+                "entity_type": str(SH.PropertyShape),
+                "entity_shape": str(META.PropertyShapeShape),
+                "properties": {
+                    str(SH.path): [str(DCTERMS.type)],
+                    str(SH.qualifiedValueShape): [
+                        {
+                            "entity_type": str(HT.QualifiedValueShape),
+                            "entity_shape": str(META.QualifiedValueShapeShape),
+                            "properties": {str(SH.hasValue): [f"{FABIO}Book"]},
+                        }
+                    ],
+                    **{str(predicate): value for predicate, value in counts.items()},
+                },
+            }
+        },
+    )
+
+
+def test_a_field_counts_only_its_qualified_values(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    status, _ = _add_qualified_field(admin_client, {SH.qualifiedMaxCount: ["1"]})
+
+    assert status == 200
+    saved = read_shacl(config_app.config["CONFIG_DIR"])
+    assert (None, RDF.type, HT.QualifiedValueShape) not in saved
+    volume = next(
+        shape
+        for shape in read_shapes(saved).shapes
+        if shape.iri == "http://schema.org/VolumeShape"
+    )
+    assert [
+        (prop.kind, prop.values, prop.min_count, prop.max_count)
+        for prop in volume.properties
+        if prop.qualified
+    ] == [("value", [f"{FABIO}Book"], None, 1)]
+
+
+def test_qualified_values_need_a_number_to_count(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    before = read_shacl(config_app.config["CONFIG_DIR"])
+
+    status, body = _add_qualified_field(admin_client, {})
+
+    assert (status, [error.split(": ", 1)[1] for error in body["errors"]]) == (
+        422,
+        ["Add the minimum or maximum occurrences of the value to count"],
+    )
+    assert isomorphic(read_shacl(config_app.config["CONFIG_DIR"]), before)
 
 
 def test_the_first_start_leaves_the_shapes_file_as_written(config_app: Flask) -> None:
@@ -841,13 +983,21 @@ def _entity_types(client: FlaskClient, language: str) -> set[str]:
 
 
 def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -> None:
-    english = {"Field", "Inverse path", "Prefix", "Resource type", "Resource types"}
+    english = {
+        "Field",
+        "Inverse path",
+        "Prefix",
+        "Value to count",
+        "Resource type",
+        "Resource types",
+    }
     assert _entity_types(admin_client, "en") == english
     assert _entity_types(admin_client, "it") == {
         "Campo",
         "Percorso inverso",
         "Prefisso",
         "Tipi di risorsa",
+        "Valore da contare",
         "Tipo di risorsa",
     }
     assert _entity_types(admin_client, "fr") == english

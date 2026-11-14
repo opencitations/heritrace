@@ -23,12 +23,27 @@ The configuration pages do not offer to delete the configuration, an entity type
 
 ## Edit the remaining SHACL terms in the configuration editor
 
-The configuration editor shows the prefixes (`sh:declare`) but not several terms that HERITRACE supports: `sh:hasValue`, `sh:qualifiedValueShape` with its counts, `sh:in`, `sh:or` on fields and on entity types, `owl:hasKey`, and the label role with `sh:values` and `sh:select`. As a result, two fields with the same path look identical, such as the two `rdf:type` fields of an entity type that differ only in their fixed value. Many of these terms are RDF lists or blank nodes, which the generic form cannot edit. Decide how the editor shows each term, one term at a time. Points raised so far:
+The configuration editor shows the prefixes (`sh:declare`) but not several terms that HERITRACE supports: `sh:in`, `sh:or` on fields, on entity types and inside qualified values, `owl:hasKey`, and the label role with `sh:values` and `sh:select`. Many of these terms are RDF lists or blank nodes, which the generic form cannot edit. Decide how the editor shows each term, one term at a time. Points raised so far:
 
 - The form could edit RDF lists and blank nodes directly, choosing the shape of a blank node from the property that links to it, or `shacl-editor.ttl` could hold typed helper resources that HERITRACE translates back into SHACL.
 - `owl:hasKey` reads better as "Duplicate criteria", one box per criterion, with the properties of a criterion as plain values, without order or links.
 - Removing a value from the configuration has to remove the resources that depend on it, whatever the deletion rules in the system settings say.
 - A label query written in the editor has to be checked before it is saved.
+
+## Show configuration errors beside the field they concern
+
+A save can break a rule of the configuration, such as a value to count with neither occurrence count or a maximum lower than the minimum. The editor then shows an English message in a dialog, as in "shapes.8.properties.1.qualifiedMinCount: Add the minimum or maximum occurrences of the value to count". The location points into the internal model of the shapes. A field that several resource types share repeats the message once for each of them. Show each error once, in the language of the interface, beside the field to correct. Points raised so far:
+
+- A rule that the meta-shapes can state, such as the occurrence counts of a value to count, belongs in the form: a resource-level `sh:or` with an `sh:message`, which the form and the server would both honour. The form reads a resource-level `sh:or` only for conditional patterns.
+- For the other errors, the server could name the field resource and return a code that the client translates, as the system settings already do with the location of each field.
+
+## Accept literals as fixed values
+
+SHACL lets `sh:hasValue` be any RDF term. HERITRACE handles only IRIs: the shapes model leaves out a literal, forms and saves treat the fixed value as a plain string, and the count of qualified values compares IRIs. Support literals, with their datatype or language, wherever `sh:hasValue` applies, both on a field and inside a value to count. Points raised so far:
+
+- When a form sends a value equal to a literal that the shape declares, the server can restore its datatype and language from the shape, leaving the client unchanged.
+- The editor needs a picker for the kind of value, like the one of the property field, declared in the meta-shapes as an `sh:or` of `sh:nodeKind sh:IRI` and some `sh:datatype`. The form would then turn each datatype into an entry of the picker and send the chosen datatype, which the server guesses from the value today.
+- The picker can offer a short list (IRI, text, text with language, integer, decimal, boolean, date) or every XSD datatype that HERITRACE validates, as the picker of custom properties does.
 
 ## Narrow the link search by container
 
