@@ -249,12 +249,12 @@ def test_showing_a_hidden_entity_type_keeps_its_duplicate_keys(
 ) -> None:
     status, _ = _update(admin_client, IDENTIFIER_SHAPE, DASH.hidden, "true", "false")
 
-    data = _data(config_app)
+    saved = read_shacl(config_app.config["CONFIG_DIR"])
     assert status == 200
     shown = Literal("false", datatype=XSD.boolean)
-    assert set(data.objects(IDENTIFIER_SHAPE, DASH.hidden)) == {shown}
-    assert read_duplicate_keys(data, IDENTIFIER_SHAPE) == [
-        [str(LITERAL_VALUE), "http://purl.org/spar/datacite/usesIdentifierScheme"]
+    assert set(saved.objects(IDENTIFIER_SHAPE, DASH.hidden)) == {shown}
+    assert read_duplicate_keys(saved, IDENTIFIER_SHAPE) == [
+        ["http://purl.org/spar/datacite/usesIdentifierScheme", str(LITERAL_VALUE)]
     ]
 
 
@@ -995,6 +995,80 @@ def test_allowed_values_are_removed_added_and_reordered(
     ]
 
 
+def _criterion_group(client: FlaskClient, shape: URIRef, language: str = "en") -> dict:
+    groups = client.get(
+        f"/api/configuration/entity/{quote(str(shape), safe='')}",
+        headers={"Accept-Language": language},
+    ).get_json()["groups"]
+    return next(group for group in groups if group["property"] == str(OWL.hasKey))
+
+
+@pytest.mark.parametrize(("language", "joined"), [("en", "and"), ("it", "e")])
+def test_a_duplicate_criterion_is_named_after_its_properties(
+    admin_client: FlaskClient, language: str, joined: str
+) -> None:
+    group = _criterion_group(admin_client, IDENTIFIER_SHAPE, language)
+
+    assert (
+        group["is_draggable"],
+        [(triple["value"], triple["details"]) for triple in group["triples"]],
+    ) == (
+        False,
+        [(f"datacite:usesIdentifierScheme {joined} literal:hasLiteralValue", None)],
+    )
+
+
+def test_duplicate_criteria_are_removed_and_added(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    title = next(
+        triple["object"]
+        for triple in _criterion_group(admin_client, JOURNAL_ARTICLE_SHAPE)["triples"]
+        if triple["value"] == "dcterms:title"
+    )
+    deletion = {
+        "subject": str(JOURNAL_ARTICLE_SHAPE),
+        "predicate": str(OWL.hasKey),
+        "shape": str(META.DuplicateCriterionShape),
+        "entity_type": str(SH.NodeShape),
+        "entity_shape": str(META.NodeShapeShape),
+        "action": "delete",
+        "object": title,
+    }
+    orphans = admin_client.post(
+        "/api/configuration/check_orphans",
+        json={"changes": [deletion], "entity_type": str(SH.NodeShape)},
+    ).get_json()
+    criterion = {
+        "entity_type": str(HT.DuplicateCriterion),
+        "entity_shape": str(META.DuplicateCriterionShape),
+        "properties": {str(HT.keyProperty): [str(DCTERMS.title), str(DCTERMS.issued)]},
+    }
+
+    response = admin_client.post(
+        "/api/configuration/apply_changes",
+        json=[
+            {
+                **deletion,
+                "affected_entities": orphans["affected_entities"],
+                "delete_affected": orphans["should_delete"],
+            },
+            {
+                "action": "create",
+                "subject": str(JOURNAL_ARTICLE_SHAPE),
+                "data": {"properties": {str(OWL.hasKey): [criterion]}},
+            },
+        ],
+    )
+
+    assert response.status_code == 200
+    saved = read_shacl(config_app.config["CONFIG_DIR"])
+    assert (
+        read_duplicate_keys(saved, JOURNAL_ARTICLE_SHAPE),
+        set(saved.subjects(RDF.type, HT.DuplicateCriterion)),
+    ) == ([[str(DCTERMS.issued), str(DCTERMS.title)], [str(HAS_IDENTIFIER)]], set())
+
+
 def test_the_first_start_leaves_the_shapes_file_as_written(config_app: Flask) -> None:
     config_dir = config_app.config["CONFIG_DIR"]
 
@@ -1169,6 +1243,7 @@ def _entity_types(client: FlaskClient, language: str) -> set[str]:
 def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -> None:
     english = {
         "Allowed value",
+        "Criterion for finding duplicates",
         "Field",
         "Inverse path",
         "Prefix",
@@ -1179,6 +1254,7 @@ def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -
     assert _entity_types(admin_client, "en") == english
     assert _entity_types(admin_client, "it") == {
         "Campo",
+        "Criterio per individuare i duplicati",
         "Percorso inverso",
         "Prefisso",
         "Tipi di risorsa",

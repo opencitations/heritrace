@@ -12,6 +12,7 @@
 meta:ShapesGraph
   a owl:Ontology ;
   sh:declare
+    [ sh:prefix "ht" ; sh:namespace "https://w3id.org/heritrace#"^^xsd:anyURI ] ,
     [ sh:prefix "rdf" ; sh:namespace "http://www.w3.org/1999/02/22-rdf-syntax-ns#"^^xsd:anyURI ] ,
     [ sh:prefix "sh" ; sh:namespace "http://www.w3.org/ns/shacl#"^^xsd:anyURI ] ,
     [ sh:prefix "shui" ; sh:namespace "http://www.w3.org/ns/shacl-ui/"^^xsd:anyURI ] .
@@ -163,6 +164,16 @@ meta:NodeShapeShape
       "I campi di questo tipo, nell'ordine in cui compaiono nei form e nelle pagine delle risorse. Trascinandoli si cambia l'ordine"@it ;
     sh:order 4 ;
     sh:node meta:PropertyShapeShape ;
+  ] ;
+  sh:property [
+    sh:path owl:hasKey ;
+    sh:name "Criteria for finding duplicates"@en, "Criteri per individuare i duplicati"@it ;
+    sh:description "Two resources of this type may be duplicates when they share a value for every property of a criterion. Matching one criterion is enough"@en,
+      "Due risorse di questo tipo possono essere duplicati quando hanno un valore in comune per ogni proprietà di un criterio. Basta un solo criterio"@it ;
+    sh:order 5 ;
+    dash:composite true ;
+    sh:node meta:DuplicateCriterionShape ;
+    shui:editor shui:DetailsEditor ;
   ] .
 
 meta:PropertyShapeShape
@@ -651,6 +662,60 @@ meta:AllowedValueShape
     dash:hidden true ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
+  ] .
+
+meta:DuplicateCriterionShape
+  a sh:NodeShape ;
+  sh:name "Criterion for finding duplicates"@en, "Criterio per individuare i duplicati"@it ;
+  sh:targetClass ht:DuplicateCriterion ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue ht:DuplicateCriterion ;
+    dash:hidden true ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:prefixes meta:ShapesGraph ;
+      sh:select """
+        SELECT (REPLACE(GROUP_CONCAT(?shortValue; separator=" "), " ",
+          IF($language = "it", " e ", " and ")) AS ?label) WHERE {
+          {
+            SELECT ?shortValue WHERE {
+              {
+                SELECT ?value (MAX(STRLEN(STR(?matching))) AS ?length) WHERE {
+                  $this ht:keyProperty ?value .
+                  OPTIONAL {
+                    ?anyDeclaration sh:namespace ?matching .
+                    FILTER(STRSTARTS(STR(?value), STR(?matching)))
+                  }
+                }
+                GROUP BY ?value
+              }
+              OPTIONAL {
+                ?declaration sh:prefix ?prefix ; sh:namespace ?namespace .
+                FILTER(STRLEN(STR(?namespace)) = ?length && STRSTARTS(STR(?value), STR(?namespace)))
+              }
+              BIND(IF(BOUND(?prefix),
+                CONCAT(?prefix, ":", STRAFTER(STR(?value), STR(?namespace))),
+                STR(?value)) AS ?shortValue)
+            }
+            ORDER BY ?shortValue
+          }
+        }
+      """ ;
+    ] ;
+  ] ;
+  sh:property [
+    sh:path ht:keyProperty ;
+    sh:name "Properties"@en, "Proprietà"@it ;
+    sh:description "The IRIs of the properties whose values the two resources must share"@en,
+      "Gli IRI delle proprietà di cui le due risorse devono condividere un valore"@it ;
+    sh:nodeKind sh:IRI ;
+    sh:minCount 1 ;
   ] .
 
 meta:PrefixDeclarationShape

@@ -10,7 +10,8 @@ from uuid import uuid4
 
 from filelock import FileLock
 from pyshacl import validate
-from rdflib import DCTERMS, PROV, RDF, BNode, Graph, URIRef
+from rdflib import DCTERMS, OWL, PROV, RDF, BNode, Graph, URIRef
+from rdflib.collection import Collection
 from rdflib.compare import isomorphic
 from rdflib.term import Node
 from rdflib_ocdm.counter_handler.in_memory_counter_handler import InMemoryCounterHandler
@@ -72,12 +73,15 @@ _HELPER_TYPES = (
     HT.InversePath,
     HT.QualifiedValueShape,
     HT.AllowedValue,
+    HT.DuplicateCriterion,
 )
 
 
 def _is_helper_triple(graph: Graph, triple: tuple[Node, Node, Node]) -> bool:
     subject, predicate, value = triple
-    if subject == ROOT and predicate == DCTERMS.hasPart:
+    if (
+        subject == ROOT and predicate == DCTERMS.hasPart
+    ) or predicate == HT.keyProperty:
         return True
     if predicate == SH["in"]:
         return (None, RDF.rest, value) in graph
@@ -103,6 +107,20 @@ def _add_allowed_values(graph: Graph, property_shape: Node) -> None:
         for cell in _list_cells(graph, head):
             graph.add((property_shape, SH["in"], cell))
             graph.add((cell, RDF.type, HT.AllowedValue))
+
+
+# The properties of a key have no order, so the editor shows each key as a
+# criterion that holds them as plain values.
+def _add_duplicate_criteria(graph: Graph) -> None:
+    for head in set(graph.objects(None, OWL.hasKey)):
+        cells = _list_cells(graph, head)
+        properties = [graph.value(cell, RDF.first) for cell in cells]
+        for cell in cells:
+            graph.remove((cell, RDF.first, None))
+            graph.remove((cell, RDF.rest, None))
+        for prop in properties:
+            graph.add((head, HT.keyProperty, cast("Node", prop)))
+        graph.add((head, RDF.type, HT.DuplicateCriterion))
 
 
 def normalize(graph: Graph) -> Graph:
@@ -133,6 +151,7 @@ def normalize(graph: Graph) -> Graph:
         result.add((inverse_path, RDF.type, HT.InversePath))
     for qualified_shape in set(result.objects(None, SH.qualifiedValueShape)):
         result.add((qualified_shape, RDF.type, HT.QualifiedValueShape))
+    _add_duplicate_criteria(result)
     return result
 
 
@@ -153,6 +172,9 @@ def canonical(graph: Graph) -> Graph:
     for cell in graph.subjects(RDF.type, HT.AllowedValue):
         if (cell, RDF.rest, None) not in graph:
             result.add((restore(cell), RDF.rest, RDF.nil))
+    for criterion in graph.subjects(RDF.type, HT.DuplicateCriterion):
+        properties = sorted(graph.objects(criterion, HT.keyProperty), key=str)
+        Collection(result, restore(criterion), properties)
     return result
 
 
@@ -295,7 +317,9 @@ def _record_version(
 # shacl.ttl holds the shapes with their blank nodes, and shacl-editor.ttl the
 # same shapes with the skolem IRIs the history refers to. A shacl.ttl that
 # differs from the editor's copy was edited by hand: its content becomes a new
-# version, attributed to HERITRACE itself like the first one.
+# version, attributed to HERITRACE itself like the first one. Both sides of
+# the comparison take the form the app writes, which leaves out what SHACL
+# leaves free, such as the order of the properties of a key.
 def ensure_configuration_entity(config_dir: Path) -> None:
     shacl_path = config_dir / SHACL_FILE
     editor_path = config_dir / EDITOR_FILE
@@ -304,12 +328,12 @@ def ensure_configuration_entity(config_dir: Path) -> None:
         source = Graph()
         if shacl_path.exists():
             source.parse(shacl_path, format="turtle")
+        after = normalize(source)
         before = Graph()
         if provenance_path.exists():
             before.parse(editor_path, format="turtle")
-            if same_graph(canonical(before), source):
+            if same_graph(canonical(before), canonical(after)):
                 return
-        after = normalize(source)
         check_configuration(after)
         c_time = shacl_path.stat().st_mtime if shacl_path.exists() else time.time()
         after.serialize(editor_path, format="turtle")
