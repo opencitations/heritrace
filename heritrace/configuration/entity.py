@@ -24,7 +24,7 @@ from heritrace.configuration.shapes import (
 )
 from heritrace.configuration.store import SHACL_FILE, write_shacl
 from heritrace.configuration.validation import validate_shapes
-from heritrace.configuration.vocabulary import SH
+from heritrace.configuration.vocabulary import HT, SH
 from heritrace.rdf_files import load_rdf_file
 from heritrace.sparql import SPARQLWrapperWithRetry
 from heritrace.uri_generator.uri_generator import URIGenerator
@@ -73,7 +73,7 @@ def _is_helper_triple(graph: Graph, triple: tuple[Node, Node, Node]) -> bool:
         return True
     if predicate != RDF.type:
         return False
-    return value == SH.PrefixDeclaration or (
+    return value in (SH.PrefixDeclaration, HT.InversePath) or (
         value == SH.PropertyShape and (None, SH.property, subject) in graph
     )
 
@@ -101,6 +101,8 @@ def normalize(graph: Graph) -> Graph:
         result.add((property_shape, RDF.type, SH.PropertyShape))
     for declaration in set(result.objects(ROOT, SH.declare)):
         result.add((declaration, RDF.type, SH.PrefixDeclaration))
+    for inverse_path in set(result.subjects(SH.inversePath)):
+        result.add((inverse_path, RDF.type, HT.InversePath))
     return result
 
 

@@ -62,6 +62,7 @@ form:
   addItem: Aggiungi $name
   addProperty: Aggiungi proprietà
   selectOption: Scegli un'opzione
+  iriOption: IRI
   fillInDetails: Compila i dettagli
   draftLabelFailed: Impossibile aggiornare l'etichetta della risorsa
   noLanguage: Senza lingua

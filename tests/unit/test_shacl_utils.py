@@ -6,7 +6,7 @@
 Tests for the shacl_utils module.
 """
 
-from typing import NamedTuple
+from typing import NamedTuple, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -224,6 +224,50 @@ class TestShaclUtils:
             "http://example.org/node": [None],
         }
 
+    def test_an_iri_alternative_is_typed_under_the_field_name(self) -> None:
+        app = Flask(__name__)
+        app.config["DATASET_DB_URL"] = "http://example.org/sparql"
+        shacl = Graph().parse(
+            data="""
+            @prefix sh: <http://www.w3.org/ns/shacl#> .
+            @prefix ex: <http://example.org/> .
+
+            ex:FieldShape a sh:NodeShape ;
+              sh:targetClass ex:Field ;
+              sh:property [
+                sh:path ex:path ;
+                sh:name "Property"@en ;
+                sh:or ( [ sh:nodeKind sh:IRI ] [ sh:node ex:InverseShape ] ) ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+              ] .
+
+            ex:InverseShape a sh:NodeShape ;
+              sh:targetClass ex:Inverse ;
+              sh:property [ sh:path ex:inverse ] .
+            """,
+            format="turtle",
+        )
+
+        form_fields = extract_shacl_form_fields(shacl, read_presentation(shacl), app)
+
+        (field,) = form_fields[
+            ("http://example.org/Field", "http://example.org/FieldShape")
+        ]["http://example.org/path"]
+        iri, inverse = cast("list[dict[str, object]]", field["or"])
+        assert iri == {
+            "uri": "http://example.org/path",
+            "displayName": {"en": "Property"},
+            "subjectShape": "http://example.org/FieldShape",
+            "min": 1,
+            "max": 1,
+            "conditions": [],
+            "inputType": "url",
+            "iri": True,
+            "hidden": False,
+        }
+        assert inverse["nodeShape"] == "http://example.org/InverseShape"
+
     def test_qualified_value_shapes_yield_mandatory_values(self) -> None:
         app = Flask(__name__)
         app.config["DATASET_DB_URL"] = "http://example.org/sparql"
@@ -348,6 +392,7 @@ class TestShaclUtils:
             optional_values: object
             or_nodes: object
             or_link_shapes: object
+            or_iri: object
             link_shape: object
             link_class: object
             detail_paths: object
@@ -379,6 +424,7 @@ class TestShaclUtils:
                 optional_values="",
                 or_nodes="orNode1",  # Questo è importante: specifica un orNode
                 or_link_shapes="",
+                or_iri=None,
                 link_shape=None,
                 link_class=None,
                 detail_paths="",
@@ -487,6 +533,7 @@ class TestShaclUtils:
             optional_values: object
             or_nodes: object
             or_link_shapes: object
+            or_iri: object
             link_shape: object
             link_class: object
             detail_paths: object
@@ -519,6 +566,7 @@ class TestShaclUtils:
                 optional_values="",
                 or_nodes="",  # Nessun orNode
                 or_link_shapes="",
+                or_iri=None,
                 link_shape=None,
                 link_class=None,
                 detail_paths="",
@@ -542,6 +590,7 @@ class TestShaclUtils:
                 optional_values="",
                 or_nodes="",  # Stesso orNodes (vuoto)
                 or_link_shapes="",
+                or_iri=None,
                 link_shape=None,
                 link_class=None,
                 detail_paths="",

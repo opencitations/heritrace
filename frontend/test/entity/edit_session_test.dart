@@ -167,6 +167,40 @@ void main() {
     ]);
   });
 
+  test('a required single value is replaced, not removed', () {
+    final titles = group(title);
+    expect(titles.formGroup!.canAdd, isFalse);
+
+    titles.existing.single.markForDeletion();
+    expect(titles.formGroup!.canAdd, isTrue);
+    expect(session.validate(), hasLength(1));
+
+    (titles.formGroup!.addItem() as LiteralItem).setValue('Replacement');
+    expect(session.validate(), isEmpty);
+    expect(session.buildChanges(), [
+      {
+        'action': 'delete',
+        'subject': subject,
+        'predicate': title,
+        'shape': null,
+        'entity_type': article,
+        'entity_shape': articleShape,
+        'object': 'Old title',
+        'newObject': null,
+      },
+      {
+        'action': 'create',
+        'subject': subject,
+        'data': {
+          'entity_type': article,
+          'properties': {
+            title: ['Replacement'],
+          },
+        },
+      },
+    ]);
+  });
+
   test('new nested items produce a create change and extend the order', () {
     final authorItem =
         group(documentContext).formGroup!.addItem() as NestedItem;

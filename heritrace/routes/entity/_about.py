@@ -190,6 +190,7 @@ def _serialize_group(
             "language": getattr(triple_data["triple"][2], "language", None),
             "external_entity": triple_data.get("external_entity"),
             "details": triple_data.get("details"),
+            "alternative": triple_data.get("alternative"),
             "is_mandatory": str(triple_data["object"]) in predicate_mandatory,
             "label": _value_label(predicate, str(triple_data["object"]))
             if predicate in optional_values

@@ -197,7 +197,9 @@ meta:PropertyShapeShape
             BIND(IF($language = "it", "Etichetta mostrata", "Display label") AS ?role)
           }
           OPTIONAL {
-            $this sh:path ?path .
+            $this sh:path ?pathNode .
+            OPTIONAL { ?pathNode sh:inversePath ?inverse }
+            BIND(COALESCE(?inverse, ?pathNode) AS ?path)
             OPTIONAL {
               ?declaration sh:prefix ?prefix ; sh:namespace ?namespace .
               FILTER(STRSTARTS(STR(?path), STR(?namespace)))
@@ -205,7 +207,8 @@ meta:PropertyShapeShape
           }
           BIND(IF(BOUND(?prefix),
             CONCAT(?prefix, ":", STRAFTER(STR(?path), STR(?namespace))),
-            STR(?path)) AS ?shortPath)
+            STR(?path)) AS ?property)
+          BIND(IF(BOUND(?inverse), CONCAT("^", ?property), ?property) AS ?shortPath)
           BIND(COALESCE(?name, ?role, ?shortPath) AS ?label)
         }
         LIMIT 1
@@ -225,10 +228,12 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:path ;
     sh:name "Property"@en, "Proprietà"@it ;
-    sh:description "The IRI of the property"@en,
-      "L'IRI della proprietà"@it ;
+    sh:description "The IRI of the property, or an inverse path to read its triples backwards"@en,
+      "L'IRI della proprietà, oppure un percorso inverso per leggerne le triple al contrario"@it ;
     sh:order 2 ;
-    sh:nodeKind sh:IRI ;
+    sh:or ( [ sh:nodeKind sh:IRI ] [ sh:node meta:InversePathShape ] ) ;
+    shui:editor shui:DetailsEditor ;
+    shui:viewer shui:DetailsViewer ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -453,6 +458,47 @@ meta:DetailFieldShape
     sh:name "Property"@en, "Proprietà"@it ;
     sh:description "The IRI of the property of the nested resource to show"@en,
       "L'IRI della proprietà della risorsa annidata da mostrare"@it ;
+    sh:nodeKind sh:IRI ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] .
+
+meta:InversePathShape
+  a sh:NodeShape ;
+  sh:name "Inverse path"@en, "Percorso inverso"@it ;
+  sh:targetClass ht:InversePath ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue ht:InversePath ;
+    dash:hidden true ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:prefixes meta:ShapesGraph ;
+      sh:select """
+        SELECT ?label WHERE {
+          $this sh:inversePath ?path .
+          OPTIONAL {
+            ?declaration sh:prefix ?prefix ; sh:namespace ?namespace .
+            FILTER(STRSTARTS(STR(?path), STR(?namespace)))
+          }
+          BIND(CONCAT("^", IF(BOUND(?prefix),
+            CONCAT(?prefix, ":", STRAFTER(STR(?path), STR(?namespace))),
+            STR(?path))) AS ?label)
+        }
+        LIMIT 1
+      """ ;
+    ] ;
+  ] ;
+  sh:property [
+    sh:path sh:inversePath ;
+    sh:name "Property"@en, "Proprietà"@it ;
+    sh:description "The IRI of a property whose triples end at the resource. The field shows the resources they start from"@en,
+      "L'IRI di una proprietà le cui triple terminano nella risorsa. Il campo mostra le risorse da cui partono"@it ;
     sh:nodeKind sh:IRI ;
     sh:minCount 1 ;
     sh:maxCount 1 ;

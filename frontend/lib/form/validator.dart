@@ -300,7 +300,9 @@ void _validateGroup(
   List<ValidationError> errors,
 ) {
   final def = group.def;
-  final userItems = group.items.where((item) => item is! MandatoryItem).length;
+  final kept = group.keptCount();
+  final userItems =
+      kept + group.items.where((item) => item is! MandatoryItem).length;
   if (def.max != null && userItems > def.max!) {
     errors.add(
       ValidationError(
@@ -309,10 +311,11 @@ void _validateGroup(
       ),
     );
   }
-  if (group.items.length < def.min) {
+  final count = kept + group.items.length;
+  if (count < def.min) {
     errors.add(
       ValidationError(
-        message: messages.tooFew(def.displayName, group.items.length, def.min),
+        message: messages.tooFew(def.displayName, count, def.min),
         path: path,
       ),
     );

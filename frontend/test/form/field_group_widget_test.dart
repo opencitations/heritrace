@@ -5,6 +5,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:heritrace/form/collector.dart';
 import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_model.dart';
 import 'package:heritrace/form/form_scope.dart';
@@ -266,5 +267,60 @@ void main() {
   ) async {
     final item = await typeInto(tester, {});
     expect(item.value, '-125');
+  });
+
+  testWidgets('an IRI alternative starts selected under the field name', (
+    tester,
+  ) async {
+    const path = 'http://www.w3.org/ns/shacl#path';
+    final field = EntityNode(
+      entityType: 'http://www.w3.org/ns/shacl#PropertyShape',
+      entityShape: null,
+      fields: [
+        FieldDef.fromJson({
+          'uri': path,
+          'displayName': 'Property',
+          'min': 1,
+          'max': 1,
+          'or': [
+            {
+              'uri': path,
+              'displayName': 'Property',
+              'inputType': 'url',
+              'iri': true,
+            },
+            {
+              'uri': path,
+              'displayName': 'Inverse path',
+              'entityType': 'https://w3id.org/heritrace#InversePath',
+              'nodeShape': 'https://w3id.org/heritrace/meta/InversePathShape',
+              'nestedShape': [
+                {
+                  'uri': 'http://www.w3.org/ns/shacl#inversePath',
+                  'entityType': 'https://w3id.org/heritrace#InversePath',
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+      depth: 0,
+    );
+    addTearDown(field.dispose);
+    final pathGroup = field.groups.single;
+    await pumpGroup(tester, pathGroup);
+
+    await tester.enterText(
+      find.byType(CupertinoTextField),
+      'http://example.org/title',
+    );
+    expect(collectProperties(field), {
+      path: ['http://example.org/title'],
+    });
+
+    await tester.tap(find.text('IRI'));
+    await tester.pumpAndSettle();
+    expect(find.text('Select an option'), findsOneWidget);
+    expect(find.text('Inverse path'), findsOneWidget);
   });
 }

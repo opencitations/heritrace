@@ -23,7 +23,7 @@ The configuration pages do not offer to delete the configuration, an entity type
 
 ## Edit the remaining SHACL terms in the configuration editor
 
-The configuration editor shows the prefixes (`sh:declare`) but not several terms that HERITRACE supports: `sh:hasValue`, `sh:qualifiedValueShape` with its counts, `sh:in`, `sh:or` on fields and on entity types, `owl:hasKey`, `sh:inversePath`, and the label role with `sh:values` and `sh:select`. As a result, two fields with the same path look identical, such as the two `rdf:type` fields of an entity type that differ only in their fixed value. Many of these terms are RDF lists or blank nodes, which the generic form cannot edit. Decide how the editor shows each term, one term at a time. Points raised so far:
+The configuration editor shows the prefixes (`sh:declare`) but not several terms that HERITRACE supports: `sh:hasValue`, `sh:qualifiedValueShape` with its counts, `sh:in`, `sh:or` on fields and on entity types, `owl:hasKey`, and the label role with `sh:values` and `sh:select`. As a result, two fields with the same path look identical, such as the two `rdf:type` fields of an entity type that differ only in their fixed value. Many of these terms are RDF lists or blank nodes, which the generic form cannot edit. Decide how the editor shows each term, one term at a time. Points raised so far:
 
 - The form could edit RDF lists and blank nodes directly, choosing the shape of a blank node from the property that links to it, or `shacl-editor.ttl` could hold typed helper resources that HERITRACE translates back into SHACL.
 - `owl:hasKey` reads better as "Duplicate criteria", one box per criterion, with the properties of a criterion as plain values, without order or links.

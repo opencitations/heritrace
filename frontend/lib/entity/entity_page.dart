@@ -50,7 +50,7 @@ class EntityPage extends ConsumerWidget {
           view: data,
           type: type,
           header: header,
-          onReload: () => ref.invalidate(entityViewProvider(uri)),
+          onReload: () => ref.refresh(entityViewProvider(uri).future),
         ),
       },
     );
@@ -124,7 +124,9 @@ class _EntityBody extends ConsumerStatefulWidget {
   final EntityView view;
   final String type;
   final Widget? header;
-  final VoidCallback onReload;
+
+  /// Fetches the entity again; the future completes with the new view.
+  final Future<EntityView> Function() onReload;
 
   @override
   ConsumerState<_EntityBody> createState() => _EntityBodyState();
@@ -202,7 +204,7 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
       title: t.ui.lock.lostTitle,
       message: t.ui.lock.lostMessage,
     );
-    widget.onReload();
+    widget.onReload().ignore();
   }
 
   Future<bool> _confirmDiscard() async {
@@ -261,7 +263,7 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
         return;
       }
       await showErrorDialog(context, error);
-      widget.onReload();
+      widget.onReload().ignore();
     }
   }
 
@@ -324,7 +326,13 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
         await showErrorDialog(context, error);
       }
     }
-    widget.onReload();
+    if (mounted) {
+      await runWithProgress(
+        context,
+        message: t.ui.entity.applying,
+        action: widget.onReload,
+      );
+    }
   }
 
   Future<({List<AffectedEntity> entities, bool delete})?>

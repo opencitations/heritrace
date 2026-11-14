@@ -58,6 +58,7 @@ class _ParsedRow:
     optional_values: list[str]
     or_nodes: list[str]
     or_link_shapes: list[str]
+    or_iri: bool
     detail_paths: list[str]
     link_only: bool
     entity_key: tuple[str, str]
@@ -95,6 +96,7 @@ COMMON_SPARQL_QUERY = prepareQuery(
             AS ?optional_values)
            (GROUP_CONCAT(?or_node; separator=",") AS ?or_nodes)
            (GROUP_CONCAT(?or_link_shape; separator=",") AS ?or_link_shapes)
+           (SAMPLE(?iri_alternative) AS ?or_iri)
            (GROUP_CONCAT(?detail_path; separator=",") AS ?detail_paths)
     WHERE {
         ?shape sh:targetClass ?type ;
@@ -132,6 +134,10 @@ COMMON_SPARQL_QUERY = prepareQuery(
             } UNION {
                 ?orList rdf:rest*/rdf:first ?or_constraint .
                 ?or_constraint sh:hasValue ?optional_value .
+            } UNION {
+                ?orList rdf:rest*/rdf:first ?or_constraint .
+                ?or_constraint sh:nodeKind sh:IRI .
+                BIND(true AS ?iri_alternative)
             }
         }
         OPTIONAL { ?property sh:datatype ?datatype . }
@@ -230,6 +236,7 @@ def _parse_row(shacl: Graph, row: ResultRow) -> _ParsedRow:
         optional_values=optional_values,
         or_nodes=or_nodes,
         or_link_shapes=or_link_shapes,
+        or_iri=bool(row.or_iri),
         detail_paths=detail_paths,
         link_only=row.node_shape is None and row.link_shape is not None,
         entity_key=(entity_type, subject_shape),
@@ -300,13 +307,29 @@ def _or_option(
     }
 
 
+# The alternative [ sh:nodeKind sh:IRI ] takes an IRI typed in place, under the
+# name of the field itself.
+def _iri_option(ctx: ShaclProcessingContext, parsed: _ParsedRow) -> dict[str, object]:
+    return {
+        "uri": parsed.predicate,
+        "displayName": parsed.names,
+        "subjectShape": parsed.subject_shape,
+        "min": parsed.min_count,
+        "max": parsed.max_count,
+        "conditions": _field_conditions(ctx, parsed),
+        "inputType": "url",
+        "iri": True,
+        "hidden": parsed.hidden,
+    }
+
+
 def _process_or_nodes(
     ctx: ShaclProcessingContext,
     parsed: _ParsedRow,
     field_info: dict[str, object],
     depth: int,
 ) -> None:
-    options: list[dict[str, object]] = []
+    options = [_iri_option(ctx, parsed)] if parsed.or_iri else []
     for node in parsed.or_nodes:
         option = _or_option(ctx, parsed, node)
         if node not in ctx.processed_shapes:
@@ -384,7 +407,7 @@ def _process_single_row(
             depth=depth + 1,
         )
 
-    if parsed.or_nodes or parsed.or_link_shapes:
+    if parsed.or_nodes or parsed.or_link_shapes or parsed.or_iri:
         _process_or_nodes(ctx, parsed, field_info, depth)
 
     form_fields[parsed.entity_key][parsed.predicate].append(field_info)

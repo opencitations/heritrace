@@ -49,13 +49,12 @@ class ValidationContext:
     entity_key: tuple[str, str]
 
 
+# Any property without a fixed value can gain or lose values while it is edited:
+# the save checks its number of values on the final state.
 def _build_cardinality_metadata(
     valid_predicates: list[dict],
-    predicate_counts: dict[str, int],
-    _triples: Sequence[tuple[URIRef, URIRef, URIRef | Literal]],
 ) -> tuple[set[str], set[str], dict[str, list[str]], dict[str, list[str]]]:
-    can_be_added: set[str] = set()
-    can_be_deleted: set[str] = set()
+    editable: set[str] = set()
     mandatory_values: dict[str, list[str]] = defaultdict(list)
     optional_values: dict[str, list[str]] = {}
     for valid_predicate in valid_predicates:
@@ -63,24 +62,14 @@ def _build_cardinality_metadata(
             if ranges["hasValue"]:
                 mandatory_values[str(predicate)].append(str(ranges["hasValue"]))
             else:
-                max_reached = ranges["max"] is not None and int(
-                    ranges["max"]
-                ) <= predicate_counts.get(predicate, 0)
-
-                if not max_reached:
-                    can_be_added.add(predicate)
-                if not (
-                    ranges["min"] is not None
-                    and int(ranges["min"]) == predicate_counts.get(predicate, 0)
-                ):
-                    can_be_deleted.add(predicate)
+                editable.add(predicate)
 
             if "optionalValues" in ranges:
                 values = optional_values.setdefault(str(predicate), [])
                 for value in ranges["optionalValues"]:
                     if value not in values:
                         values.append(value)
-    return can_be_added, can_be_deleted, mandatory_values, optional_values
+    return editable, set(editable), mandatory_values, optional_values
 
 
 def get_valid_predicates(
@@ -90,10 +79,6 @@ def get_valid_predicates(
     shacl = get_shacl_graph()
 
     existing_predicates = [triple[1] for triple in triples]
-    predicate_counts = {
-        str(predicate): existing_predicates.count(predicate)
-        for predicate in set(existing_predicates)
-    }
     default_datatypes = {
         str(predicate): XSD.string for predicate in existing_predicates
     }
@@ -112,23 +97,13 @@ def get_valid_predicates(
         return fallback
 
     query_string = f"""
-        SELECT ?predicate ?datatype ?maxCount ?minCount ?hasValue
+        SELECT ?predicate ?datatype ?hasValue
         (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues) WHERE {{
             ?shape sh:targetClass ?type ;
                    sh:property ?property .
             VALUES ?type {{<{highest_priority_class}>}}
             ?property sh:path ?predicate .
             OPTIONAL {{?property sh:datatype ?datatype .}}
-            OPTIONAL {{
-                {{?property sh:maxCount ?maxCount .}}
-                UNION
-                {{?property sh:qualifiedMaxCount ?maxCount .}}
-            }}
-            OPTIONAL {{
-                {{?property sh:minCount ?minCount .}}
-                UNION
-                {{?property sh:qualifiedMinCount ?minCount .}}
-            }}
             OPTIONAL {{
                 {{?property sh:hasValue ?hasValue .}}
                 UNION
@@ -149,7 +124,7 @@ def get_valid_predicates(
             FILTER (isURI(?predicate))
             FILTER NOT EXISTS {{?property sh:values ?computed .}}
         }}
-        GROUP BY ?predicate ?datatype ?maxCount ?minCount ?hasValue
+        GROUP BY ?predicate ?datatype ?hasValue
     """
 
     query = prepareQuery(
@@ -168,8 +143,6 @@ def get_valid_predicates(
     valid_predicates = [
         {
             str(row.predicate): {
-                "min": 0 if row.minCount is None else int(row.minCount),
-                "max": None if row.maxCount is None else str(row.maxCount),
                 "hasValue": row.hasValue,
                 "optionalValues": (
                     row.optionalValues.split(",") if row.optionalValues else []
@@ -180,7 +153,7 @@ def get_valid_predicates(
     ]
 
     can_be_added, can_be_deleted, mandatory_values, optional_values = (
-        _build_cardinality_metadata(valid_predicates, predicate_counts, triples)
+        _build_cardinality_metadata(valid_predicates)
     )
 
     datatypes = defaultdict(list)
@@ -293,40 +266,35 @@ def _query_shacl_constraints(
     return list(select_results(results))
 
 
-def _validate_cardinality(
-    ctx: ValidationContext,
-    action: str,
-    max_count: int | None,
-    min_count: int | None,
-) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str] | None:
-    current_count = len(
-        list(get_triples_from_graph(ctx.data_graph, (ctx.subject, ctx.predicate, None)))
-    )
+def _entity_key(
+    results_list: list[ResultRow], highest_priority_class: str | None
+) -> tuple[str, str]:
+    shape = next((row.shape for row in results_list if row.shape is not None), None)
+    return str(highest_priority_class or ""), str(shape or "")
 
-    if action == "create":
-        new_count = current_count + 1
-    elif action == "delete":
-        new_count = current_count - 1
-    else:
-        new_count = current_count
 
-    predicate_label = ctx.custom_filter.human_readable_predicate(
-        str(ctx.predicate), ctx.entity_key
+# The number of values a save leaves on a property, checked once all its
+# changes are applied, so that a value can be replaced within the same save.
+def cardinality_error(
+    data_graph: Graph | Dataset, subject: URIRef, predicate: URIRef
+) -> str | None:
+    s_types, highest_priority_class = _collect_subject_types(data_graph, subject, None)
+    if not s_types:
+        return None
+    results_list = _query_shacl_constraints(predicate, s_types)
+    if not results_list:
+        return None
+    _, _, _, max_count, min_count = _extract_shacl_constraints(results_list)
+    count = len(set(get_triples_from_graph(data_graph, (subject, predicate, None))))
+    predicate_label = get_custom_filter().human_readable_predicate(
+        str(predicate), _entity_key(results_list, highest_priority_class)
     )
-    if max_count is not None and new_count > max_count:
+    if max_count is not None and count > max_count:
         value = "value" if max_count == 1 else "values"
-        return (
-            None,
-            ctx.old_value,
-            f"The property {predicate_label} allows at most {max_count} {value}",
-        )
-    if min_count is not None and new_count < min_count:
+        return f"The property {predicate_label} allows at most {max_count} {value}"
+    if min_count is not None and count < min_count:
         value = "value" if min_count == 1 else "values"
-        return (
-            None,
-            ctx.old_value,
-            f"The property {predicate_label} requires at least {min_count} {value}",
-        )
+        return f"The property {predicate_label} requires at least {min_count} {value}"
     return None
 
 
@@ -380,11 +348,10 @@ def _validate_class_constraint(
     ctx: ValidationContext,
     classes: list[URIRef],
     s_types: list[str],
-    current_shape: str | None,
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
-    shape_str = str(current_shape or "")
+    shape = ctx.entity_key[1]
     class_labels = ", ".join(
-        f"'{ctx.custom_filter.human_readable_class((c, shape_str))}'" for c in classes
+        f"'{ctx.custom_filter.human_readable_class((c, shape))}'" for c in classes
     )
 
     def _class_error() -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
@@ -563,13 +530,12 @@ def _validate_language(
     return Literal(new_value, lang=language), ctx.old_value, ""
 
 
-def _typed_value(  # noqa: PLR0913
+def _typed_value(
     new_value: str | URIRef | None,
     language: str | None,
     ctx: ValidationContext,
     results_list: list[ResultRow],
     s_types: list[str],
-    current_shape: str | None,
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
     datatypes, classes, _, _, _ = _extract_shacl_constraints(results_list)
     language_result = _validate_language(
@@ -578,9 +544,7 @@ def _typed_value(  # noqa: PLR0913
     if language_result:
         return language_result
     if classes:
-        return _validate_class_constraint(
-            new_value, ctx, classes, s_types, current_shape
-        )
+        return _validate_class_constraint(new_value, ctx, classes, s_types)
     if datatypes:
         return _validate_datatype_constraint(new_value, ctx, datatypes, results_list)
     return _infer_value_type(new_value, ctx.old_value)
@@ -606,12 +570,7 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
 
     results_list = _query_shacl_constraints(predicate, s_types)
     property_exists = [row.path for row in results_list]
-    shapes = [row.shape for row in results_list if row.shape is not None]
-    current_shape = shapes[0] if shapes else None
-    entity_key = (
-        str(highest_priority_class or ""),
-        str(current_shape or ""),
-    )
+    entity_key = _entity_key(results_list, highest_priority_class)
 
     ctx = ValidationContext(
         data_graph=data_graph,
@@ -627,13 +586,7 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
             return (None, old_value, "No entity type specified")
         return _coerce_value_without_shacl(new_value, old_value, XSD.string)
 
-    _, _, optional_values, max_count, min_count = _extract_shacl_constraints(
-        results_list
-    )
-
-    cardinality_error = _validate_cardinality(ctx, action, max_count, min_count)
-    if cardinality_error:
-        return cardinality_error
+    _, _, optional_values, _, _ = _extract_shacl_constraints(results_list)
 
     if action == "delete":
         return None, old_value, ""
@@ -648,7 +601,7 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
     if pattern_error:
         return pattern_error
 
-    return _typed_value(new_value, language, ctx, results_list, s_types, current_shape)
+    return _typed_value(new_value, language, ctx, results_list, s_types)
 
 
 def convert_to_matching_class(

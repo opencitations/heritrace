@@ -58,6 +58,7 @@ class EntityTriple {
     required this.isMandatory,
     required this.label,
     required this.details,
+    required this.alternative,
   });
 
   factory EntityTriple.fromJson(Map<String, dynamic> json) => EntityTriple(
@@ -72,6 +73,7 @@ class EntityTriple {
     details: (json['details'] as List<dynamic>?)
         ?.map((e) => EntityDetail.fromJson(e as Map<String, dynamic>))
         .toList(),
+    alternative: json['alternative'] as String?,
   );
 
   final String subject;
@@ -85,6 +87,10 @@ class EntityTriple {
   final bool isMandatory;
   final String? label;
   final List<EntityDetail>? details;
+
+  /// The `sh:or` alternative the linked entity matches, named above its
+  /// [details].
+  final String? alternative;
 }
 
 class PropertyGroup {

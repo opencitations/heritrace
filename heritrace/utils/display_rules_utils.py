@@ -109,13 +109,29 @@ def _value_shapes(
     return shapes, value_triples
 
 
-def _details_viewer_field(
-    entity_key: tuple[str | None, str | None], predicate: str, object_shape: str | None
-) -> dict | None:
+# The fields of a value shown in place of the link (shui:DetailsViewer). A value
+# that matches one of the alternatives of sh:or also names that alternative.
+def _details_view(
+    ctx: GroupingContext,
+    predicate: str,
+    object_shape: str | None,
+    value: str,
+) -> dict[str, object]:
+    value_shape = ctx.value_shapes[value]
+    entity_key = (ctx.highest_priority_class, ctx.highest_priority_shape)
     for field in get_form_fields().get(entity_key, {}).get(predicate, []):
-        if field["detailsViewer"] and field.get("nodeShape") == object_shape:
-            return field
-    return None
+        if "or" in field:
+            for option in field["or"]:
+                if option.get("nodeShape") == value_shape and option["detailsViewer"]:
+                    return {
+                        "details": _details(ctx, value, option),
+                        "alternative": get_custom_filter().human_readable_class(
+                            (option["entityType"], value_shape)
+                        ),
+                    }
+        elif field["detailsViewer"] and field.get("nodeShape") == object_shape:
+            return {"details": _details(ctx, value, field)}
+    return {}
 
 
 def _detail_value(
@@ -181,20 +197,11 @@ def _triple_data(
     if value_shape is None:
         return {**data, "triple": (str(subject), str(predicate), obj), "label": label}
     ctx.fetched_values_map[label] = object_uri
-    viewer_field = _details_viewer_field(
-        (ctx.highest_priority_class, ctx.highest_priority_shape),
-        str(predicate),
-        object_shape,
-    )
     return {
         **data,
         "triple": (str(subject), str(predicate), label),
         "external_entity": object_uri,
-        **(
-            {"details": _details(ctx, object_uri, viewer_field)}
-            if viewer_field is not None
-            else {}
-        ),
+        **_details_view(ctx, str(predicate), object_shape, object_uri),
     }
 
 

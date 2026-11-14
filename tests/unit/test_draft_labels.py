@@ -9,6 +9,8 @@ import pytest
 from pyparsing import ParseException
 from rdflib import Graph
 
+from heritrace.configuration.entity import META_SHAPES
+from heritrace.configuration.vocabulary import META
 from heritrace.utils.draft_labels import draft_label
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_presentation import ShapesPresentation, read_presentation
@@ -17,6 +19,7 @@ FOAF = "http://xmlns.com/foaf/0.1/"
 DATACITE = "http://purl.org/spar/datacite/"
 LITERAL = "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
 PRO = "http://purl.org/spar/pro/"
+SH = "http://www.w3.org/ns/shacl#"
 
 
 def labels_from(presentation: ShapesPresentation):
@@ -272,3 +275,25 @@ def test_inverse_path_uses_entity_label(logged_in_client, predicate, shape):
         response = logged_in_client.post("/api/draft-labels", json={"entries": [entry]})
     assert response.status_code == 200
     assert response.json == {"labels": ['Citation from "Source book" to "Target book"']}
+
+
+def test_a_name_with_a_language_labels_the_draft(logged_in_client):
+    meta = Graph().parse(META_SHAPES, format="turtle")
+    entry = {
+        "parent_class": SH + "NodeShape",
+        "parent_shape": str(META.NodeShapeShape),
+        "predicate": SH + "property",
+        "entity": {
+            "entity_type": SH + "PropertyShape",
+            "entity_shape": str(META.PropertyShapeShape),
+            "properties": {SH + "name": [{"value": "Fascicoli", "language": "it"}]},
+        },
+    }
+    with labels_from(read_presentation(meta)):
+        response = logged_in_client.post(
+            "/api/draft-labels",
+            json={"entries": [entry]},
+            headers={"Accept-Language": "it"},
+        )
+    assert response.status_code == 200
+    assert response.json == {"labels": ["Fascicoli"]}

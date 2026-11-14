@@ -38,7 +38,7 @@ from heritrace.configuration.shapes import (
     shapes_to_graph,
     unsupported_parts,
 )
-from heritrace.configuration.vocabulary import DASH, META, SH
+from heritrace.configuration.vocabulary import DASH, HT, META, SH
 from heritrace.scripts.seed_config import seed_config
 from tests.test_config import TestConfig, test_example_dir
 
@@ -322,7 +322,7 @@ def test_an_invalid_configuration_is_not_saved(
 
 
 def _add(
-    client: FlaskClient, subject: URIRef, values: dict[URIRef, str]
+    client: FlaskClient, subject: URIRef, values: dict[URIRef, object]
 ) -> tuple[int, dict]:
     response = client.post(
         "/api/configuration/apply_changes",
@@ -500,6 +500,175 @@ def test_a_new_prefix_is_declared(admin_client: FlaskClient, config_app: Flask) 
     assert shapes.prefixes["ex"] == "http://example.org/"
 
 
+def test_a_field_reads_its_property_backwards(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    status, _ = _add(
+        admin_client,
+        URIRef("http://schema.org/VolumeShape"),
+        {
+            SH.property: {
+                "entity_type": str(SH.PropertyShape),
+                "entity_shape": str(META.PropertyShapeShape),
+                "properties": {
+                    str(SH.name): ["Issues"],
+                    str(SH.path): [
+                        {
+                            "entity_type": str(HT.InversePath),
+                            "entity_shape": str(META.InversePathShape),
+                            "properties": {
+                                str(SH.inversePath): [str(DCTERMS.isPartOf)]
+                            },
+                        }
+                    ],
+                },
+            }
+        },
+    )
+
+    assert status == 200
+    saved = read_shacl(config_app.config["CONFIG_DIR"])
+    assert (None, RDF.type, HT.InversePath) not in saved
+    volume = next(
+        shape
+        for shape in read_shapes(saved).shapes
+        if shape.iri == "http://schema.org/VolumeShape"
+    )
+    assert [prop.path for prop in volume.properties if prop.inverse] == [
+        str(DCTERMS.isPartOf)
+    ]
+
+
+def _replace_path(
+    client: FlaskClient, field: URIRef, old: URIRef, new: URIRef | None
+) -> tuple[int, dict]:
+    deletion = {
+        "action": "delete",
+        "subject": str(field),
+        "predicate": str(SH.path),
+        "object": str(old),
+    }
+    addition = {
+        "action": "create",
+        "subject": str(field),
+        "data": {"properties": {str(SH.path): [str(new)]}},
+    }
+    response = client.post(
+        "/api/configuration/apply_changes",
+        json=[deletion, addition] if new is not None else [deletion],
+    )
+    return response.status_code, response.get_json()
+
+
+def test_a_required_value_is_replaced_within_one_save(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    field = _literal_property(_data(config_app))
+
+    status, _ = _replace_path(admin_client, field, LITERAL_VALUE, DCTERMS.title)
+
+    assert status == 200
+    assert set(_data(config_app).objects(field, SH.path)) == {DCTERMS.title}
+
+
+def test_a_required_value_is_not_removed_without_a_replacement(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    field = _literal_property(_data(config_app))
+
+    status, body = _replace_path(admin_client, field, LITERAL_VALUE, None)
+
+    assert (status, body["message"]) == (
+        400,
+        "The property Property requires at least 1 value",
+    )
+    assert set(_data(config_app).objects(field, SH.path)) == {LITERAL_VALUE}
+
+
+@pytest.fixture
+def inverse_path_app(tmp_path: Path) -> Generator[Flask, None, None]:
+    (tmp_path / "shacl.ttl").write_text(
+        EDITOR_SHAPES.read_text()
+        + """
+schema:VolumeShape sh:property [ sh:path [ sh:inversePath dcterms:isPartOf ] ] .
+"""
+    )
+    seed_config(tmp_path, test_example_dir)
+
+    class Config(TestConfig):
+        CONFIG_DIR = tmp_path
+
+    app = create_app(Config)
+    with app.app_context():
+        yield app
+
+
+def _inverse_path_field(app: Flask) -> tuple[URIRef, URIRef]:
+    data = _data(app)
+    return next(
+        (URIRef(str(property_shape)), URIRef(str(path)))
+        for property_shape, path in data.subject_objects(SH.path)
+        if (path, SH.inversePath, DCTERMS.isPartOf) in data
+    )
+
+
+def test_an_inverse_path_is_replaced_by_a_property(inverse_path_app: Flask) -> None:
+    client = _signed_in(inverse_path_app)
+    field, path = _inverse_path_field(inverse_path_app)
+    deletion = {
+        "action": "delete",
+        "subject": str(field),
+        "predicate": str(SH.path),
+        "object": str(path),
+    }
+    orphans = client.post(
+        "/api/configuration/check_orphans",
+        json={"changes": [deletion], "entity_type": str(SH.PropertyShape)},
+    ).get_json()
+
+    response = client.post(
+        "/api/configuration/apply_changes",
+        json=[
+            {
+                **deletion,
+                "affected_entities": orphans["affected_entities"],
+                "delete_affected": orphans["should_delete"],
+            },
+            {
+                "action": "create",
+                "subject": str(field),
+                "data": {"properties": {str(SH.path): [str(DCTERMS.isPartOf)]}},
+            },
+        ],
+    )
+
+    assert response.status_code == 200
+    saved = read_shacl(inverse_path_app.config["CONFIG_DIR"])
+    assert set(saved.subjects(SH.inversePath)) == set()
+    assert (None, SH.path, DCTERMS.isPartOf) in saved
+
+
+def test_an_inverse_path_is_shown_in_place(inverse_path_app: Flask) -> None:
+    client = _signed_in(inverse_path_app)
+    field, _ = _inverse_path_field(inverse_path_app)
+    groups = client.get(
+        f"/api/configuration/entity/{quote(str(field), safe='')}",
+        headers={"Accept-Language": "en"},
+    ).get_json()["groups"]
+    label = _label(client, field, "en")
+
+    path = next(group for group in groups if group["property"] == str(SH.path))
+    assert label == "^dcterms:isPartOf"
+    assert [
+        (triple["alternative"], triple["details"]) for triple in path["triples"]
+    ] == [
+        (
+            "Inverse path",
+            [{"name": "Property", "values": [{"label": "Is part of", "uri": None}]}],
+        )
+    ]
+
+
 def test_the_first_start_leaves_the_shapes_file_as_written(config_app: Flask) -> None:
     config_dir = config_app.config["CONFIG_DIR"]
 
@@ -672,10 +841,11 @@ def _entity_types(client: FlaskClient, language: str) -> set[str]:
 
 
 def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -> None:
-    english = {"Field", "Prefix", "Resource type", "Resource types"}
+    english = {"Field", "Inverse path", "Prefix", "Resource type", "Resource types"}
     assert _entity_types(admin_client, "en") == english
     assert _entity_types(admin_client, "it") == {
         "Campo",
+        "Percorso inverso",
         "Prefisso",
         "Tipi di risorsa",
         "Tipo di risorsa",

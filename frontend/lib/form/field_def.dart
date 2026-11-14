@@ -83,6 +83,7 @@ class FieldDef {
     required this.detailPaths,
     required this.nestedShape,
     required this.or,
+    required this.iri,
     required this.hidden,
     required this.withLanguage,
     required this.shownWith,
@@ -140,6 +141,7 @@ class FieldDef {
       or: (json['or'] as List<dynamic>?)
           ?.map((e) => FieldDef.fromJson(e as Map<String, dynamic>))
           .toList(),
+      iri: json['iri'] == true,
       hidden: json['hidden'] == true,
       withLanguage: json['withLanguage'] == true,
       shownWith: (json['shownWith'] as List<dynamic>? ?? []).cast<String>(),
@@ -180,6 +182,9 @@ class FieldDef {
   final List<String>? detailPaths;
   final List<FieldDef>? nestedShape;
   final List<FieldDef>? or;
+
+  /// An alternative of a `sh:or` field that takes an IRI typed in place.
+  final bool iri;
   final bool hidden;
 
   /// Each value carries a language, picked next to its input.

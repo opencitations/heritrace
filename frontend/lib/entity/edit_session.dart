@@ -92,6 +92,8 @@ class EditableGroup extends ChangeNotifier {
       for (final value in existing)
         if (!value.markedForDeletion) value.newLanguage,
     ];
+    formGroup?.keptCount = () =>
+        existing.where((value) => !value.markedForDeletion).length;
     formGroup?.addListener(notifyListeners);
   }
 

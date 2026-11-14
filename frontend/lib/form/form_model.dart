@@ -85,7 +85,11 @@ class FieldGroup extends ChangeNotifier {
   /// edits it.
   Iterable<String?> Function() savedLanguages = () => const [];
 
-  bool get canAdd => def.max == null || items.length < def.max!;
+  /// The number of values a resource already holds and keeps, when the form
+  /// edits it. They count towards [FieldDef.min] and [FieldDef.max].
+  int Function() keptCount = () => 0;
+
+  bool get canAdd => def.max == null || keptCount() + items.length < def.max!;
 
   bool get hasContent => items.any((item) => !item.isEmpty);
 
@@ -96,7 +100,7 @@ class FieldGroup extends ChangeNotifier {
     if (def.max == 1 && def.min == 0) {
       return true;
     }
-    return def.min == 0 || items.indexOf(item) >= def.min;
+    return def.min == 0 || keptCount() + items.indexOf(item) >= def.min;
   }
 
   /// The languages of the values of this field other than [except]; null
@@ -178,6 +182,9 @@ FormItem createItem(FieldDef def, int depth, FieldGroup group) {
     FieldKind.literal => LiteralItem(def: def, depth: depth),
   };
   item.group = group;
+  if (item is OrItem) {
+    item.selectIri();
+  }
   if (def.orderedBy != null) {
     item.tempId = nextTempId();
   }
@@ -382,13 +389,21 @@ class OrItem extends FormItem {
   FormItem? selectedItem;
 
   void select(FieldDef? option) {
+    _show(option);
+    touched = true;
+    notifyListeners();
+  }
+
+  /// Starts on the alternative that takes an IRI typed in place, when the
+  /// field offers one.
+  void selectIri() => _show(def.or!.where((option) => option.iri).firstOrNull);
+
+  void _show(FieldDef? option) {
     selectedItem?.dispose();
     selected = option;
     selectedItem = option == null
         ? null
         : (createItem(option, depth, group)..addListener(notifyListeners));
-    touched = true;
-    notifyListeners();
   }
 
   @override

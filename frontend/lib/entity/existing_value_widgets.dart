@@ -231,7 +231,11 @@ class _ValueBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final triple = value.triple;
     if (triple.details case final details?) {
-      return _Details(details: details, linked: !editable);
+      return _Details(
+        details: details,
+        alternative: triple.alternative,
+        linked: !editable,
+      );
     }
     if (triple.externalEntity != null) {
       return Text(triple.value);
@@ -291,9 +295,14 @@ class _ValueBody extends StatelessWidget {
 
 /// The fields of a linked entity, shown in place of the link.
 class _Details extends StatelessWidget {
-  const _Details({required this.details, required this.linked});
+  const _Details({
+    required this.details,
+    required this.alternative,
+    required this.linked,
+  });
 
   final List<EntityDetail> details;
+  final String? alternative;
   final bool linked;
 
   @override
@@ -302,6 +311,8 @@ class _Details extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: appCaptionSpacing,
       children: [
+        if (alternative case final alternative?)
+          Text(alternative, style: AppTextStyles.of(context).caption),
         for (final detail in details)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,

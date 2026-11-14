@@ -48,7 +48,7 @@ def mock_fetch_data_graph():
     """
     Mock the fetch_data_graph_for_subject function to return a consistent test graph.
     """
-    with patch("heritrace.utils.sparql_utils.fetch_data_graph_for_subject") as mock:
+    with patch("heritrace.utils.shacl_validation.fetch_data_graph_for_subject") as mock:
         # Create a dictionary to store test graphs for different subjects
         test_graphs = {}
 
@@ -446,8 +446,10 @@ def test_validate_new_triple_journal_identifier(
             old_value=valid_doi,
             entity_types=["http://purl.org/spar/datacite/Identifier"],
         )
-        assert error != "", "Should reject invalid DOI format"
-        assert "The property Literal Value requires at least 1 value" in error
+        assert error == (
+            "DOI must start with '10.' followed by a prefix, a forward slash, and a"
+            " suffix. For example: 10.1162/qss_a_00023"
+        )
 
 
 def test_get_valid_predicates_journal_article(app: Flask, shacl_graph: Graph) -> None:
@@ -930,9 +932,9 @@ def test_validate_new_triple_with_complex_conditions(
             assert valid_value.datatype == XSD.string
             assert str(valid_value) == "Test Title"
 
-        # Test with empty entity types
+        # Test with empty entity types, on a subject without types in the data
         valid_value, _old_value, error = validate_new_triple(
-            subject,
+            URIRef("https://example.org/article/untyped"),
             URIRef("http://purl.org/dc/terms/title"),
             "Test Title",
             "create",
@@ -1481,6 +1483,7 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 self.optional_values = None
                 self.or_nodes = or_nodes
                 self.or_link_shapes = ""
+                self.or_iri = None
                 self.link_shape = None
                 self.link_class = None
                 self.detail_paths = ""

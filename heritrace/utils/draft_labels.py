@@ -7,6 +7,7 @@ from uuid import uuid4
 from rdflib import RDF, Graph, Literal, URIRef
 
 from heritrace.extensions import get_custom_filter, get_form_fields
+from heritrace.language import is_tagged, tagged_literal
 from heritrace.utils.datatypes import determine_datatype
 from heritrace.utils.shacl_presentation import inverse_predicate
 from heritrace.utils.shacl_utils import find_matching_form_field
@@ -28,7 +29,9 @@ def add_draft_entity(graph: Graph, entity: dict) -> URIRef:
     for predicate, raw_values in entity["properties"].items():
         values = raw_values if isinstance(raw_values, list) else [raw_values]
         for value in values:
-            if isinstance(value, dict):
+            if is_tagged(value):
+                node = tagged_literal(value)
+            elif isinstance(value, dict):
                 node = add_draft_entity(graph, value)
             elif is_valid_url(str(value)):
                 node = URIRef(value)

@@ -41,7 +41,7 @@ from heritrace.utils.primary_source_utils import (
     save_user_default_primary_source,
 )
 from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
-from heritrace.utils.shacl_validation import validate_new_triple
+from heritrace.utils.shacl_validation import cardinality_error, validate_new_triple
 from heritrace.utils.sparql_utils import (
     CatalogQuery,
     DeletedEntitiesQuery,
@@ -798,6 +798,24 @@ def _process_delete_change(
         delete_logic(op, change_predicate, object_value, change.get("language"))
 
 
+def _changed_properties(change: dict) -> list[tuple[URIRef, URIRef]]:
+    if change["action"] == "create" and change.get("subject") and change.get("data"):
+        subject = URIRef(change["subject"])
+        properties = change["data"].get("properties", {})
+        return [(subject, URIRef(predicate)) for predicate in properties]
+    if change["action"] == "delete" and change.get("predicate"):
+        return [(URIRef(change["subject"]), URIRef(change["predicate"]))]
+    return []
+
+
+def _check_final_cardinality(editor: Editor, changes: list[dict]) -> None:
+    changed = {pair for change in changes for pair in _changed_properties(change)}
+    for subject, predicate in sorted(changed):
+        error = cardinality_error(editor.g_set, subject, predicate)
+        if error:
+            raise ValueError(error)
+
+
 def _save_and_respond(editor: Editor) -> tuple[Response, int]:
     try:
         editor.save()
@@ -889,6 +907,7 @@ def apply_changes() -> tuple[Response, int]:
         _process_remaining_changes(
             editor, changes, graph_uri, deleted_entities, temp_id_to_uri
         )
+        _check_final_cardinality(editor, changes)
 
         return _save_and_respond(editor)
 

@@ -62,6 +62,7 @@ form:
   addItem: Add $name
   addProperty: Add property
   selectOption: Select an option
+  iriOption: IRI
   fillInDetails: Fill in the details
   draftLabelFailed: Could not update the resource label
   noLanguage: No language

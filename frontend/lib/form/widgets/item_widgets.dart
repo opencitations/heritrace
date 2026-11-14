@@ -372,7 +372,10 @@ class OrSelector extends StatelessWidget {
             options: [
               AppMenuOption(null, t.ui.form.selectOption),
               for (final option in item.def.or!)
-                AppMenuOption(option, option.displayName),
+                AppMenuOption(
+                  option,
+                  option.iri ? t.ui.form.iriOption : option.displayName,
+                ),
             ],
             onChanged: item.select,
           ),
