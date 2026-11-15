@@ -242,6 +242,7 @@ class ValidationError {
     required this.message,
     required this.path,
     this.item,
+    this.value,
     this.fieldName,
     this.required = false,
   });
@@ -249,6 +250,10 @@ class ValidationError {
   final String message;
   final List<String> path;
   final FormItem? item;
+
+  /// The saved value edited in place that the error concerns, for an error
+  /// that the server reports on a value with no form item.
+  final Object? value;
   final String? fieldName;
   final bool required;
 

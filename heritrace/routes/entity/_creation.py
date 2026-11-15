@@ -19,6 +19,7 @@ from heritrace.extensions import (
     new_editor,
     record_dataset_change,
 )
+from heritrace.field_errors import RejectedError, name_new_resource
 from heritrace.language import is_tagged, tagged_literal
 from heritrace.routes.entity._blueprint import entity_bp
 from heritrace.routes.entity._validation import validate_entity_data
@@ -208,11 +209,12 @@ def _handle_create_entity_post(
     if form_fields:
         validation_errors = validate_entity_data(cleaned_structured_data)
         if validation_errors:
-            return jsonify({"status": "error", "errors": validation_errors}), 400
+            raise RejectedError(validation_errors)
 
     resp_agent = get_responsible_agent_uri(current_user.orcid)
     editor = new_editor(resp_agent, get_primary_source())
     entity_uri = generate_unique_uri(entity_type)
+    name_new_resource(str(entity_uri), None)
     default_graph_uri = (
         URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
     )
@@ -253,12 +255,15 @@ def _handle_create_entity_post(
 @login_required
 def create_entity() -> tuple[Response, int]:
     data = request.get_json()
-    return _handle_create_entity_post(
-        get_form_fields(),
-        data["structured_data"],
-        data.get("primary_source") or None,
-        save_default_source=bool(data.get("save_default_source")),
-    )
+    try:
+        return _handle_create_entity_post(
+            get_form_fields(),
+            data["structured_data"],
+            data.get("primary_source") or None,
+            save_default_source=bool(data.get("save_default_source")),
+        )
+    except ValueError as error:
+        return jsonify({"status": "error", "error": str(error)}), 400
 
 
 @entity_bp.route("/entity-types")
@@ -289,6 +294,8 @@ def create_nested_entity(
     graph_uri: URIRef | None = None,
 ) -> None:
     form_fields = get_form_fields()
+    if "tempId" in entity_data:
+        name_new_resource(str(entity_uri), entity_data["tempId"])
 
     editor.create(
         entity_uri,

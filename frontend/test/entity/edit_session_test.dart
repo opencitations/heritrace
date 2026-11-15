@@ -4,12 +4,14 @@
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:heritrace/api/api_exception.dart';
 import 'package:heritrace/entity/edit_session.dart';
 import 'package:heritrace/entity/entity_models.dart';
 import 'package:heritrace/entity/entity_repository.dart';
 import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_model.dart';
 import 'package:heritrace/form/validator.dart';
+import 'package:heritrace/i18n/translations.g.dart';
 import 'package:heritrace/navigation/entity_store.dart';
 
 import '../form/fixtures.dart';
@@ -332,6 +334,72 @@ void main() {
       [
         (composite, 'delete', 'true'),
         (node, 'delete', 'https://example.org/nested'),
+      ],
+    );
+  });
+
+  test('a rejected save puts each error beside its value or field', () {
+    final t = AppLocale.it.buildSync();
+    final role = group(documentContext).formGroup!.addItem() as NestedItem;
+    final author = heldByItem(role);
+    final nameItem =
+        author.child.groups.firstWhere((g) => g.def.uri == name).addItem()
+              as LiteralItem
+          ..setValue('Jane');
+
+    final errors = session.serverErrors(t, [
+      const ServerFieldError(
+        code: 'maxBelowMin',
+        subject: subject,
+        predicate: title,
+        params: {},
+      ),
+      ServerFieldError(
+        code: 'invalidInput',
+        subject: author.tempId,
+        predicate: name,
+        params: const {'expected': 'IRI', 'input': 'Jane'},
+      ),
+      const ServerFieldError(
+        code: 'fileChanged',
+        subject: null,
+        predicate: null,
+        params: {},
+      ),
+    ]);
+
+    expect(
+      [
+        for (final error in errors)
+          (error.message, error.path.join(' › '), error.item, error.value),
+      ],
+      [
+        (
+          'Il massimo è minore del minimo.',
+          'Journal Article',
+          null,
+          group(title).existing.single,
+        ),
+        (
+          'Valore non valido. Atteso IRI.',
+          [
+            'Journal Article',
+            group(documentContext).formGroup!.def.displayName,
+            role.child.groups
+                .firstWhere((g) => g.def.uri == heldBy)
+                .def
+                .displayName,
+          ].join(' › '),
+          nameItem,
+          null,
+        ),
+        (
+          'shacl.ttl è cambiato sul disco. Ricarica la pagina per vederne il '
+              'contenuto.',
+          'Journal Article',
+          null,
+          null,
+        ),
       ],
     );
   });

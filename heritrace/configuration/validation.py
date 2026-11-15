@@ -3,24 +3,30 @@
 # SPDX-License-Identifier: ISC
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from pyparsing import ParseException
+from rdflib import OWL, URIRef
 from rdflib.plugins.sparql.algebra import translateQuery, traverse
 from rdflib.plugins.sparql.parser import parseQuery
 from rdflib.plugins.sparql.parserutils import CompValue
+from rdflib.term import Node
 
 from heritrace.apis.orcid import is_valid_orcid_id, normalize_orcid
 from heritrace.configuration.labels import compact_iri
 from heritrace.configuration.settings import STRATEGIES, Settings
 from heritrace.configuration.shapes import (
     EDITORS,
+    SINGLE_VALUE_PREDICATES,
     VIEWERS,
     NodeShape,
     PropertyShape,
     Shapes,
 )
+from heritrace.configuration.vocabulary import HT, SH, SHUI
+from heritrace.field_errors import FieldError, field_error
 from heritrace.utils.value_bounds import NUMERIC_DATATYPES
 
 _PREFIX = re.compile(r"^[A-Za-z][\w.-]*$")
@@ -72,33 +78,63 @@ def validate_settings(settings: Settings) -> list[Issue]:
     return issues
 
 
-def _validate_bounds(issues: list[Issue], location: str, prop: PropertyShape) -> None:
-    bounds = {
-        "minInclusive": prop.min_inclusive,
-        "maxInclusive": prop.max_inclusive,
-        "minExclusive": prop.min_exclusive,
-        "maxExclusive": prop.max_exclusive,
-    }
+# The rules of the shapes, each reported on the editor resource and the field
+# where it can be fixed. The shapes keep the nodes of the SHACL graph, which
+# the caller turns into the IRIs of the editor.
+@dataclass(frozen=True)
+class _Report:
+    errors: list[FieldError]
+    editor_iri: Callable[[Node], str]
+    prefixes: dict[str, str]
+
+    def add(
+        self,
+        code: str,
+        node: Node | None,
+        predicate: URIRef | None,
+        **params: str | int,
+    ) -> None:
+        subject = None if node is None else self.editor_iri(node)
+        self.errors.append(field_error(code, subject, predicate, **params))
+
+    def check_iri(
+        self, node: Node | None, predicate: URIRef, value: str | None
+    ) -> None:
+        if value is not None and not is_iri(value):
+            self.add("invalidIri", node, predicate)
+
+    def compact(self, iri: str) -> str:
+        namespaces = {namespace: prefix for prefix, namespace in self.prefixes.items()}
+        return compact_iri(iri, namespaces)
+
+
+_BOUNDS = {
+    "min_inclusive": SH.minInclusive,
+    "max_inclusive": SH.maxInclusive,
+    "min_exclusive": SH.minExclusive,
+    "max_exclusive": SH.maxExclusive,
+}
+_VALUE_PREDICATES = {**SINGLE_VALUE_PREDICATES, "options": SH["in"]}
+
+
+def _validate_bounds(report: _Report, prop: PropertyShape) -> None:
+    bounds = {key: getattr(prop, key) for key in _BOUNDS}
     numeric = prop.kind == "datatype" and all(
         datatype in NUMERIC_DATATYPES for datatype in prop.values
     )
     if not numeric:
-        issues.extend(
-            Issue(f"{location}.{key}", "Bounds need a numeric datatype")
-            for key, bound in bounds.items()
-            if bound is not None
-        )
+        for key, bound in bounds.items():
+            if bound is not None:
+                report.add("boundsNeedNumber", prop.node, _BOUNDS[key])
         return
-    lowers = [bounds["minInclusive"], bounds["minExclusive"]]
-    issues.extend(
-        Issue(f"{location}.{key}", "The maximum is lower than the minimum")
-        for key in ("maxInclusive", "maxExclusive")
-        if (upper := bounds[key]) is not None
-        and any(
+    lowers = [bounds["min_inclusive"], bounds["min_exclusive"]]
+    for key in ("max_inclusive", "max_exclusive"):
+        upper = bounds[key]
+        if upper is not None and any(
             lower is not None and lower.toPython() > upper.toPython()
             for lower in lowers
-        )
-    )
+        ):
+            report.add("maxBelowMin", prop.node, _BOUNDS[key])
 
 
 def _used_prefixes(tree: object) -> set[str]:
@@ -114,14 +150,16 @@ def _used_prefixes(tree: object) -> set[str]:
 
 # HERITRACE runs a label query after the prefixes of the shapes graph, with
 # $this and $language replaced by values.
-def _label_query_problem(query: str, prefixes: dict[str, str]) -> str | None:
+def _label_query_problem(
+    query: str, prefixes: dict[str, str]
+) -> tuple[str, dict[str, str]] | None:
     declarations = "".join(
         f"PREFIX {prefix}: <{namespace}>\n" for prefix, namespace in prefixes.items()
     )
     try:
         tree = parseQuery(declarations + query)
     except ParseException as error:
-        return f"The query is not valid SPARQL: {error}"
+        return "invalidSparql", {"error": str(error)}
     declared = {
         declaration.prefix or ""
         for declaration in tree[0]
@@ -129,120 +167,116 @@ def _label_query_problem(query: str, prefixes: dict[str, str]) -> str | None:
     }
     undeclared = sorted(_used_prefixes(tree) - declared)
     if undeclared:
-        return f"The query uses undeclared prefixes: {', '.join(undeclared)}"
+        return "undeclaredPrefixes", {"prefixes": ", ".join(undeclared)}
     algebra = translateQuery(tree).algebra
     if algebra.name != "SelectQuery" or len(algebra["PV"]) != 1:
-        return "The query must be a SELECT that returns one variable"
+        return "selectOneVariable", {}
     return None
 
 
-def _validate_label_query(
-    issues: list[Issue], location: str, prop: PropertyShape, prefixes: dict[str, str]
-) -> None:
+def _validate_label_query(report: _Report, prop: PropertyShape) -> None:
     if prop.label_query is None:
         return
     if not prop.label:
-        issues.append(Issue(location, "A label query needs the display label role"))
-    problem = _label_query_problem(prop.label_query, prefixes)
+        report.add("labelQueryRole", prop.node, SHUI.propertyRole)
+    problem = _label_query_problem(prop.label_query, report.prefixes)
     if problem is not None:
-        issues.append(Issue(location, problem))
+        code, params = problem
+        report.add(code, prop.label_query_node, SH.select, **params)
 
 
-def _validate_property(
-    issues: list[Issue], location: str, prop: PropertyShape, prefixes: dict[str, str]
-) -> None:
-    _check_iri(issues, f"{location}.path", prop.path)
-    _check_iri(issues, f"{location}.orderedBy", prop.ordered_by)
-    for key, count in (("minCount", prop.min_count), ("maxCount", prop.max_count)):
+def _validate_counts(report: _Report, prop: PropertyShape) -> None:
+    minimum, maximum = (
+        (SH.qualifiedMinCount, SH.qualifiedMaxCount)
+        if prop.qualified
+        else (SH.minCount, SH.maxCount)
+    )
+    for predicate, count in ((minimum, prop.min_count), (maximum, prop.max_count)):
         if count is not None and count < 0:
-            issues.append(Issue(f"{location}.{key}", "The value cannot be negative"))
+            report.add("atLeast", prop.node, predicate, limit="0")
     if (
         prop.min_count is not None
         and prop.max_count is not None
         and prop.min_count > prop.max_count
     ):
-        issues.append(
-            Issue(f"{location}.maxCount", "The maximum is lower than the minimum")
-        )
+        report.add("maxBelowMin", prop.node, maximum)
     if prop.qualified and prop.min_count is None and prop.max_count is None:
-        issues.append(
-            Issue(
-                f"{location}.qualifiedMinCount",
-                "Add the minimum or maximum occurrences of the values to count",
-            )
-        )
-    _validate_bounds(issues, location, prop)
-    if prop.editor is not None and prop.editor not in EDITORS:
-        issues.append(Issue(f"{location}.editor", "Unknown editor"))
-    if prop.viewer is not None and prop.viewer not in VIEWERS:
-        issues.append(Issue(f"{location}.viewer", "Unknown viewer"))
+        report.add("countsMissing", prop.node, SH.qualifiedMinCount)
+
+
+def _validate_property(report: _Report, prop: PropertyShape) -> None:
+    report.check_iri(prop.node, SH.path, prop.path)
+    report.check_iri(prop.node, HT.orderedBy, prop.ordered_by)
+    _validate_counts(report, prop)
+    _validate_bounds(report, prop)
+    for predicate, value, known in (
+        (SHUI.editor, prop.editor, EDITORS),
+        (SHUI.viewer, prop.viewer, VIEWERS),
+    ):
+        if value is not None and value not in known:
+            names = ", ".join(report.compact(widget) for widget in known)
+            report.add("notAllowed", prop.node, predicate, values=names)
+    values = (
+        SH.qualifiedValueShape
+        if prop.qualified or prop.kind == "any"
+        else _VALUE_PREDICATES[prop.kind]
+    )
     if prop.kind != "any" and not prop.values:
-        issues.append(Issue(f"{location}.values", "Add at least one value"))
+        report.add("tooFew", prop.node, values, count=0, min=1)
     for value in prop.values:
-        _check_iri(issues, f"{location}.values", value)
+        report.check_iri(prop.node, values, value)
     for detail_path in prop.details:
-        _check_iri(issues, f"{location}.details", detail_path)
-    _validate_label_query(issues, f"{location}.labelQuery", prop, prefixes)
+        report.check_iri(prop.node, SH.property, detail_path)
+    _validate_label_query(report, prop)
 
 
-def _validate_shape(
-    issues: list[Issue], location: str, shape: NodeShape, prefixes: dict[str, str]
-) -> None:
-    _check_iri(issues, f"{location}.iri", shape.iri)
-    _check_iri(issues, f"{location}.targetClass", shape.target_class)
-    for index, prop in enumerate(shape.properties):
-        _validate_property(issues, f"{location}.properties.{index}", prop, prefixes)
-    for index, key in enumerate(shape.duplicate_keys):
-        key_location = f"{location}.duplicateKeys.{index}"
+def _validate_shape(report: _Report, shape: NodeShape) -> None:
+    node = URIRef(shape.iri)
+    report.check_iri(node, SH.targetClass, shape.target_class)
+    for prop in shape.properties:
+        _validate_property(report, prop)
+    for key in shape.duplicate_keys:
         if not key:
-            issues.append(Issue(key_location, "Add at least one property"))
+            report.add("tooFew", node, OWL.hasKey, count=0, min=1)
         for prop in key:
-            _check_iri(issues, key_location, prop)
-    for index, rule in enumerate(shape.patterns):
-        rule_location = f"{location}.patterns.{index}"
-        _check_iri(issues, f"{rule_location}.conditionPath", rule.condition_path)
-        _check_iri(issues, f"{rule_location}.conditionValue", rule.condition_value)
-        _check_iri(issues, f"{rule_location}.path", rule.path)
+            report.check_iri(node, OWL.hasKey, prop)
+    for rule in shape.patterns:
+        report.check_iri(rule.node, HT.conditionPath, rule.condition_path)
+        report.check_iri(rule.node, HT.conditionValue, rule.condition_value)
+        report.check_iri(rule.node, HT.checkedPath, rule.path)
         try:
             re.compile(rule.pattern)
         except re.error:
-            issues.append(
-                Issue(f"{rule_location}.pattern", "This regular expression is invalid")
-            )
-    _check_rule_coverage(issues, location, shape, prefixes)
+            report.add("invalidRegex", rule.node, SH.pattern)
+    _check_rule_coverage(report, shape)
 
 
 # A resource matches the rules of its type only through one of them, and a value
 # of the condition field that no rule names is therefore always rejected.
-def _check_rule_coverage(
-    issues: list[Issue], location: str, shape: NodeShape, prefixes: dict[str, str]
-) -> None:
-    namespaces = {namespace: prefix for prefix, namespace in prefixes.items()}
+def _check_rule_coverage(report: _Report, shape: NodeShape) -> None:
     covered = {(rule.condition_path, rule.condition_value) for rule in shape.patterns}
     conditions = {path for path, _ in covered}
-    issues.extend(
-        Issue(
-            f"{location}.patterns",
-            f"{compact_iri(value, namespaces)} has no format rule",
-        )
-        for prop in shape.properties
-        if prop.path in conditions and not prop.inverse and prop.kind == "options"
-        for value in prop.values
-        if (prop.path, value) not in covered
-    )
+    for prop in shape.properties:
+        if prop.path in conditions and not prop.inverse and prop.kind == "options":
+            for value in prop.values:
+                if (prop.path, value) not in covered:
+                    report.add(
+                        "missingFormatRule",
+                        URIRef(shape.iri),
+                        SH["or"],
+                        value=report.compact(value),
+                    )
 
 
-def validate_shapes(shapes: Shapes) -> list[Issue]:
-    issues: list[Issue] = []
-    for index, prefix in enumerate(shapes.prefixes):
+def validate_shapes(
+    shapes: Shapes, editor_iri: Callable[[Node], str]
+) -> list[FieldError]:
+    report = _Report([], editor_iri, shapes.prefixes)
+    for prefix, namespace in shapes.prefixes.items():
+        declaration = shapes.prefix_nodes[prefix]
         if not _PREFIX.match(prefix):
-            issues.append(Issue(f"prefixes.{index}.prefix", "Invalid prefix name"))
-        _check_iri(issues, f"prefixes.{index}.namespace", shapes.prefixes[prefix])
-    shape_iris = [shape.iri for shape in shapes.shapes]
-    for index, shape in enumerate(shapes.shapes):
-        if shape_iris.count(shape.iri) > 1:
-            issues.append(
-                Issue(f"shapes.{index}.iri", "Another entity type uses this IRI")
-            )
-        _validate_shape(issues, f"shapes.{index}", shape, shapes.prefixes)
-    return issues
+            report.add("invalidPrefix", declaration, SH.prefix)
+        report.check_iri(declaration, SH.namespace, namespace)
+    for shape in shapes.shapes:
+        _validate_shape(report, shape)
+    return report.errors

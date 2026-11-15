@@ -7,16 +7,13 @@ from dataclasses import dataclass, replace
 from rdflib import RDF, URIRef
 
 from heritrace.extensions import get_custom_filter, get_form_fields
+from heritrace.field_errors import FieldError, field_error
 from heritrace.language import is_tagged
 from heritrace.utils.datatypes import DATATYPE_MAPPING
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_presentation import is_inverse_path
 from heritrace.utils.shacl_utils import find_matching_form_field
-from heritrace.utils.value_bounds import BOUND_NAMES, bound_requirement
-
-
-def _plural(noun: str, count: int) -> str:
-    return noun if count == 1 else f"{noun}s"
+from heritrace.utils.value_bounds import BOUND_NAMES, broken_bound
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,45 +23,45 @@ class PropertyValidationInput:
     prop_uri: str
     entity_key: tuple
     custom_filter: Filter
+    # The temporary id of the resource, or None for the one the request creates.
+    subject: str | None
+
+    def label(self, iri: str) -> str:
+        return self.custom_filter.human_readable_predicate(iri, self.entity_key)
+
+    def error(self, code: str, **params: str | int) -> FieldError:
+        return field_error(code, self.subject, self.prop_uri, **params)
 
 
 def _validate_property_cardinality(
-    errors: list[str],
+    errors: list[FieldError],
     prop_input: PropertyValidationInput,
 ) -> None:
     min_count = prop_input.matching_field_def.get("min", 0)
     max_count = prop_input.matching_field_def.get("max")
     value_count = len(prop_input.normalized_prop_values)
-
-    prop_label = prop_input.custom_filter.human_readable_predicate(
-        prop_input.prop_uri, prop_input.entity_key
-    )
+    name = prop_input.label(prop_input.prop_uri)
     if value_count < min_count:
         errors.append(
-            f"Property {prop_label} requires at least"
-            f" {min_count} {_plural('value', min_count)}"
+            prop_input.error("tooFew", name=name, count=value_count, min=min_count)
         )
     if max_count is not None and value_count > max_count:
         errors.append(
-            f"Property {prop_label} allows at most"
-            f" {max_count} {_plural('value', max_count)}"
+            prop_input.error("tooMany", name=name, count=value_count, max=max_count)
         )
 
     mandatory_values = prop_input.matching_field_def.get("mandatory_values", [])
     errors.extend(
-        f"Property {prop_label} requires the value {mandatory_value}"
+        prop_input.error("requiredValue", value=prop_input.label(mandatory_value))
         for mandatory_value in mandatory_values
         if mandatory_value not in prop_input.normalized_prop_values
     )
 
 
 def _validate_property_values(
-    errors: list[str],
+    errors: list[FieldError],
     prop_input: PropertyValidationInput,
 ) -> None:
-    prop_label = prop_input.custom_filter.human_readable_predicate(
-        prop_input.prop_uri, prop_input.entity_key
-    )
     for value in prop_input.normalized_prop_values:
         if isinstance(value, dict) and "entity_type" in value:
             nested_errors = validate_entity_data(value)
@@ -82,46 +79,34 @@ def _validate_property_values(
                         is_valid_datatype = True
                         break
                 if not is_valid_datatype:
-                    expected_types = ", ".join(
-                        prop_input.custom_filter.human_readable_predicate(
-                            dtype, prop_input.entity_key
-                        )
-                        for dtype in datatypes
-                    )
+                    expected = ", ".join(prop_input.label(dtype) for dtype in datatypes)
                     errors.append(
-                        f'Value "{value}" for property {prop_label}'
-                        f" is not of expected type {expected_types}"
-                    )
-                else:
-                    requirement = bound_requirement(
-                        str(value),
-                        {
-                            name: prop_input.matching_field_def.get(name)
-                            for name in BOUND_NAMES
-                        },
-                    )
-                    if requirement:
-                        errors.append(
-                            f'Value "{value}" for property {prop_label}'
-                            f" must be {requirement}"
+                        prop_input.error(
+                            "invalidInput", expected=expected, input=str(value)
                         )
+                    )
+                elif broken := broken_bound(
+                    str(value),
+                    {
+                        name: prop_input.matching_field_def.get(name)
+                        for name in BOUND_NAMES
+                    },
+                ):
+                    code, limit = broken
+                    errors.append(
+                        prop_input.error(code, limit=str(limit), input=str(value))
+                    )
 
             optional_values = prop_input.matching_field_def.get("optionalValues", [])
             if optional_values and value not in optional_values:
-                acceptable_values = ", ".join(
-                    prop_input.custom_filter.human_readable_predicate(
-                        val, prop_input.entity_key
-                    )
-                    for val in optional_values
-                )
+                allowed = ", ".join(prop_input.label(val) for val in optional_values)
                 errors.append(
-                    f'Value "{value}" is not permitted for property {prop_label}.'
-                    f" Acceptable values are: {acceptable_values}"
+                    prop_input.error("notAllowed", values=allowed, input=str(value))
                 )
 
 
 def _validate_languages(
-    errors: list[str],
+    errors: list[FieldError],
     prop_input: PropertyValidationInput,
 ) -> None:
     languages = [
@@ -131,24 +116,22 @@ def _validate_languages(
     ]
     if not languages:
         return
-    prop_label = prop_input.custom_filter.human_readable_predicate(
-        prop_input.prop_uri, prop_input.entity_key
-    )
     datatypes = prop_input.matching_field_def["datatypes"]
     if datatypes and str(RDF.langString) not in datatypes:
-        errors.append(f"Property {prop_label} does not accept values with a language")
+        errors.append(prop_input.error("languageNotAccepted"))
     if prop_input.matching_field_def["uniqueLang"] and len(languages) != len(
         set(languages)
     ):
-        errors.append(f"Property {prop_label} allows one value for each language")
+        errors.append(prop_input.error("languageTaken"))
 
 
-def _check_missing_required_properties(
-    errors: list[str],
+def _check_missing_required_properties(  # noqa: PLR0913
+    errors: list[FieldError],
     entity_fields: dict,
     properties: dict,
     entity_key: tuple,
     custom_filter: Filter,
+    subject: str | None,
 ) -> None:
     # In the RDF model, a property with zero values is
     # equivalent to the property being absent, as a triple
@@ -162,12 +145,16 @@ def _check_missing_required_properties(
             for field_def in field_definitions:
                 min_count = field_def.get("min", 0)
                 if min_count > 0:
-                    prop_label = custom_filter.human_readable_predicate(
-                        prop_uri, entity_key
-                    )
+                    name = custom_filter.human_readable_predicate(prop_uri, entity_key)
                     errors.append(
-                        f"Missing required property: {prop_label} requires"
-                        f" at least {min_count} {_plural('value', min_count)}"
+                        field_error(
+                            "tooFew",
+                            subject,
+                            prop_uri,
+                            name=name,
+                            count=0,
+                            min=min_count,
+                        )
                     )
                     break
 
@@ -196,26 +183,28 @@ def _find_matching_field_definition(
     return matching_field_def
 
 
-def validate_entity_data(structured_data: dict) -> list[str]:
+# The forms send only the types and properties that the shapes declare: any
+# other one is a request the server refuses outright.
+def validate_entity_data(structured_data: dict) -> list[FieldError]:
     custom_filter = get_custom_filter()
     form_fields = get_form_fields()
 
-    errors = []
+    errors: list[FieldError] = []
     entity_type = structured_data.get("entity_type")
     entity_shape = structured_data.get("entity_shape")
+    subject = structured_data.get("tempId")
 
     if not entity_type:
-        errors.append("Entity type is required")
-        return errors
+        msg = "Entity type is required"
+        raise ValueError(msg)
 
     entity_key = find_matching_form_field(entity_type, entity_shape, form_fields)
 
     if not entity_key:
-        errors.append(
-            f"No form fields found for entity type: {entity_type}"
-            + (f" and shape: {entity_shape}" if entity_shape else "")
+        msg = f"No form fields found for entity type: {entity_type}" + (
+            f" and shape: {entity_shape}" if entity_shape else ""
         )
-        return errors
+        raise ValueError(msg)
 
     entity_fields = form_fields[entity_key]
     properties = structured_data.get("properties", {})
@@ -228,8 +217,8 @@ def validate_entity_data(structured_data: dict) -> list[str]:
         if not field_definitions:
             prop_label = custom_filter.human_readable_predicate(prop_uri, entity_key)
             type_label = custom_filter.human_readable_class(entity_key)
-            errors.append(f"Unknown property {prop_label} for entity type {type_label}")
-            continue
+            msg = f"Unknown property {prop_label} for entity type {type_label}"
+            raise ValueError(msg)
 
         normalized_prop_values = (
             prop_values if isinstance(prop_values, list) else [prop_values]
@@ -247,6 +236,7 @@ def validate_entity_data(structured_data: dict) -> list[str]:
                 prop_uri=prop_uri,
                 entity_key=entity_key,
                 custom_filter=custom_filter,
+                subject=subject,
             )
             _validate_property_cardinality(errors, prop_input)
             _validate_property_values(
@@ -268,6 +258,7 @@ def validate_entity_data(structured_data: dict) -> list[str]:
         properties,
         entity_key,
         custom_filter,
+        subject,
     )
 
     return errors

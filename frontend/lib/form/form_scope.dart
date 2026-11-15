@@ -27,6 +27,9 @@ class FormScopeController extends ChangeNotifier {
   List<ValidationError> errorsFor(FormItem item) =>
       errors.where((error) => error.item == item).toList();
 
+  List<ValidationError> errorsForValue(Object value) =>
+      errors.where((error) => error.value == value).toList();
+
   bool showsErrorsFor(FormItem item) =>
       validationStarted || checkedItems.contains(item);
 

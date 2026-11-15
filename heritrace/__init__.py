@@ -29,6 +29,7 @@ from heritrace.extensions import (
     init_login_manager,
     init_request_handlers,
 )
+from heritrace.field_errors import RejectedError
 from heritrace.routes import register_blueprints
 from heritrace.utils.sparql_utils import (
     configure_worker_pool,
@@ -73,7 +74,12 @@ def _start(
         shacl_graph = read_shacl(config_dir)
         apply_settings(app.config, load_settings(stored).settings)
         init_extensions(app, login_manager, redis_client, shacl_graph)
-    except (BadSyntax, ConfigurationRejectedError, SetupRequiredError) as error:
+    except (
+        BadSyntax,
+        ConfigurationRejectedError,
+        RejectedError,
+        SetupRequiredError,
+    ) as error:
         _start_setup_mode(app, login_manager, redis_client, str(error))
         return
     app.extensions["heritrace_configuration"] = build_configuration_state(app)

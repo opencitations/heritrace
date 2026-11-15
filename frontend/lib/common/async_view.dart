@@ -9,11 +9,15 @@ import '../api/api_exception.dart';
 import '../design/app_theme.dart';
 import '../design/controls.dart';
 import '../design/spacing.dart';
+import '../form/server_errors.dart';
 import '../i18n/translations.g.dart';
 
 String describeError(BuildContext context, Object error) {
   final t = Translations.of(context);
   return switch (error) {
+    ApiException(:final errors) when errors.isNotEmpty => [
+      for (final error in errors) describeUnplacedError(t, error),
+    ].join('\n'),
     ApiException(:final message) => message,
     NetworkException() => t.ui.errors.network,
     _ => error.toString(),

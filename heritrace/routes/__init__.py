@@ -5,12 +5,10 @@
 from flask import Flask, Response, current_app, g, jsonify, request
 from flask_login import current_user
 
-from heritrace.configuration.entity import (
-    ConfigurationRejectedError,
-    configuration_lock,
-)
+from heritrace.configuration.entity import configuration_lock
 from heritrace.configuration.runtime import is_admin
 from heritrace.errors.handlers import errors_bp
+from heritrace.field_errors import RejectedError, client_names
 from heritrace.routes.api import api_bp
 from heritrace.routes.auth import auth_bp
 from heritrace.routes.configuration import configuration_bp
@@ -52,10 +50,11 @@ def release_configuration_lock(_error: BaseException | None) -> None:
         g.pop("configuration_lock").release()
 
 
-def reject_configuration(
-    error: ConfigurationRejectedError,
-) -> tuple[Response, int]:
-    return jsonify({"status": "error", "errors": error.issues}), 422
+def reject_changes(error: RejectedError) -> tuple[Response, int]:
+    errors = client_names(error).errors
+    return jsonify(
+        {"status": "error", "errors": [error.as_json() for error in errors]}
+    ), 422
 
 
 def register_blueprints(app: Flask) -> None:
@@ -79,4 +78,4 @@ def register_blueprints(app: Flask) -> None:
     )
     app.before_request(use_configuration_store)
     app.teardown_request(release_configuration_lock)
-    app.register_error_handler(ConfigurationRejectedError, reject_configuration)
+    app.register_error_handler(RejectedError, reject_changes)

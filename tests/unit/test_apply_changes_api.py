@@ -503,9 +503,7 @@ def test_apply_changes_validation_error(
 
     assert response.status_code == 400
     data = json.loads(response.data)
-    assert data["status"] == "error"
-    assert data["error_type"] == "validation"
-    assert "Invalid data" in data["message"]
+    assert data == {"status": "error", "message": "Invalid data"}
 
 
 @patch("heritrace.routes.api.import_entity_graph")

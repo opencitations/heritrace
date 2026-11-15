@@ -9,6 +9,7 @@ from flask import Flask
 from rdflib import RDF, XSD, Graph, Literal, Namespace, URIRef
 from rdflib.plugins.sparql import prepareQuery
 
+from heritrace.field_errors import field_error
 from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.shacl_display import (
     ShaclProcessingContext,
@@ -307,7 +308,7 @@ def test_validate_new_triple_journal_article_title(
             ],
         )
 
-        assert error == "", f"Validation error: {error}"
+        assert error is None, f"Validation error: {error}"
         assert isinstance(valid_value, Literal), (
             f"Expected Literal but got {type(valid_value)}"
         )
@@ -359,7 +360,7 @@ def test_validate_new_triple_journal_identifier(
             "create",
             entity_types=["http://purl.org/spar/datacite/Identifier"],
         )
-        assert error == "", f"Validation error: {error}"
+        assert error is None, f"Validation error: {error}"
 
         # Add the type to the identifier graph
         identifier_graph.add(
@@ -397,7 +398,7 @@ def test_validate_new_triple_journal_identifier(
             "create",
             entity_types=["http://purl.org/spar/datacite/Identifier"],
         )
-        assert error == "", f"Validation error: {error}"
+        assert error is None, f"Validation error: {error}"
 
         # Add the identifier scheme to the identifier graph
         identifier_graph.add(
@@ -419,7 +420,7 @@ def test_validate_new_triple_journal_identifier(
             "create",
             entity_types=["http://purl.org/spar/datacite/Identifier"],
         )
-        assert error == "", f"Validation error: {error}"
+        assert error is None, f"Validation error: {error}"
         assert isinstance(valid_value, Literal)
         assert str(valid_value) == valid_doi
 
@@ -446,9 +447,13 @@ def test_validate_new_triple_journal_identifier(
             old_value=valid_doi,
             entity_types=["http://purl.org/spar/datacite/Identifier"],
         )
-        assert error == (
-            "DOI must start with '10.' followed by a prefix, a forward slash, and a"
-            " suffix. For example: 10.1162/qss_a_00023"
+        assert error == field_error(
+            "message",
+            identifier,
+            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue",
+            message="DOI must start with '10.' followed by a prefix, a forward slash,"
+            " and a suffix. For example: 10.1162/qss_a_00023",
+            input="invalid-doi",
         )
 
 
@@ -522,7 +527,7 @@ def test_validate_new_triple_with_pattern_and_conditions(
             "create",
             entity_types=["http://purl.org/spar/datacite/Identifier"],
         )
-        assert error == "", f"Validation error: {error}"
+        assert error is None, f"Validation error: {error}"
         assert isinstance(valid_value, Literal)
         assert str(valid_value) == valid_doi
 
@@ -537,7 +542,7 @@ def test_validate_new_triple_with_pattern_and_conditions(
             "create",
             entity_types=["http://purl.org/spar/datacite/Identifier"],
         )
-        assert error == "", f"Validation error: {error}"
+        assert error is None, f"Validation error: {error}"
         assert isinstance(valid_value, Literal)
         assert str(valid_value) == valid_isbn
 
@@ -583,7 +588,7 @@ def test_validate_new_triple_with_datatype_conversion(
                 "create",
                 entity_types=["http://purl.org/spar/fabio/JournalArticle"],
             )
-            assert error == "", f"Validation error for {value}: {error}"
+            assert error is None, f"Validation error for {value}: {error}"
             assert isinstance(valid_value, Literal)
             assert valid_value.datatype == expected_datatype
             assert str(valid_value) == value
@@ -639,7 +644,7 @@ def test_validate_new_triple_with_delete_action(
             old_value=old_value,
             entity_types=["http://purl.org/spar/fabio/JournalArticle"],
         )
-        assert error == "", f"Validation error: {error}"
+        assert error is None, f"Validation error: {error}"
         assert valid_value is None
 
 
@@ -671,7 +676,7 @@ def test_validate_new_triple_with_invalid_property(
             "create",
             entity_types=["http://purl.org/spar/fabio/JournalArticle"],
         )
-        assert error == "", f"Unexpected error: {error}"
+        assert error is None, f"Unexpected error: {error}"
         assert isinstance(valid_value, Literal)
         assert str(valid_value) == "Test Value"
 
@@ -700,7 +705,7 @@ def test_validate_new_triple_with_optional_values(
             "create",
             entity_types=["http://purl.org/spar/datacite/Identifier"],
         )
-        assert error == "", f"Validation error: {error}"
+        assert error is None, f"Validation error: {error}"
 
         # Test with invalid scheme
         _valid_value, _old_value, error = validate_new_triple(
@@ -710,8 +715,8 @@ def test_validate_new_triple_with_optional_values(
             "create",
             entity_types=["http://purl.org/spar/datacite/Identifier"],
         )
-        assert error != "", "Should reject invalid scheme"
-        assert "is not a valid value" in error
+        assert error is not None, "Should reject invalid scheme"
+        assert error.code == "notAllowed"
 
 
 def test_get_form_fields_with_nested_shapes(app: Flask, shacl_graph: Graph) -> None:
@@ -770,7 +775,7 @@ def test_validate_new_triple_with_nested_validation(
             "create",
             entity_types=["http://purl.org/spar/fabio/JournalArticle"],
         )
-        assert error == "", f"Validation error: {error}"
+        assert error is None, f"Validation error: {error}"
         assert isinstance(valid_value, URIRef)
         assert str(valid_value) == role_value
 
@@ -818,7 +823,7 @@ def test_validate_new_triple_with_or_constraints(
                 "create",
                 entity_types=["http://purl.org/spar/fabio/JournalArticle"],
             )
-            assert error == "", f"Validation error for {date_value}: {error}"
+            assert error is None, f"Validation error for {date_value}: {error}"
             assert isinstance(valid_value, Literal)
 
             # Check if the datatype matches the corresponding expected datatype
@@ -856,7 +861,7 @@ def test_validate_new_triple_with_multiple_types(
                 "http://purl.org/spar/fabio/Expression",
             ],
         )
-        assert error == "", f"Validation error: {error}"
+        assert error is None, f"Validation error: {error}"
         assert isinstance(valid_value, Literal)
         assert valid_value.datatype == XSD.string
         assert str(valid_value) == new_value
@@ -883,7 +888,7 @@ def test_validate_new_triple_with_datatype_conversion_edge_cases(
             "create",
             entity_types=["http://purl.org/spar/fabio/JournalArticle"],
         )
-        assert error != "", "Should reject invalid date format"
+        assert error is not None, "Should reject invalid date format"
 
         # Test with string value when no datatype is specified
         valid_value, _old_value, error = validate_new_triple(
@@ -893,7 +898,7 @@ def test_validate_new_triple_with_datatype_conversion_edge_cases(
             "create",
             entity_types=["http://purl.org/spar/fabio/JournalArticle"],
         )
-        assert error == "", f"Validation error: {error}"
+        assert error is None, f"Validation error: {error}"
         assert isinstance(valid_value, Literal)
         assert valid_value.datatype == XSD.string
 
@@ -926,21 +931,21 @@ def test_validate_new_triple_with_complex_conditions(
                 "create",
                 entity_types=["http://purl.org/spar/fabio/JournalArticle"],
             )
-            assert error == "", f"Validation error: {error}"
+            assert error is None, f"Validation error: {error}"
             assert isinstance(valid_value, Literal)
             # Without SHACL graph, the default datatype is XSD.string
             assert valid_value.datatype == XSD.string
             assert str(valid_value) == "Test Title"
 
         # Test with empty entity types, on a subject without types in the data
-        valid_value, _old_value, error = validate_new_triple(
-            URIRef("https://example.org/article/untyped"),
-            URIRef("http://purl.org/dc/terms/title"),
-            "Test Title",
-            "create",
-            entity_types=[],
-        )
-        assert error == "No entity type specified", f"Validation error: {error}"
+        with pytest.raises(ValueError, match="No entity type specified"):
+            validate_new_triple(
+                URIRef("https://example.org/article/untyped"),
+                URIRef("http://purl.org/dc/terms/title"),
+                "Test Title",
+                "create",
+                entity_types=[],
+            )
 
         # Test with invalid entity type
         valid_value, _old_value, error = validate_new_triple(
@@ -951,7 +956,7 @@ def test_validate_new_triple_with_complex_conditions(
             entity_types=["http://example.org/InvalidType"],
         )
         # With invalid entity type, should be accepted since no SHACL rules exist for it
-        assert error == "", f"Unexpected error: {error}"
+        assert error is None, f"Unexpected error: {error}"
         assert isinstance(valid_value, Literal)
         assert str(valid_value) == "Test Title"
 
@@ -1164,7 +1169,7 @@ def test_validate_new_triple_with_uri_validation(
             )
 
             # Should accept as literal when no SHACL rules are found
-            assert error == "", f"Unexpected error: {error}"
+            assert error is None, f"Unexpected error: {error}"
             assert isinstance(valid_value, Literal)
             assert str(valid_value) == "not a uri"
 
@@ -1204,15 +1209,15 @@ def test_get_valid_predicates_edge_cases() -> None:
 @pytest.mark.parametrize(
     ("scheme", "value", "error"),
     [
-        ("doi", "10.1162/qss_a_00023", ""),
+        ("doi", "10.1162/qss_a_00023", None),
         (
             "doi",
             "invalid-doi",
             "DOI must start with '10.' followed by a prefix, a forward slash, and a"
             " suffix. For example: 10.1162/qss_a_00023",
         ),
-        ("openalex", "W2741809807", ""),
-        ("openalex", "S4210172589", ""),
+        ("openalex", "W2741809807", None),
+        ("openalex", "S4210172589", None),
         (
             "openalex",
             "X1",
@@ -1222,7 +1227,7 @@ def test_get_valid_predicates_edge_cases() -> None:
     ],
 )
 def test_validate_new_triple_with_pattern_validation(
-    app: Flask, shacl_graph: Graph, scheme: str, value: str, error: str
+    app: Flask, shacl_graph: Graph, scheme: str, value: str, error: str | None
 ) -> None:
     subject = URIRef("https://example.org/identifier/test")
     predicate = URIRef(
@@ -1251,7 +1256,13 @@ def test_validate_new_triple_with_pattern_validation(
             entity_types=[str(DATACITE.Identifier)],
         )
 
-    assert message == error
+    assert message == (
+        None
+        if error is None
+        else field_error(
+            "message", str(subject), str(predicate), message=error, input=value
+        )
+    )
 
 
 def test_validate_new_triple_with_invalid_uri(
@@ -1296,7 +1307,7 @@ def test_validate_new_triple_with_invalid_uri(
                 )
 
                 # Should accept as literal when no SHACL rules are found
-                assert error == "", f"Unexpected error: {error}"
+                assert error is None, f"Unexpected error: {error}"
                 assert isinstance(valid_value, Literal)
                 assert str(valid_value) == "not-a-valid-url"
 
@@ -1348,7 +1359,7 @@ def test_validate_new_triple_with_invalid_class_match(
                     )
 
                 # Should accept URI even when no class match is found
-                assert error == "", f"Unexpected error: {error}"
+                assert error is None, f"Unexpected error: {error}"
                 assert isinstance(valid_value, URIRef)
                 assert str(valid_value) == "https://example.org/person/invalid"
 
@@ -1442,7 +1453,7 @@ def test_validate_new_triple_with_literal_conversion(
 
                     # Should return the old value when new_value is None
                     assert valid_value == old_value
-                    assert error == ""
+                    assert error is None
 
 
 def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> None:
@@ -1712,9 +1723,12 @@ def test_validate_new_triple_with_datatype_conversion_failure() -> None:
             )
 
             assert valid_value is None
-            assert error == (
-                "'not-an-integer' is not a valid value. The 'readable_value'"
-                " property requires values of type 'Integer'"
+            assert error == field_error(
+                "invalidInput",
+                "http://example.org/person/1",
+                "http://xmlns.com/foaf/0.1/age",
+                expected="Integer",
+                input="not-an-integer",
             )
 
 

@@ -56,7 +56,7 @@ class TestShaclValidation(unittest.TestCase):
                 assert isinstance(valid_value, Literal)
                 assert str(valid_value) == "New Value"
 
-                assert error == ""
+                assert error is None
 
     def test_get_valid_predicates_no_shacl(self) -> None:
         """Test that get_valid_predicates handles the case when shacl is None."""

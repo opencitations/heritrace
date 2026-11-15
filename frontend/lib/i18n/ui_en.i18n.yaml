@@ -98,6 +98,28 @@ form:
   lessThan: Enter a value less than $limit.
   atLeastOneProperty: Please fill out at least one property
   atLeastOneCustomProperty: Please provide at least one property with a value
+  notAllowed: "Choose one of these values: $values."
+  requiredValue: The value must be $value.
+  languageNotAccepted: This property does not take a language.
+  languageTaken: Another value already uses this language.
+  tooManyAmong: The property "$name" has too many values among $values ($count). Maximum allowed is $max.
+  tooFewAmong: The property "$name" has too few values among $values ($count). Minimum required is $min.
+  invalidIri: Enter a full IRI, such as https://example.org/x.
+  invalidPrefix: Start with a letter and use only letters, digits, dots, hyphens and underscores.
+  maxBelowMin: The maximum is lower than the minimum.
+  countsMissing: Add the minimum or maximum occurrences of the values to count.
+  boundsNeedNumber: Bounds need a numeric datatype.
+  labelQueryRole: A label query needs the display label role.
+  invalidSparql: "The query is not valid SPARQL: $error"
+  undeclaredPrefixes: "The query uses undeclared prefixes: $prefixes."
+  selectOneVariable: The query must be a SELECT that returns one variable.
+  invalidRegex: This regular expression is invalid.
+  missingFormatRule: $value has no format rule.
+  emptyAlternative: Each value alternative needs a datatype, SHACL shape, class or value.
+  mixedAlternatives: All the value alternatives of a field set the same kind of constraint.
+  exclusive: $first and $second cannot be used together.
+  unsupported: HERITRACE cannot represent $part.
+  fileChanged: shacl.ttl changed on disk. Reload the page to see its content.
 primarySource:
   title: Enter primary source
   description: Enter the URL of the primary source for this operation, or leave the field blank to record no source.

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from rdflib.term import Identifier
 
 from heritrace.extensions import get_custom_filter, get_shacl_graph
+from heritrace.field_errors import FieldError, field_error
 from heritrace.sparql import select_results
 from heritrace.utils.datatypes import DATATYPE_MAPPING
 from heritrace.utils.display_rules_utils import get_highest_priority_class
@@ -37,11 +38,15 @@ from heritrace.utils.value_bounds import (
     BOUND_NAMES,
     Bound,
     bound_number,
-    bound_requirement,
+    broken_bound,
 )
 
 if TYPE_CHECKING:
     from heritrace.utils.filters import Filter
+
+
+# The value to store, the value it replaces and the rule it breaks.
+Checked = tuple[URIRef | Literal | None, URIRef | Literal | None, FieldError | None]
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,15 +186,15 @@ def _coerce_value_without_shacl(
     new_value: str | URIRef | None,
     old_value: URIRef | Literal | None,
     default_datatype: URIRef | None = None,
-) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
+) -> Checked:
     new_value_str = str(new_value) if new_value is not None else ""
     if is_valid_url(new_value_str):
-        return URIRef(new_value_str), old_value, ""
+        return URIRef(new_value_str), old_value, None
     if old_value is not None and isinstance(old_value, Literal) and old_value.datatype:
-        return Literal(new_value_str, datatype=old_value.datatype), old_value, ""
+        return Literal(new_value_str, datatype=old_value.datatype), old_value, None
     if default_datatype:
-        return Literal(new_value_str, datatype=default_datatype), old_value, ""
-    return Literal(new_value_str), old_value, ""
+        return Literal(new_value_str, datatype=default_datatype), old_value, None
+    return Literal(new_value_str), old_value, None
 
 
 def _collect_subject_types(
@@ -294,35 +299,36 @@ def _query_count_constraints(predicate: URIRef, s_types: list[str]) -> list[Resu
     return list(select_results(get_shacl_graph().query(query)))
 
 
-def _values(count: int) -> str:
-    return f"{count} value" if count == 1 else f"{count} values"
+@dataclass(frozen=True, slots=True)
+class _CountedField:
+    subject: URIRef
+    predicate: URIRef
+    name: str
 
 
 def _count_error(
-    predicate_label: str,
+    counted: _CountedField,
     count: int,
     limits: tuple[Identifier | None, Identifier | None],
-    condition: str,
-) -> str | None:
+    qualified_values: str | None,
+) -> FieldError | None:
     min_count, max_count = limits
     if max_count is not None and count > int(max_count):
-        return (
-            f"The property {predicate_label} allows at most"
-            f" {_values(int(max_count))}{condition}"
-        )
-    if min_count is not None and count < int(min_count):
-        return (
-            f"The property {predicate_label} requires at least"
-            f" {_values(int(min_count))}{condition}"
-        )
-    return None
-
-
-def _qualified_condition(qualified_values: list[str]) -> str:
-    labels = ", ".join(
-        f"'{get_custom_filter().value_label(value)}'" for value in qualified_values
+        code, limit = "tooMany", {"max": int(max_count)}
+    elif min_count is not None and count < int(min_count):
+        code, limit = "tooFew", {"min": int(min_count)}
+    else:
+        return None
+    among = {} if qualified_values is None else {"values": qualified_values}
+    return field_error(
+        code if qualified_values is None else f"{code}Among",
+        counted.subject,
+        counted.predicate,
+        name=counted.name,
+        count=count,
+        **limit,
+        **among,
     )
-    return f" equal to {labels}" if len(qualified_values) == 1 else f" among {labels}"
 
 
 # The number of values a save leaves on a property, checked once all its
@@ -331,7 +337,7 @@ def _qualified_condition(qualified_values: list[str]) -> str:
 # only the values that meet its condition.
 def cardinality_error(
     data_graph: Graph | Dataset, subject: URIRef, predicate: URIRef
-) -> str | None:
+) -> FieldError | None:
     s_types, highest_priority_class = _collect_subject_types(data_graph, subject, None)
     if not s_types:
         return None
@@ -342,20 +348,24 @@ def cardinality_error(
         triple[2]
         for triple in get_triples_from_graph(data_graph, (subject, predicate, None))
     }
-    predicate_label = get_custom_filter().human_readable_predicate(
-        str(predicate), _entity_key(results_list, highest_priority_class)
+    counted = _CountedField(
+        subject,
+        predicate,
+        get_custom_filter().human_readable_predicate(
+            str(predicate), _entity_key(results_list, highest_priority_class)
+        ),
     )
     for row in results_list:
         qualified_values = row.qualifiedValues.split() if row.qualifiedValues else []
-        error = _count_error(
-            predicate_label, len(values), (row.minCount, row.maxCount), ""
-        )
+        error = _count_error(counted, len(values), (row.minCount, row.maxCount), None)
         if error is None and qualified_values:
             error = _count_error(
-                predicate_label,
+                counted,
                 len(values & {URIRef(value) for value in qualified_values}),
                 (row.qualifiedMin, row.qualifiedMax),
-                _qualified_condition(qualified_values),
+                ", ".join(
+                    get_custom_filter().value_label(value) for value in qualified_values
+                ),
             )
         if error:
             return error
@@ -369,7 +379,7 @@ def _validate_pattern_constraints(  # noqa: PLR0913
     old_value: URIRef | Literal | None,
     data_graph: Graph | Dataset,
     subject: URIRef,
-) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str] | None:
+) -> Checked | None:
     applicable = [
         alternative
         for alternative in read_pattern_alternatives(get_shacl_graph())
@@ -391,20 +401,21 @@ def _validate_pattern_constraints(  # noqa: PLR0913
         for alternative in applicable
     ):
         return None
-    return None, old_value, applicable[0].message()
-
-
-def _type_error(
-    new_value: str | URIRef | None, ctx: ValidationContext, type_labels: str
-) -> str:
-    value_label = str(new_value)
-    predicate_label = ctx.custom_filter.human_readable_predicate(
-        str(ctx.predicate), ctx.entity_key
-    )
     return (
-        f"'{value_label}' is not a valid value. The '{predicate_label}' property"
-        f" requires values of type {type_labels}"
+        None,
+        old_value,
+        field_error(
+            "message",
+            subject,
+            predicate,
+            message=applicable[0].message(),
+            input=str(new_value),
+        ),
     )
+
+
+def _error(ctx: ValidationContext, code: str, **params: str | int) -> FieldError:
+    return field_error(code, ctx.subject, ctx.predicate, **params)
 
 
 def _validate_class_constraint(
@@ -412,14 +423,18 @@ def _validate_class_constraint(
     ctx: ValidationContext,
     classes: list[URIRef],
     s_types: list[str],
-) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
+) -> Checked:
     shape = ctx.entity_key[1]
     class_labels = ", ".join(
-        f"'{ctx.custom_filter.human_readable_class((c, shape))}'" for c in classes
+        ctx.custom_filter.human_readable_class((c, shape)) for c in classes
     )
 
-    def _class_error() -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
-        return None, ctx.old_value, _type_error(new_value, ctx, class_labels)
+    def _class_error() -> Checked:
+        return (
+            None,
+            ctx.old_value,
+            _error(ctx, "invalidInput", expected=class_labels, input=str(new_value)),
+        )
 
     if not is_valid_url(str(new_value) if new_value is not None else None):
         return _class_error()
@@ -428,7 +443,7 @@ def _validate_class_constraint(
     )
     if valid_value is None:
         return _class_error()
-    return valid_value, ctx.old_value, ""
+    return valid_value, ctx.old_value, None
 
 
 def _bound(results_list: list[ResultRow], name: str) -> Bound:
@@ -447,44 +462,45 @@ def _validate_datatype_constraint(
     ctx: ValidationContext,
     datatypes: list[URIRef],
     results_list: list[ResultRow],
-) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
+) -> Checked:
     valid_value = convert_to_matching_literal(new_value, datatypes)
     if valid_value is None:
         datatype_labels = ", ".join(
-            f"'{ctx.custom_filter.value_label(dt)}'" for dt in datatypes
-        )
-        return None, ctx.old_value, _type_error(new_value, ctx, datatype_labels)
-    requirement = bound_requirement(
-        str(valid_value),
-        {name: _bound(results_list, name) for name in BOUND_NAMES},
-    )
-    if requirement:
-        predicate_label = ctx.custom_filter.human_readable_predicate(
-            str(ctx.predicate), ctx.entity_key
+            ctx.custom_filter.value_label(dt) for dt in datatypes
         )
         return (
             None,
             ctx.old_value,
-            f"'{valid_value}' is not a valid value. The '{predicate_label}' property"
-            f" requires a value of {requirement}",
+            _error(ctx, "invalidInput", expected=datatype_labels, input=str(new_value)),
         )
-    return valid_value, ctx.old_value, ""
+    broken = broken_bound(
+        str(valid_value),
+        {name: _bound(results_list, name) for name in BOUND_NAMES},
+    )
+    if broken:
+        code, limit = broken
+        return (
+            None,
+            ctx.old_value,
+            _error(ctx, code, limit=str(limit), input=str(valid_value)),
+        )
+    return valid_value, ctx.old_value, None
 
 
 def _infer_value_type(
     new_value: str | URIRef | None,
     old_value: URIRef | Literal | None,
-) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
+) -> Checked:
     if isinstance(old_value, Literal):
         datatype = old_value.datatype or XSD.string
-        return Literal(new_value, datatype=datatype), old_value, ""
+        return Literal(new_value, datatype=datatype), old_value, None
     if isinstance(old_value, URIRef):
         if new_value is None:
-            return old_value, old_value, ""
-        return URIRef(new_value), old_value, ""
+            return old_value, old_value, None
+        return URIRef(new_value), old_value, None
     if new_value is not None and is_valid_url(str(new_value)):
-        return URIRef(new_value), old_value, ""
-    return Literal(new_value, datatype=XSD.string), old_value, ""
+        return URIRef(new_value), old_value, None
+    return Literal(new_value, datatype=XSD.string), old_value, None
 
 
 def _resolve_old_value(
@@ -531,22 +547,16 @@ def _validate_optional_values(
     new_value: str | URIRef | None,
     ctx: ValidationContext,
     optional_values: list[str],
-) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str] | None:
+) -> Checked | None:
     if not optional_values or new_value in optional_values:
         return None
     optional_value_labels = ", ".join(
-        f"'{ctx.custom_filter.value_label(value_node(value))}'"
-        for value in optional_values
-    )
-    value_label = ctx.custom_filter.value_label(value_node(str(new_value)))
-    predicate_label = ctx.custom_filter.human_readable_predicate(
-        str(ctx.predicate), ctx.entity_key
+        ctx.custom_filter.value_label(value_node(value)) for value in optional_values
     )
     return (
         None,
         ctx.old_value,
-        f"'{value_label}' is not a valid value. The '{predicate_label}' property"
-        f" requires one of the following values: {optional_value_labels}",
+        _error(ctx, "notAllowed", values=optional_value_labels, input=str(new_value)),
     )
 
 
@@ -556,7 +566,7 @@ def _validate_language(
     ctx: ValidationContext,
     datatypes: list[URIRef],
     results_list: list[ResultRow],
-) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str] | None:
+) -> Checked | None:
     accepts_language = not datatypes or RDF.langString in datatypes
     # An edited value keeps its language unless the change names one; an
     # empty one removes the tag.
@@ -564,14 +574,11 @@ def _validate_language(
         language = ctx.old_value.language
     if not language:
         return None
-    predicate_label = ctx.custom_filter.human_readable_predicate(
-        str(ctx.predicate), ctx.entity_key
-    )
     if not accepts_language:
         return (
             None,
             ctx.old_value,
-            f"The '{predicate_label}' property does not accept values with a language",
+            _error(ctx, "languageNotAccepted", input=str(new_value)),
         )
     if any(row.uniqueLang for row in results_list) and any(
         isinstance(triple[2], Literal)
@@ -581,12 +588,8 @@ def _validate_language(
             ctx.data_graph, (ctx.subject, ctx.predicate, None)
         )
     ):
-        return (
-            None,
-            ctx.old_value,
-            f"The '{predicate_label}' property allows one value for each language",
-        )
-    return Literal(new_value, lang=language), ctx.old_value, ""
+        return None, ctx.old_value, _error(ctx, "languageTaken", input=str(new_value))
+    return Literal(new_value, lang=language), ctx.old_value, None
 
 
 def _typed_value(
@@ -595,7 +598,7 @@ def _typed_value(
     ctx: ValidationContext,
     results_list: list[ResultRow],
     s_types: list[str],
-) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
+) -> Checked:
     datatypes, classes, _ = _extract_shacl_constraints(results_list)
     language_result = _validate_language(
         new_value, language, ctx, datatypes, results_list
@@ -609,7 +612,7 @@ def _typed_value(
     return _infer_value_type(new_value, ctx.old_value)
 
 
-def validate_new_triple(  # noqa: PLR0911, PLR0913
+def validate_new_triple(  # noqa: PLR0913
     subject: URIRef,
     predicate: URIRef,
     new_value: str | URIRef | None,
@@ -617,7 +620,7 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
     old_value: URIRef | Literal | None = None,
     entity_types: str | list[str] | None = None,
     language: str | None = None,
-) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
+) -> Checked:
     data_graph = fetch_data_graph_for_subject(subject)
     old_value = _resolve_old_value(data_graph, subject, predicate, old_value)
     if not len(get_shacl_graph()):
@@ -642,13 +645,14 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
 
     if not property_exists:
         if not s_types:
-            return (None, old_value, "No entity type specified")
+            msg = "No entity type specified"
+            raise ValueError(msg)
         return _coerce_value_without_shacl(new_value, old_value, XSD.string)
 
     _, _, optional_values = _extract_shacl_constraints(results_list)
 
     if action == "delete":
-        return None, old_value, ""
+        return None, old_value, None
 
     optional_error = _validate_optional_values(new_value, ctx, optional_values)
     if optional_error:

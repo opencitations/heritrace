@@ -731,7 +731,7 @@ class TestShaclUtils:
             # Verifica che il risultato sia un URIRef
             assert isinstance(result, URIRef)
             assert str(result) == new_value
-            assert message == ""
+            assert message is None
 
             # Caso 2: new_value non è un URL, ma old_value ha un datatype
             new_value = "123"
@@ -747,7 +747,7 @@ class TestShaclUtils:
             assert result.datatype == XSD.integer
             assert str(result) == new_value
             assert old_value_returned == old_value
-            assert message == ""
+            assert message is None
 
             # Caso 3: new_value non è un URL e old_value non ha un datatype
             new_value = "test"
@@ -762,7 +762,7 @@ class TestShaclUtils:
             assert result.datatype is None
             assert str(result) == new_value
             assert old_value_returned is None
-            assert message == ""
+            assert message is None
 
     def test_validate_new_triple_entity_types_not_list(self) -> None:
         """

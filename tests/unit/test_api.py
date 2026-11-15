@@ -18,6 +18,7 @@ from flask.testing import FlaskClient
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 from redis import Redis
 
+from heritrace.field_errors import RejectedError, field_error
 from heritrace.routes.api import (
     ChangeOperation,
     CreateEntityData,
@@ -1387,7 +1388,11 @@ def test_delete_logic_with_validation_error(
         mock_editor = MagicMock()
 
         # Mock validate_new_triple to return an error message
-        mock_validate_new_triple.return_value = (None, None, "Validation error")
+        mock_validate_new_triple.return_value = (
+            None,
+            None,
+            field_error("Validation error"),
+        )
 
         # Call delete_logic with test data and expect a ValueError
         op = ChangeOperation(
@@ -1395,7 +1400,7 @@ def test_delete_logic_with_validation_error(
             subject=URIRef("http://example.org/subject"),
             graph_uri=URIRef("http://example.org/graph"),
         )
-        with pytest.raises(ValueError, match="Validation error"):
+        with pytest.raises(RejectedError, match="Validation error"):
             delete_logic(
                 op,
                 URIRef("http://example.org/predicate"),
@@ -1650,7 +1655,11 @@ def test_create_logic_entity_type_error(
         mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
 
         # Mock validate_new_triple to return an error for entity type
-        mock_validate_new_triple.return_value = (None, None, "Invalid entity type")
+        mock_validate_new_triple.return_value = (
+            None,
+            None,
+            field_error("Invalid entity type"),
+        )
 
         # Create a mock editor
         mock_editor = MagicMock()
@@ -1662,7 +1671,7 @@ def test_create_logic_entity_type_error(
         }
 
         # Call create_logic with parent_subject to trigger entity type validation
-        with pytest.raises(ValueError, match="Invalid entity type"):
+        with pytest.raises(RejectedError, match="Invalid entity type"):
             create_logic(
                 mock_editor,
                 data,
@@ -1691,7 +1700,7 @@ def test_create_logic_parent_relation_error(
             # First call for entity type
             (URIRef("http://example.org/type/1"), None, None),
             # Second call for parent relationship
-            (None, None, "Invalid parent relation"),
+            (None, None, field_error("Invalid parent relation")),
         ]
 
         # Create a mock editor
@@ -1704,7 +1713,7 @@ def test_create_logic_parent_relation_error(
         }
 
         # Call create_logic with parent_subject and parent_predicate
-        with pytest.raises(ValueError, match="Invalid parent relation"):
+        with pytest.raises(RejectedError, match="Invalid parent relation"):
             create_logic(
                 mock_editor,
                 data,
@@ -1738,7 +1747,7 @@ def test_create_logic_property_error(
             # Second call for parent relationship
             (URIRef("http://example.org/entity/new"), None, None),
             # Third call for property
-            (None, None, "Invalid property value"),
+            (None, None, field_error("Invalid property value")),
         ]
 
         # Create a mock editor
@@ -1755,7 +1764,7 @@ def test_create_logic_property_error(
         }
 
         # Call create_logic with parent_subject and parent_predicate
-        with pytest.raises(ValueError, match="Invalid property value"):
+        with pytest.raises(RejectedError, match="Invalid property value"):
             create_logic(
                 mock_editor,
                 data,
@@ -1787,7 +1796,11 @@ def test_update_logic_with_error_message(mock_validate_new_triple, app: Flask) -
     """Test update_logic when validate_new_triple returns an error message."""
     with app.test_request_context():
         # Mock the validate_new_triple function to return an error
-        mock_validate_new_triple.return_value = (None, None, "Invalid update value")
+        mock_validate_new_triple.return_value = (
+            None,
+            None,
+            field_error("Invalid update value"),
+        )
 
         # Create a mock editor
         mock_editor = MagicMock()
@@ -1799,7 +1812,7 @@ def test_update_logic_with_error_message(mock_validate_new_triple, app: Flask) -
             graph_uri=URIRef("http://example.org/graph/1"),
             entity_type="http://example.org/type/1",
         )
-        with pytest.raises(ValueError, match="Invalid update value"):
+        with pytest.raises(RejectedError, match="Invalid update value"):
             update_logic(
                 op,
                 URIRef("http://example.org/predicate/1"),
@@ -3035,7 +3048,6 @@ def test_apply_changes_save_valueerror(
     assert response.status_code == 400
     data = json.loads(response.data)
     assert data["status"] == "error"
-    assert data["error_type"] == "validation"
 
 
 @patch("heritrace.routes.api.update_logic")
@@ -3115,7 +3127,6 @@ def test_apply_changes_outer_valueerror(
     assert response.status_code == 400
     data = json.loads(response.data)
     assert data["status"] == "error"
-    assert data["error_type"] == "validation"
 
 
 @patch("heritrace.routes.api.expand_inverse_changes")

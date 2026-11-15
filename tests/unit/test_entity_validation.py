@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rdflib import XSD
 
+from heritrace.field_errors import field_error
 from heritrace.routes.entity import validate_entity_data
 from heritrace.utils.filters import Filter
 
@@ -118,9 +119,11 @@ def test_validate_entity_data_missing_required(
 
     errors = validate_entity_data(entity_data)
 
-    assert len(errors) == 1
-    assert "Missing required property" in errors[0]
-    assert "Title" in errors[0]
+    assert errors == [
+        field_error(
+            "tooFew", None, "http://example.org/title", name="Title", count=0, min=1
+        )
+    ]
 
 
 @patch("heritrace.routes.entity._validation.get_custom_filter")
@@ -157,12 +160,8 @@ def test_validate_entity_data_invalid_entity_type(
 
     mock_get_form_fields.return_value = form_fields
 
-    # Call the function
-    errors = validate_entity_data(entity_data)
-
-    # Verify results
-    assert len(errors) == 1
-    assert "No form fields found for entity type" in errors[0]
+    with pytest.raises(ValueError, match="No form fields found for entity type"):
+        validate_entity_data(entity_data)
 
 
 @patch("heritrace.routes.entity._validation.get_custom_filter")
@@ -250,9 +249,16 @@ def test_validate_entity_data_with_shape(
 
     errors = validate_entity_data(entity_data)
 
-    # Should have one error about missing required property
-    assert len(errors) == 1
-    assert "residential" in str(errors[0]) or "required" in str(errors[0])
+    assert errors == [
+        field_error(
+            "tooFew",
+            None,
+            "http://example.org/hasResidentialAddress",
+            name="Human Readable Property",
+            count=0,
+            min=1,
+        )
+    ]
 
 
 @pytest.mark.parametrize(
@@ -261,18 +267,12 @@ def test_validate_entity_data_with_shape(
         (
             {"minInclusive": 0, "maxInclusive": 10},
             ["-1", "0", "10", "11"],
-            [
-                'Value "-1" for property Count must be at least 0',
-                'Value "11" for property Count must be at most 10',
-            ],
+            [("atLeast", "0", "-1"), ("atMost", "10", "11")],
         ),
         (
             {"minExclusive": 0, "maxExclusive": 2.5},
             ["0", "1", "2.5"],
-            [
-                'Value "0" for property Count must be greater than 0',
-                'Value "2.5" for property Count must be less than 2.5',
-            ],
+            [("greaterThan", "0", "0"), ("lessThan", "2.5", "2.5")],
         ),
     ],
 )
@@ -283,7 +283,7 @@ def test_validate_entity_data_values_outside_bounds(
     mock_get_custom_filter,
     bounds: dict[str, float],
     values: list[str],
-    errors: list[str],
+    errors: list[tuple[str, str, str]],
 ) -> None:
     mock_filter = MagicMock(spec=Filter)
     mock_get_custom_filter.return_value = mock_filter
@@ -296,12 +296,12 @@ def test_validate_entity_data_values_outside_bounds(
         }
     }
 
-    assert (
-        validate_entity_data(
-            {
-                "entity_type": "http://example.org/Document",
-                "properties": {"http://example.org/count": values},
-            }
-        )
-        == errors
-    )
+    assert validate_entity_data(
+        {
+            "entity_type": "http://example.org/Document",
+            "properties": {"http://example.org/count": values},
+        }
+    ) == [
+        field_error(code, None, "http://example.org/count", limit=limit, input=value)
+        for code, limit, value in errors
+    ]

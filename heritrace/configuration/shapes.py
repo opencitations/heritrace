@@ -41,7 +41,7 @@ EDITORS = (
 )
 VIEWERS = (str(SHUI.DetailsViewer),)
 
-_SINGLE_VALUE_PREDICATES: dict[ValueKind, URIRef] = {
+SINGLE_VALUE_PREDICATES: dict[ValueKind, URIRef] = {
     "datatype": SH.datatype,
     "node": SH.node,
     "value": SH.hasValue,
@@ -76,6 +76,10 @@ class PropertyShape:
     label: bool = False
     label_query: str | None = None
     details: list[str] = field(default_factory=list)
+    # The nodes the property and its label query were read from, which name
+    # them in an error.
+    node: Node | None = field(default=None, compare=False, repr=False)
+    label_query_node: Node | None = field(default=None, compare=False, repr=False)
 
 
 @dataclass
@@ -85,6 +89,7 @@ class PatternRule:
     path: str
     pattern: str
     messages: LocalizedText = field(default_factory=dict)
+    node: Node | None = field(default=None, compare=False, repr=False)
 
 
 @dataclass
@@ -107,6 +112,9 @@ class ValueTexts:
 @dataclass
 class Shapes:
     prefixes: dict[str, str] = field(default_factory=dict)
+    prefix_nodes: dict[str, Node] = field(
+        default_factory=dict, compare=False, repr=False
+    )
     shapes: list[NodeShape] = field(default_factory=list)
     # The rdfs:label and rdfs:comment that name and explain IRIs used as values.
     value_texts: dict[str, ValueTexts] = field(default_factory=dict)
@@ -158,7 +166,7 @@ def _alternatives(graph: Graph, target: Node) -> tuple[ValueKind, list[str]] | N
         return None
     members = list(Collection(graph, head))
     for kind in _ALTERNATIVE_KINDS:
-        predicate = _SINGLE_VALUE_PREDICATES[kind]
+        predicate = SINGLE_VALUE_PREDICATES[kind]
         values = [_only_value(graph, member, predicate) for member in members]
         if members and None not in values:
             return kind, cast("list[str]", values)
@@ -166,7 +174,7 @@ def _alternatives(graph: Graph, target: Node) -> tuple[ValueKind, list[str]] | N
 
 
 def _value_constraint(graph: Graph, target: Node) -> tuple[ValueKind, list[str]]:
-    for kind, predicate in _SINGLE_VALUE_PREDICATES.items():
+    for kind, predicate in SINGLE_VALUE_PREDICATES.items():
         value = _iri(graph, target, predicate)
         if value is not None:
             return kind, [value]
@@ -210,6 +218,7 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
         max_inclusive=_literal(graph, property_shape, SH.maxInclusive),
         min_exclusive=_literal(graph, property_shape, SH.minExclusive),
         max_exclusive=_literal(graph, property_shape, SH.maxExclusive),
+        node=property_shape,
     )
     if qualified_shape is not None:
         prop.qualified = True
@@ -225,6 +234,7 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
     computed = graph.value(property_shape, SH.values)
     if computed is not None:
         prop.label_query = _text(graph, computed, SH.select)
+        prop.label_query_node = computed
     prop.details = sorted(
         str(detail_path)
         for detail in graph.objects(property_shape, SH.property)
@@ -255,6 +265,7 @@ def _read_pattern_rule(graph: Graph, alternative: Node) -> PatternRule | None:
         path=cast("str", path),
         pattern=cast("str", pattern),
         messages=localized_texts(graph, constraint, SH.message),
+        node=alternative,
     )
 
 
@@ -309,12 +320,14 @@ def read_value_texts(graph: Graph) -> dict[str, ValueTexts]:
 
 
 def read_shapes(graph: Graph) -> Shapes:
-    prefixes = {
-        str(graph.value(declaration, SH.prefix)): str(
-            graph.value(declaration, SH.namespace)
-        )
+    declarations = {
+        str(graph.value(declaration, SH.prefix)): declaration
         for owner in _declaration_owners(graph)
         for declaration in graph.objects(owner, SH.declare)
+    }
+    prefixes = {
+        prefix: str(graph.value(declaration, SH.namespace))
+        for prefix, declaration in declarations.items()
     }
     shapes = []
     for subject in shape_subjects(graph):
@@ -336,6 +349,7 @@ def read_shapes(graph: Graph) -> Shapes:
         )
     return Shapes(
         prefixes=dict(sorted(prefixes.items())),
+        prefix_nodes=declarations,
         shapes=shapes,
         value_texts=read_value_texts(graph),
     )
@@ -348,7 +362,7 @@ def _add_list(graph: Graph, items: list[Node]) -> BNode:
 
 
 def _add_value(graph: Graph, target: Node, prop: PropertyShape, value: URIRef) -> None:
-    graph.add((target, _SINGLE_VALUE_PREDICATES[prop.kind], value))
+    graph.add((target, SINGLE_VALUE_PREDICATES[prop.kind], value))
     if str(value) in prop.node_classes:
         graph.add((target, SH["class"], URIRef(prop.node_classes[str(value)])))
 

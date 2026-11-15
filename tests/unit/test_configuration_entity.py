@@ -41,7 +41,6 @@ from heritrace.configuration.entity import (
     ROOT,
     SHAPE_NAMESPACE,
     SYSTEM_AGENT,
-    ConfigurationRejectedError,
     canonical,
     configuration_lock,
     ensure_configuration_entity,
@@ -54,6 +53,7 @@ from heritrace.configuration.shapes import (
     unsupported_parts,
 )
 from heritrace.configuration.vocabulary import DASH, HT, META, SH, SHUI
+from heritrace.field_errors import FieldError, RejectedError, field_error
 from heritrace.scripts.seed_config import seed_config
 from tests.test_config import TestConfig, test_example_dir
 
@@ -323,16 +323,22 @@ def test_an_invalid_configuration_is_not_saved(
     before = [path.read_bytes() for path in files]
     field = _literal_property(_data(config_app))
 
-    assert _update(admin_client, field, SH.minCount, "1", "5") == (
-        422,
-        {
-            "errors": [
-                "shapes.4.properties.2.maxCount: The maximum is lower than the minimum"
-            ],
-            "status": "error",
-        },
+    assert _update(admin_client, field, SH.minCount, "1", "5") == _rejected(
+        field_error("maxBelowMin", field, SH.maxCount)
     )
     assert [path.read_bytes() for path in files] == before
+
+
+def _rejected(*errors: FieldError) -> tuple[int, dict]:
+    return 422, {"status": "error", "errors": [error.as_json() for error in errors]}
+
+
+# The errors of a save that creates the resources they concern, whose IRIs the
+# test does not know.
+def _codes(body: dict) -> list[tuple[str, str, dict]]:
+    return [
+        (error["code"], error["predicate"], error["params"]) for error in body["errors"]
+    ]
 
 
 def _add(
@@ -405,16 +411,9 @@ def test_a_minimum_value_above_the_maximum_is_not_saved(
 ) -> None:
     field = _numeric_property(admin_client, config_app)
 
-    assert _add(admin_client, field, {SH.minInclusive: "5", SH.maxInclusive: "1"}) == (
-        422,
-        {
-            "errors": [
-                "shapes.4.properties.2.maxInclusive:"
-                " The maximum is lower than the minimum"
-            ],
-            "status": "error",
-        },
-    )
+    assert _add(
+        admin_client, field, {SH.minInclusive: "5", SH.maxInclusive: "1"}
+    ) == _rejected(field_error("maxBelowMin", field, SH.maxInclusive))
 
 
 def test_bounds_on_a_text_field_are_not_saved(
@@ -422,15 +421,68 @@ def test_bounds_on_a_text_field_are_not_saved(
 ) -> None:
     field = _literal_property(_data(config_app))
 
-    assert _add(admin_client, field, {SH.minInclusive: "1"}) == (
-        422,
-        {
-            "errors": [
-                "shapes.4.properties.2.minInclusive: Bounds need a numeric datatype"
-            ],
-            "status": "error",
+    assert _add(admin_client, field, {SH.minInclusive: "1"}) == _rejected(
+        field_error("boundsNeedNumber", field, SH.minInclusive)
+    )
+
+
+def test_a_rejected_creation_names_new_resources_as_the_client_does(
+    admin_client: FlaskClient,
+) -> None:
+    response = admin_client.post(
+        "/api/configuration/entity",
+        json={
+            "structured_data": {
+                "entity_type": str(SH.NodeShape),
+                "entity_shape": str(META.NodeShapeShape),
+                "properties": {
+                    str(RDF.type): [str(SH.NodeShape)],
+                    str(SH.targetClass): ["not an iri"],
+                    str(SH.property): [
+                        {
+                            "entity_type": str(SH.PropertyShape),
+                            "entity_shape": str(META.PropertyShapeShape),
+                            "tempId": "temp-1",
+                            "properties": {
+                                str(RDF.type): [str(SH.PropertyShape)],
+                                str(SH.path): [str(DCTERMS.title)],
+                                str(SH.minCount): ["2"],
+                                str(SH.maxCount): ["1"],
+                            },
+                        }
+                    ],
+                },
+            },
+            "primary_source": None,
         },
     )
+
+    assert (response.status_code, response.get_json()) == _rejected(
+        field_error("invalidIri", None, SH.targetClass),
+        field_error("maxBelowMin", "temp-1", SH.maxCount),
+    )
+
+
+def test_a_field_shared_by_two_types_is_reported_once(config_app: Flask) -> None:
+    config_dir = config_app.config["CONFIG_DIR"]
+    shacl_path = config_dir / "shacl.ttl"
+    edited = Graph().parse(shacl_path, format="turtle")
+    field = next(
+        field
+        for field in edited.objects(IDENTIFIER_SHAPE, SH.property)
+        if (field, SH.path, LITERAL_VALUE) in edited
+    )
+    edited.add((URIRef(f"{SCHEMA}BookIdentifierShape"), SH.property, field))
+    edited.set((field, SH.minCount, Literal(2)))
+    edited.set((field, SH.maxCount, Literal(1)))
+    edited.serialize(shacl_path, format="turtle")
+
+    with pytest.raises(RejectedError) as rejection:
+        ensure_configuration_entity(config_dir)
+
+    assert [(error.code, error.predicate) for error in rejection.value.errors] == [
+        ("maxBelowMin", str(SH.maxCount))
+    ]
 
 
 def test_a_negative_number_of_values_is_rejected(
@@ -438,14 +490,8 @@ def test_a_negative_number_of_values_is_rejected(
 ) -> None:
     field = _literal_property(_data(config_app))
 
-    assert _update(admin_client, field, SH.minCount, "1", "-1") == (
-        400,
-        {
-            "error_type": "validation",
-            "message": "'-1' is not a valid value. The 'Minimum number of values'"
-            " property requires a value of at least 0",
-            "status": "error",
-        },
+    assert _update(admin_client, field, SH.minCount, "1", "-1") == _rejected(
+        field_error("atLeast", field, SH.minCount, limit="0", input="-1")
     )
 
 
@@ -592,9 +638,8 @@ def test_a_required_value_is_not_removed_without_a_replacement(
 
     status, body = _replace_path(admin_client, field, LITERAL_VALUE, None)
 
-    assert (status, body["message"]) == (
-        400,
-        "The property Property requires at least 1 value",
+    assert (status, body) == _rejected(
+        field_error("tooFew", field, SH.path, name="Property", count=0, min=1)
     )
     assert set(_data(config_app).objects(field, SH.path)) == {LITERAL_VALUE}
 
@@ -843,13 +888,8 @@ def test_values_to_count_keep_at_least_one(qualified_app: Flask) -> None:
         ],
     )
 
-    assert (response.status_code, response.get_json()) == (
-        400,
-        {
-            "error_type": "validation",
-            "message": "The property Values requires at least 1 value",
-            "status": "error",
-        },
+    assert (response.status_code, response.get_json()) == _rejected(
+        field_error("tooFew", qualified, SH.hasValue, name="Values", count=0, min=1)
     )
     assert isomorphic(read_shacl(qualified_app.config["CONFIG_DIR"]), before)
 
@@ -915,9 +955,9 @@ def test_qualified_values_need_a_number_to_count(
 
     status, body = _add_qualified_field(admin_client, {})
 
-    assert (status, [error.split(": ", 1)[1] for error in body["errors"]]) == (
+    assert (status, _codes(body)) == (
         422,
-        ["Add the minimum or maximum occurrences of the values to count"],
+        [("countsMissing", str(SH.qualifiedMinCount), {})],
     )
     assert isomorphic(read_shacl(config_app.config["CONFIG_DIR"]), before)
 
@@ -1043,9 +1083,15 @@ def test_allowed_values_exclude_a_datatype(
         },
     )
 
-    assert (status, [issue.split(": ", 1)[1] for issue in body["errors"]]) == (
+    assert (status, _codes(body)) == (
         422,
-        ["Datatype and Allowed values cannot be used together"],
+        [
+            (
+                "exclusive",
+                str(SH["in"]),
+                {"first": "Datatype", "second": "Allowed values"},
+            )
+        ],
     )
     assert isomorphic(read_shacl(config_app.config["CONFIG_DIR"]), before)
 
@@ -1350,17 +1396,25 @@ def test_a_single_value_alternative_is_saved_as_the_constraint_of_its_field(
         (
             [DATE, {SH["class"]: f"{FABIO}Journal"}],
             {},
-            "The value alternatives of a field use the same constraint",
+            ("mixedAlternatives", str(SH["or"]), {}),
         ),
         (
             [{**DATE, SH["class"]: f"{FABIO}Journal"}, YEAR],
             {},
-            "Datatype and Class of the value cannot be used together",
+            (
+                "exclusive",
+                str(SH["class"]),
+                {"first": "Datatype", "second": "Class of the value"},
+            ),
         ),
         (
             [DATE, YEAR],
             {SH.datatype: [str(XSD.string)]},
-            "Datatype and Value alternatives cannot be used together",
+            (
+                "exclusive",
+                str(SH["or"]),
+                {"first": "Datatype", "second": "Value alternatives"},
+            ),
         ),
     ],
 )
@@ -1369,16 +1423,13 @@ def test_value_alternatives_are_checked_when_saved(
     config_app: Flask,
     alternatives: list[dict[URIRef, str]],
     own: dict[URIRef, list[str]],
-    error: str,
+    error: tuple[str, str, dict],
 ) -> None:
     before = read_shacl(config_app.config["CONFIG_DIR"])
 
     status, body = _add_date_field(admin_client, alternatives, own)
 
-    assert (status, [issue.split(": ", 1)[1] for issue in body["errors"]]) == (
-        422,
-        [error],
-    )
+    assert (status, _codes(body)) == (422, [error])
     assert isomorphic(read_shacl(config_app.config["CONFIG_DIR"]), before)
 
 
@@ -1522,10 +1573,11 @@ def test_an_allowed_value_without_a_format_rule_is_rejected(rules_app: Flask) ->
         "/api/configuration/apply_changes", json=[_pmid_rule_change(client)]
     )
 
-    assert (
-        response.status_code,
-        [issue.split(": ", 1)[1] for issue in response.get_json()["errors"]],
-    ) == (422, ["datacite:pmid has no format rule"])
+    assert (response.status_code, response.get_json()) == _rejected(
+        field_error(
+            "missingFormatRule", IDENTIFIER_SHAPE, SH["or"], value="datacite:pmid"
+        )
+    )
     assert isomorphic(read_shacl(rules_app.config["CONFIG_DIR"]), before)
 
 
@@ -1656,28 +1708,27 @@ def _saved_label_queries(saved: Graph) -> list[Node]:
     ]
 
 
-LABEL_QUERY_ERROR = "shapes.4.properties.3.labelQuery: "
-
-
 @pytest.mark.parametrize(
     ("query", "result"),
     [
-        ("SELECT ?label WHERE { $this dcterms:title ?label }", (200, None)),
+        ("SELECT ?label WHERE { $this dcterms:title ?label }", None),
         (
             "SELECT ?label WHERE { $this schema:name ?label }",
-            (422, "The query uses undeclared prefixes: schema"),
+            ("undeclaredPrefixes", {"prefixes": "schema"}),
         ),
         (
             "SELECT ?label WHERE { $this dcterms:title ?label",
             (
-                422,
-                "The query is not valid SPARQL: Expected SelectQuery, found end of"
-                " text  (at char 298), (line:6, col:49)",
+                "invalidSparql",
+                {
+                    "error": "Expected SelectQuery, found end of text  (at char"
+                    " 298), (line:6, col:49)"
+                },
             ),
         ),
         (
             "SELECT ?label ?title WHERE { $this dcterms:title ?label, ?title }",
-            (422, "The query must be a SELECT that returns one variable"),
+            ("selectOneVariable", {}),
         ),
     ],
 )
@@ -1685,20 +1736,20 @@ def test_a_label_query_is_checked_when_saved(
     admin_client: FlaskClient,
     config_app: Flask,
     query: str,
-    result: tuple[int, str | None],
+    result: tuple[str, dict[str, str]] | None,
 ) -> None:
     expression, select = _label_query(config_app)
 
     status, body = _update(admin_client, expression, SH.select, str(select), query)
 
-    if result[1] is None:
+    if result is None:
         saved = read_shacl(config_app.config["CONFIG_DIR"])
         assert (status, _saved_label_queries(saved)) == (200, [Literal(query)])
         assert (None, RDF.type, HT.SelectExpression) not in saved
     else:
-        assert (status, body["errors"]) == (
-            result[0],
-            [LABEL_QUERY_ERROR + result[1]],
+        code, params = result
+        assert (status, body) == _rejected(
+            field_error(code, expression, SH.select, **params)
         )
 
 
@@ -1716,11 +1767,11 @@ def test_a_label_query_written_by_hand_needs_the_label_role(
     edited.remove((label_field, SHUI.propertyRole, SHUI.LabelRole))
     edited.serialize(shacl_path, format="turtle")
 
-    with pytest.raises(ConfigurationRejectedError) as rejection:
+    with pytest.raises(RejectedError) as rejection:
         ensure_configuration_entity(config_dir)
 
-    assert rejection.value.issues == [
-        LABEL_QUERY_ERROR + "A label query needs the display label role"
+    assert [(error.code, error.predicate) for error in rejection.value.errors] == [
+        ("labelQueryRole", str(SHUI.propertyRole))
     ]
 
 
@@ -1869,11 +1920,7 @@ def test_a_save_does_not_overwrite_a_hand_edit(
     field = _literal_property(_data(config_app))
 
     assert _update(admin_client, field, SH.name, "Literal Value", "Value") == (
-        422,
-        {
-            "errors": ["shacl.ttl changed on disk. Reload the page to see its content"],
-            "status": "error",
-        },
+        _rejected(field_error("fileChanged"))
     )
     assert [path.read_bytes() for path in files] == before
 
@@ -1983,7 +2030,7 @@ def test_a_name_is_saved_once_for_each_language(
     admin_client: FlaskClient, config_app: Flask
 ) -> None:
     assert _add_name(admin_client, JOURNAL_ARTICLE_SHAPE, "Articolo", "it") == 200
-    assert _add_name(admin_client, JOURNAL_ARTICLE_SHAPE, "Saggio", "it") == 400
+    assert _add_name(admin_client, JOURNAL_ARTICLE_SHAPE, "Saggio", "it") == 422
 
     names = {Literal("Journal Article"), Literal("Articolo", lang="it")}
     assert set(_data(config_app).objects(JOURNAL_ARTICLE_SHAPE, SH.name)) == names
@@ -2043,7 +2090,7 @@ def test_an_edited_name_takes_the_language_it_is_given(
     assert _identifier_names(config_app) == {Literal("Identifier")}
 
     assert _add_name(admin_client, IDENTIFIER_SHAPE, "Identificatore", "it") == 200
-    assert _edit_name(admin_client, Literal("Identifier"), "Codice", "it") == 400
+    assert _edit_name(admin_client, Literal("Identifier"), "Codice", "it") == 422
     assert _identifier_names(config_app) == {
         Literal("Identifier"),
         Literal("Identificatore", lang="it"),

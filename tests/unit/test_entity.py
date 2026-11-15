@@ -16,6 +16,7 @@ from flask import Flask
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 
 from heritrace.editor import Editor
+from heritrace.field_errors import field_error
 from heritrace.routes.entity import (
     CreationContext,
     EntityRenderContext,
@@ -194,11 +195,11 @@ def test_validate_entity_data_missing_required(
 
     mock_get_form_fields.return_value = form_fields
 
-    errors = validate_entity_data(entity_data)
-
-    assert len(errors) == 1
-    assert "Missing required property" in errors[0]
-    assert "Title" in errors[0]
+    assert validate_entity_data(entity_data) == [
+        field_error(
+            "tooFew", None, "http://example.org/title", name="Title", count=0, min=1
+        )
+    ]
 
 
 def test_validate_entity_data_invalid_entity_type(
@@ -230,10 +231,8 @@ def test_validate_entity_data_invalid_entity_type(
 
     mock_get_form_fields.return_value = form_fields
 
-    errors = validate_entity_data(entity_data)
-
-    assert len(errors) == 1
-    assert "No form fields found for entity type" in errors[0]
+    with pytest.raises(ValueError, match="No form fields found for entity type"):
+        validate_entity_data(entity_data)
 
 
 def test_validate_entity_data_with_shape(

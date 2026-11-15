@@ -10,6 +10,7 @@ from flask import url_for
 from rdflib import XSD, URIRef
 
 from heritrace.editor import EditorError
+from heritrace.field_errors import field_error
 
 
 @pytest.fixture
@@ -272,7 +273,7 @@ def test_create_entity_with_shape_matching(
 @patch("heritrace.routes.entity._creation.new_editor")
 @patch(
     "heritrace.routes.entity._creation.validate_entity_data",
-    return_value=["Missing required property"],
+    return_value=[field_error("tooFew", None, "http://example.org/hasName")],
 )
 @patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_validation_error(
@@ -302,10 +303,17 @@ def test_create_entity_validation_error(
         url_for("entity.create_entity"), json={"structured_data": data}
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert response.get_json() == {
         "status": "error",
-        "errors": ["Missing required property"],
+        "errors": [
+            {
+                "subject": None,
+                "predicate": "http://example.org/hasName",
+                "code": "tooFew",
+                "params": {},
+            }
+        ],
     }
     mock_validate_entity_data.assert_called_once_with(data)
     mock_editor.assert_not_called()

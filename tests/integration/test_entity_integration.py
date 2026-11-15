@@ -748,11 +748,11 @@ def test_validate_entity_data(app: Flask) -> None:
         errors = validate_entity_data(valid_data)
         assert len(errors) == 0, f"Expected no errors, got: {errors}"
 
-        errors = validate_entity_data(invalid_data)
-        assert len(errors) > 0, "Expected validation errors but got none"
-        assert any(
-            "title" in error.lower() or "required" in error.lower() for error in errors
-        ), f"Expected error about missing title, got: {errors}"
+        title = "http://www.w3.org/ns/dcat#title"
+        assert [
+            (error.code, error.predicate)
+            for error in validate_entity_data(invalid_data)
+        ] == [("tooFew", title)]
 
         errors = validate_entity_data(invalid_datatype_data)
 
@@ -763,11 +763,10 @@ def test_validate_entity_data(app: Flask) -> None:
         assert isinstance(errors, list), "Expected errors to be a list"
 
         # Test validation with too many values
-        errors = validate_entity_data(too_many_values_data)
-        assert len(errors) > 0, "Expected validation errors but got none"
-        assert any(
-            "title" in error.lower() and "at most" in error.lower() for error in errors
-        ), f"Expected error about too many titles, got: {errors}"
+        assert [
+            (error.code, error.predicate)
+            for error in validate_entity_data(too_many_values_data)
+        ] == [("tooMany", title)]
 
 
 def test_determine_datatype() -> None:

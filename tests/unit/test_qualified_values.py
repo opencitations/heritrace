@@ -10,6 +10,7 @@ from flask import Flask
 from rdflib import RDF, Graph, URIRef
 from rdflib.namespace import DCTERMS
 
+from heritrace.field_errors import field_error
 from heritrace.utils.shacl_utils import get_form_fields_from_shacl
 from heritrace.utils.shacl_validation import cardinality_error, get_valid_predicates
 
@@ -82,8 +83,24 @@ def test_each_field_counts_only_its_qualified_values() -> None:
     ] == [
         None,
         None,
-        "The property Type requires at least 1 value equal to 'Expression'",
-        "The property Type allows at most 1 value among 'Book', 'Thesis'",
+        field_error(
+            "tooFewAmong",
+            VOLUME,
+            RDF.type,
+            name="Type",
+            count=0,
+            min=1,
+            values="Expression",
+        ),
+        field_error(
+            "tooManyAmong",
+            VOLUME,
+            DCTERMS.type,
+            name="Type",
+            count=2,
+            max=1,
+            values="Book, Thesis",
+        ),
     ]
 
 

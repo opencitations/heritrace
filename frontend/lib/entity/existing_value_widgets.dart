@@ -10,6 +10,7 @@ import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../form/field_def.dart';
 import '../form/form_model.dart';
+import '../form/form_scope.dart';
 import '../form/widgets/boolean_field.dart';
 import '../form/widgets/field_group_widget.dart';
 import '../form/widgets/item_widgets.dart';
@@ -253,6 +254,7 @@ class _ValueBody extends StatelessWidget {
         value: options.any((o) => o.value == value.newValue)
             ? value.newValue
             : null,
+        errorText: _valueErrorText(context, value),
         options: [
           for (final option in options)
             AppMenuOption(
@@ -428,6 +430,7 @@ class _DetailField extends StatelessWidget {
         value: field.optionalValues.contains(edit.newValue)
             ? edit.newValue
             : null,
+        errorText: _valueErrorText(context, edit),
         options: [
           for (final option in field.optionalValues)
             AppMenuOption(
@@ -440,6 +443,11 @@ class _DetailField extends StatelessWidget {
       ),
     );
   }
+}
+
+String? _valueErrorText(BuildContext context, EditedValue value) {
+  final errors = FormScope.of(context).errorsForValue(value);
+  return errors.isEmpty ? null : errors.map((error) => error.message).join(' ');
 }
 
 class _TextValueField extends StatefulWidget {
@@ -481,6 +489,7 @@ class _TextValueFieldState extends State<_TextValueField> {
     final field = widget.field;
     return AppTextField(
       controller: _controller,
+      errorText: _valueErrorText(context, widget.value),
       multiline: field?.inputType == 'textarea',
       keyboardType: field == null ? null : valueKeyboardType(field),
       inputFormatters: field == null ? null : valueInputFormatters(field),

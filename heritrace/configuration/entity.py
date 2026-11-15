@@ -18,6 +18,7 @@ from rdflib_ocdm.counter_handler.in_memory_counter_handler import InMemoryCounte
 from rdflib_ocdm.ocdm_graph import OCDMGraph
 from rdflib_ocdm.storer import Storer
 
+from heritrace.configuration.labels import compact_iri
 from heritrace.configuration.shapes import (
     read_shapes,
     shape_subjects,
@@ -26,7 +27,8 @@ from heritrace.configuration.shapes import (
 from heritrace.configuration.store import SHACL_FILE, write_shacl
 from heritrace.configuration.validation import validate_shapes
 from heritrace.configuration.vocabulary import HT, SH, SHUI
-from heritrace.language import localized_texts
+from heritrace.field_errors import FieldError, RejectedError, field_error
+from heritrace.language import localize, localized_texts
 from heritrace.rdf_files import load_rdf_file
 from heritrace.sparql import SPARQLWrapperWithRetry
 from heritrace.uri_generator.uri_generator import URIGenerator
@@ -366,7 +368,7 @@ def _restore_pattern_rules(graph: Graph, result: Graph) -> None:
     for shape, shape_rules in rules.items():
         alternatives = []
         for rule in sorted(shape_rules, key=lambda rule: _rule_order(graph, rule)):
-            alternative, condition, check = BNode(), BNode(), BNode()
+            alternative, condition, check = _restore(rule), BNode(), BNode()
             result.add((alternative, SH.property, condition))
             result.add((alternative, SH.property, check))
             for target, fields in ((condition, _RULE_CONDITION), (check, _RULE_CHECK)):
@@ -475,28 +477,109 @@ def _meta_field(meta: Graph, shape: Node, path: str) -> tuple[int, str]:
         if (field, SH.path, URIRef(path)) in meta
     )
     order = cast("Literal", meta.value(field, SH.order))
-    return int(order), localized_texts(meta, field, SH.name)["en"]
+    return int(order), cast("str", localize(localized_texts(meta, field, SH.name)))
 
 
 # The meta-shapes declare with sh:or which fields exclude each other, and
 # pyshacl reports a broken rule with the whole list. The fields that have a
 # value say which rule it is.
-def _exclusions(graph: Graph, meta: Graph, focus: Node, shape: Node) -> list[str]:
-    pairs = [
-        sorted((_meta_field(meta, shape, path), _meta_field(meta, shape, other)))
+def _exclusions(
+    graph: Graph, meta: Graph, focus: Node, shape: Node
+) -> list[FieldError]:
+    pairs = {
+        tuple(
+            sorted(
+                (
+                    (_meta_field(meta, shape, path), path),
+                    (_meta_field(meta, shape, other), other),
+                )
+            )
+        )
         for (excluding_shape, path), others in read_excluded_with(meta).items()
         if excluding_shape == str(shape)
         for other in others
         if (focus, URIRef(path), None) in graph
         and (focus, URIRef(other), None) in graph
-    ]
+    }
     return [
-        f"{focus}: {first} and {second} cannot be used together"
-        for (_, first), (_, second) in pairs
+        field_error("exclusive", str(focus), second_path, first=first, second=second)
+        for ((_, first), _), ((_, second), second_path) in sorted(pairs)
     ]
 
 
-def _meta_violations(graph: Graph) -> list[str]:
+_BOUND_CODES = {
+    SH.MinInclusiveConstraintComponent: ("atLeast", SH.minInclusive),
+    SH.MaxInclusiveConstraintComponent: ("atMost", SH.maxInclusive),
+    SH.MinExclusiveConstraintComponent: ("greaterThan", SH.minExclusive),
+    SH.MaxExclusiveConstraintComponent: ("lessThan", SH.maxExclusive),
+}
+_COUNT_CODES = {
+    SH.MinCountConstraintComponent: ("tooFew", "min", SH.minCount),
+    SH.MaxCountConstraintComponent: ("tooMany", "max", SH.maxCount),
+}
+_VALUE_CODES = {
+    SH.DatatypeConstraintComponent: ("invalidInput", "expected", SH.datatype),
+    SH.ClassConstraintComponent: ("invalidInput", "expected", SH["class"]),
+    SH.HasValueConstraintComponent: ("requiredValue", "value", SH.hasValue),
+}
+_PLAIN_CODES = {
+    SH.NodeKindConstraintComponent: "invalidIri",
+    SH.UniqueLangConstraintComponent: "languageTaken",
+}
+
+
+# The code of each constraint that the meta-shapes use, with the parameters of
+# its message. pyshacl's own message, in English, stands for any other one.
+def _meta_error(  # noqa: PLR0911
+    graph: Graph, meta: Graph, report: Graph, result: Node
+) -> list[FieldError]:
+    component = cast("URIRef", report.value(result, SH.sourceConstraintComponent))
+    source = cast("Node", report.value(result, SH.sourceShape))
+    focus = cast("URIRef", report.value(result, SH.focusNode))
+    path = cast("URIRef | None", report.value(result, SH.resultPath))
+    namespaces = {str(namespace): prefix for prefix, namespace in meta.namespaces()}
+
+    def constraint(predicate: URIRef) -> Node:
+        return cast("Node", meta.value(source, predicate))
+
+    def compact(node: Node) -> str:
+        return compact_iri(str(node), namespaces)
+
+    def error(code: str, **params: str | int) -> list[FieldError]:
+        return [field_error(code, focus, path, **params)]
+
+    if component == SH.OrConstraintComponent and (
+        exclusions := _exclusions(graph, meta, focus, source)
+    ):
+        return exclusions
+    if component in _COUNT_CODES:
+        code, limit, predicate = _COUNT_CODES[component]
+        return error(
+            code,
+            name=cast("str", localize(localized_texts(meta, source, SH.name))),
+            count=len(set(graph.objects(focus, path))),
+            **{limit: int(cast("Literal", constraint(predicate)))},
+        )
+    if component in _BOUND_CODES:
+        code, predicate = _BOUND_CODES[component]
+        return error(code, limit=str(constraint(predicate)))
+    if component in _VALUE_CODES:
+        code, name, predicate = _VALUE_CODES[component]
+        return error(code, **{name: compact(constraint(predicate))})
+    if component in _PLAIN_CODES:
+        return error(_PLAIN_CODES[component])
+    if component == SH.InConstraintComponent:
+        options = Collection(meta, constraint(SH["in"]))
+        return error("notAllowed", values=", ".join(map(compact, options)))
+    message = (
+        localize(localized_texts(meta, source, SH.message))
+        if component == SH.PatternConstraintComponent
+        else str(report.value(result, SH.resultMessage))
+    )
+    return error("message", message=cast("str", message))
+
+
+def _meta_violations(graph: Graph) -> list[FieldError]:
     meta = load_rdf_file(META_SHAPES)
     conforms, report, _ = validate(graph, shacl_graph=meta)
     if conforms:
@@ -506,31 +589,16 @@ def _meta_violations(graph: Graph) -> list[str]:
     # pyshacl also reports each sh:node that leads to a node with results of its
     # own, which only repeats them.
     checked = {report.value(result, SH.focusNode) for result in results}
-    issues: set[str] = set()
-    for result in results:
-        if (
+    return [
+        error
+        for result in results
+        if not (
             report.value(result, SH.sourceConstraintComponent)
             == SH.NodeConstraintComponent
             and report.value(result, SH.value) in checked
-        ):
-            continue
-        focus = cast("Node", report.value(result, SH.focusNode))
-        exclusions = (
-            _exclusions(
-                graph, meta, focus, cast("Node", report.value(result, SH.sourceShape))
-            )
-            if report.value(result, SH.sourceConstraintComponent)
-            == SH.OrConstraintComponent
-            else []
         )
-        issues.update(
-            exclusions
-            or [
-                f"{focus} {report.value(result, SH.resultPath)}:"
-                f" {report.value(result, SH.resultMessage)}"
-            ]
-        )
-    return sorted(issues)
+        for error in _meta_error(graph, meta, report, result)
+    ]
 
 
 _ALTERNATIVE_KINDS: dict[frozenset[Node], str] = {
@@ -552,21 +620,26 @@ def _alternative_problems(graph: Graph, field: Node) -> list[str]:
     kinds = {_ALTERNATIVE_KINDS.get(predicates) for predicates in constraints}
     problems = []
     if frozenset() in constraints:
-        problems.append(
-            "Each value alternative needs a datatype, SHACL shape, class or value"
-        )
+        problems.append("emptyAlternative")
     if len(kinds - {None}) > 1:
-        problems.append("The value alternatives of a field use the same constraint")
+        problems.append("mixedAlternatives")
     return problems
 
 
-def _alternative_conflicts(graph: Graph) -> list[str]:
+def _alternative_conflicts(graph: Graph) -> list[FieldError]:
     return [
-        f"{shape}: {problem}"
-        for shape, field in graph.subject_objects(SH.property)
+        field_error(problem, str(field), SH["or"])
+        for field in set(graph.objects(None, SH.property))
         if (field, SH["or"], None) in graph
         for problem in _alternative_problems(graph, field)
     ]
+
+
+# The inverse of _restore: the editor IRI of a node of the SHACL graph.
+def _editor_iri(node: Node) -> str:
+    if not isinstance(node, BNode):
+        return str(node)
+    return str(ROOT) if node == _restore(ROOT) else f"{GENID}{node}"
 
 
 def check_configuration(graph: Graph) -> None:
@@ -578,14 +651,14 @@ def check_configuration(graph: Graph) -> None:
     unsupported = (
         [] if violations or conflicts else unsupported_parts(shapes_graph, shapes)
     )
-    issues = (
+    errors = (
         violations
         + conflicts
-        + [f"{issue.location}: {issue.message}" for issue in validate_shapes(shapes)]
-        + [f"HERITRACE cannot represent {part}" for part in unsupported]
+        + validate_shapes(shapes, _editor_iri)
+        + [field_error("unsupported", part=part) for part in unsupported]
     )
-    if issues:
-        raise ConfigurationRejectedError(issues)
+    if errors:
+        raise RejectedError(errors)
 
 
 def provenance_counter_handler(provenance_path: Path) -> InMemoryCounterHandler:

@@ -179,16 +179,21 @@ void main() {
       atLeastOnePropertyMessage: 'at least one',
     );
     addTearDown(session.dispose);
+    final scope = FormScopeController(rootLabel: 'Field');
+    addTearDown(scope.dispose);
 
     await pumpApp(
       tester,
       child: CupertinoApp(
         home: CupertinoPageScaffold(
-          child: ExistingValueWidget(
-            value: session.groups.single.existing.single,
-            view: view,
-            editing: true,
-            takenLanguages: const {},
+          child: FormScope(
+            notifier: scope,
+            child: ExistingValueWidget(
+              value: session.groups.single.existing.single,
+              view: view,
+              editing: true,
+              takenLanguages: const {},
+            ),
           ),
         ),
       ),
@@ -209,6 +214,101 @@ void main() {
         'newObject': 'SELECT ?b WHERE {}',
       },
     ]);
+
+    final edit =
+        session.groups.single.existing.single.detailEdits.values.single;
+    scope.setErrors([
+      ValidationError(
+        message: 'Not a query',
+        path: const ['Field'],
+        value: edit,
+      ),
+    ]);
+    await tester.pump();
+
+    expect(find.text('Not a query'), findsOneWidget);
+  });
+
+  testWidgets('a value chosen from a list shows the error beside it', (
+    tester,
+  ) async {
+    const editor = 'http://www.w3.org/ns/shacl#editor';
+    const textArea = 'http://datashapes.org/dash#TextAreaEditor';
+    final view = EntityView.fromJson({
+      'uri': field,
+      'label': 'Abstract',
+      'type': 'http://www.w3.org/ns/shacl#PropertyShape',
+      'type_label': 'Field',
+      'shape': null,
+      'classes': ['http://www.w3.org/ns/shacl#PropertyShape'],
+      'is_deleted': false,
+      'has_history': true,
+      'shacl': true,
+      'has_form_fields': true,
+      'can_be_added': <String>[],
+      'can_be_deleted': <String>[],
+      'datatypes': <String, dynamic>{},
+      'optional_values': {
+        editor: [
+          {'value': textArea, 'label': 'Text area'},
+        ],
+      },
+      'groups': [
+        {
+          'display_name': 'Editor',
+          'property': editor,
+          'object_shape': null,
+          'is_draggable': false,
+          'ordered_by': null,
+          'field': null,
+          'triples': [
+            {
+              'subject': field,
+              'predicate': editor,
+              'value': textArea,
+              'object': textArea,
+              'language': null,
+              'external_entity': null,
+              'is_mandatory': false,
+              'label': 'Text area',
+              'alternative': null,
+            },
+          ],
+        },
+      ],
+    });
+    final group = view.groups.single;
+    final value = ExistingValue(triple: group.triples.single, group: group);
+    addTearDown(value.dispose);
+    final scope = FormScopeController(rootLabel: 'Field');
+    addTearDown(scope.dispose);
+
+    await pumpApp(
+      tester,
+      child: CupertinoApp(
+        home: CupertinoPageScaffold(
+          child: FormScope(
+            notifier: scope,
+            child: ExistingValueWidget(
+              value: value,
+              view: view,
+              editing: true,
+              takenLanguages: const {},
+            ),
+          ),
+        ),
+      ),
+    );
+    scope.setErrors([
+      ValidationError(
+        message: 'Not an editor',
+        path: const ['Field'],
+        value: value,
+      ),
+    ]);
+    await tester.pump();
+
+    expect(find.text('Not an editor'), findsOneWidget);
   });
 
   testWidgets('a value shown in place gains and loses values of a field', (

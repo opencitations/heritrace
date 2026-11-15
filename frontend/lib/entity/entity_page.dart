@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/api_exception.dart';
 import '../common/async_view.dart';
 import '../common/dialogs.dart';
 import '../common/primary_source_dialog.dart';
@@ -304,16 +305,29 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
       'save_default_source': choice.saveAsDefault,
     });
     _session.setSaving(saving: true);
+    var rejected = const <ServerFieldError>[];
     final ok = await runWithProgress(
       context,
       message: t.ui.entity.applying,
-      action: () => _session.repository.applyChanges(changes),
+      action: () async {
+        try {
+          await _session.repository.applyChanges(changes);
+        } on ApiException catch (error) {
+          if (error.errors.isEmpty) {
+            rethrow;
+          }
+          rejected = error.errors;
+        }
+      },
     );
     if (!mounted) {
       return;
     }
-    if (!ok) {
+    if (!ok || rejected.isNotEmpty) {
       _session.setSaving(saving: false);
+      if (rejected.isNotEmpty) {
+        _scope.setErrors(_session.serverErrors(t, rejected));
+      }
       return;
     }
     if (choice.saveAsDefault) {

@@ -39,7 +39,6 @@ from heritrace.configuration.entity import (
     EDITOR_FILE,
     META_SHAPES,
     PROVENANCE_FILE,
-    ConfigurationRejectedError,
     SkolemURIGenerator,
     check_configuration,
     export_shacl,
@@ -48,10 +47,10 @@ from heritrace.configuration.entity import (
 )
 from heritrace.configuration.labels import ConfigurationFilter
 from heritrace.configuration.runtime import SetupRequiredError, request_reload
-from heritrace.configuration.store import SHACL_FILE
 from heritrace.configuration.vocabulary import SH
 from heritrace.counter_handler import CounterInitializationPolicy
 from heritrace.editor import Backend, Editor, FileBackend, TriplestoreBackend
+from heritrace.field_errors import RejectedError, field_error
 from heritrace.models import User
 from heritrace.rdf_files import load_rdf_file
 from heritrace.save_plugin import SavePlugin
@@ -199,8 +198,7 @@ def init_extensions(
 def _export_shacl(app: Flask, view: Graph) -> None:
     config_dir = app.config["CONFIG_DIR"]
     if shacl_mtime(config_dir) != app.config["SHACL_MTIME"]:
-        msg = f"{SHACL_FILE} changed on disk. Reload the page to see its content"
-        raise ConfigurationRejectedError([msg])
+        raise RejectedError([field_error("fileChanged")])
     export_shacl(config_dir, view)
     app.config["SHACL_MTIME"] = shacl_mtime(config_dir)
 

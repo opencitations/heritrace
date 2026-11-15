@@ -37,11 +37,12 @@ NUMERIC_DATATYPES = frozenset(
     )
 )
 
+# Each bound with the comparison that breaks it and the code of the error.
 _VIOLATIONS: dict[str, tuple[Callable[[Decimal, Decimal], bool], str]] = {
-    "minInclusive": (operator.lt, "at least"),
-    "maxInclusive": (operator.gt, "at most"),
-    "minExclusive": (operator.le, "greater than"),
-    "maxExclusive": (operator.ge, "less than"),
+    "minInclusive": (operator.lt, "atLeast"),
+    "maxInclusive": (operator.gt, "atMost"),
+    "minExclusive": (operator.le, "greaterThan"),
+    "maxExclusive": (operator.ge, "lessThan"),
 }
 BOUND_NAMES = tuple(_VIOLATIONS)
 
@@ -53,9 +54,11 @@ def bound_number(bound: Node | None) -> Bound:
     return value if isinstance(value, int) else float(value)
 
 
-def bound_requirement(value: str, bounds: Mapping[str, Bound]) -> str | None:
-    for name, (violates, requirement) in _VIOLATIONS.items():
+def broken_bound(
+    value: str, bounds: Mapping[str, Bound]
+) -> tuple[str, int | float] | None:
+    for name, (violates, code) in _VIOLATIONS.items():
         bound = bounds[name]
         if bound is not None and violates(Decimal(value), Decimal(str(bound))):
-            return f"{requirement} {bound}"
+            return code, bound
     return None

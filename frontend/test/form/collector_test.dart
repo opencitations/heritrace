@@ -112,9 +112,11 @@ void main() {
                       'properties': {
                         literalValue: ['0000-0001-2345-6789'],
                       },
+                      'tempId': identifierItem.tempId,
                     },
                   ],
                 },
+                'tempId': authorItem.tempId,
               },
             ],
           },
@@ -141,6 +143,7 @@ void main() {
           'properties': {
             sequenceIdentifier: ['4'],
           },
+          'tempId': issueItem.tempId,
         },
       ],
     });
@@ -196,6 +199,7 @@ void main() {
         'properties': {
           name: ['Jane Roe'],
         },
+        'tempId': authorItem.tempId,
       },
     ]);
   });

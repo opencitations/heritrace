@@ -18,7 +18,6 @@ from flask_login import current_user, login_required
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 
 from heritrace.apis.orcid import get_responsible_agent_uri
-from heritrace.configuration.entity import ConfigurationRejectedError
 from heritrace.configuration.runtime import is_admin
 from heritrace.editor import Editor
 from heritrace.extensions import (
@@ -30,6 +29,7 @@ from heritrace.extensions import (
     new_editor,
     record_dataset_change,
 )
+from heritrace.field_errors import RejectedError, name_new_resource
 from heritrace.language import is_tagged
 from heritrace.services.resource_lock_manager import LockInfo, LockStatus
 from heritrace.utils.datatypes import DATATYPE_MAPPING, get_datatype_options
@@ -810,16 +810,19 @@ def _changed_properties(change: dict) -> list[tuple[URIRef, URIRef]]:
 
 def _check_final_cardinality(editor: Editor, changes: list[dict]) -> None:
     changed = {pair for change in changes for pair in _changed_properties(change)}
-    for subject, predicate in sorted(changed):
-        error = cardinality_error(editor.g_set, subject, predicate)
-        if error:
-            raise ValueError(error)
+    errors = [
+        error
+        for subject, predicate in sorted(changed)
+        if (error := cardinality_error(editor.g_set, subject, predicate))
+    ]
+    if errors:
+        raise RejectedError(errors)
 
 
 def _save_and_respond(editor: Editor) -> tuple[Response, int]:
     try:
         editor.save()
-    except (ConfigurationRejectedError, ValueError):
+    except (RejectedError, ValueError):
         current_app.logger.exception("Error during save operation")
         raise
     except Exception as save_error:
@@ -911,21 +914,12 @@ def apply_changes() -> tuple[Response, int]:
 
         return _save_and_respond(editor)
 
-    except ConfigurationRejectedError:
+    except RejectedError:
         raise
     except ValueError as e:
         error_message = str(e)
-        current_app.logger.warning("Validation error: %s", error_message)
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "error_type": "validation",
-                    "message": error_message,
-                }
-            ),
-            400,
-        )
+        current_app.logger.warning("Invalid request: %s", error_message)
+        return jsonify({"status": "error", "message": error_message}), 400
     except Exception as e:
         error_message = f"Error while applying changes: {e!s}\n{traceback.format_exc()}"
         current_app.logger.exception(error_message)
@@ -1004,7 +998,7 @@ def _handle_property_value(
     text, language = (
         (value["value"], value["language"]) if is_tagged(value) else (str(value), None)
     )
-    object_value, _, error_message = validate_new_triple(
+    object_value, _, error = validate_new_triple(
         subject,
         predicate,
         text,
@@ -1012,8 +1006,8 @@ def _handle_property_value(
         entity_types=ctx.entity_type,
         language=language,
     )
-    if error_message:
-        raise ValueError(error_message)
+    if error:
+        raise RejectedError([error])
     if object_value is not None:
         ctx.editor.create(subject, predicate, object_value, ctx.graph_uri)
     return None
@@ -1026,25 +1020,25 @@ def _setup_parent_relations(
     parent_predicate: URIRef | None,
     parent_entity_type: str | None,
 ) -> None:
-    type_value, _, error_message = validate_new_triple(
+    type_value, _, error = validate_new_triple(
         subject, RDF.type, ctx.entity_type, "create", entity_types=ctx.entity_type
     )
-    if error_message:
-        raise ValueError(error_message)
+    if error:
+        raise RejectedError([error])
 
     if type_value is not None:
         ctx.editor.create(subject, RDF.type, type_value, ctx.graph_uri)
 
     if parent_predicate:
-        parent_value, _, error_message = validate_new_triple(
+        parent_value, _, error = validate_new_triple(
             parent_subject,
             parent_predicate,
             subject,
             "create",
             entity_types=parent_entity_type,
         )
-        if error_message:
-            raise ValueError(error_message)
+        if error:
+            raise RejectedError([error])
 
         if parent_value is not None:
             ctx.editor.create(
@@ -1071,6 +1065,7 @@ def create_logic(  # noqa: PLR0913
 
     if temp_id and temp_id_to_uri is not None:
         temp_id_to_uri[temp_id] = str(subject)
+        name_new_resource(str(subject), temp_id)
 
     ctx = _CreateContext(editor, graph_uri, entity_type, temp_id_to_uri)
 
@@ -1117,7 +1112,7 @@ def update_logic(  # noqa: PLR0913
         if is_valid_url(old_value)
         else Literal(old_value, lang=language)
     )
-    validated_new, validated_old, error_message = validate_new_triple(
+    validated_new, validated_old, error = validate_new_triple(
         op.subject,
         predicate,
         new_value,
@@ -1126,8 +1121,8 @@ def update_logic(  # noqa: PLR0913
         entity_types=op.entity_type,
         language=new_language,
     )
-    if error_message:
-        raise ValueError(error_message)
+    if error:
+        raise RejectedError([error])
 
     op.editor.update(
         op.subject,
@@ -1174,7 +1169,7 @@ def delete_logic(
             if is_valid_url(object_value)
             else Literal(object_value, lang=language)
         )
-        _, resolved_value, error_message = validate_new_triple(
+        _, resolved_value, error = validate_new_triple(
             op.subject,
             predicate,
             None,
@@ -1182,8 +1177,8 @@ def delete_logic(
             old_val_rdf,
             entity_types=op.entity_type,
         )
-        if error_message:
-            raise ValueError(error_message)
+        if error:
+            raise RejectedError([error])
 
     op.editor.delete(
         op.subject,

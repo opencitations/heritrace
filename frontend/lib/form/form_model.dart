@@ -209,7 +209,8 @@ FormItem createItem(FieldDef def, int depth, FieldGroup group) {
   if (item is OrItem) {
     item.selectIri();
   }
-  if (def.orderedBy != null) {
+  // A rejected save names the new nested resources by their temporary ids.
+  if (def.orderedBy != null || item is NestedItem) {
     item.tempId = nextTempId();
   }
   if (item is NestedItem) {

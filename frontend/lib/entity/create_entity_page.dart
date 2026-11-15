@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/api_exception.dart';
 import '../common/async_view.dart';
 import '../common/dialogs.dart';
 import '../common/primary_source_dialog.dart';
@@ -16,6 +17,7 @@ import '../form/collector.dart';
 import '../form/form_model.dart';
 import '../form/form_repository.dart';
 import '../form/form_scope.dart';
+import '../form/server_errors.dart';
 import '../form/validator.dart';
 import '../form/widgets/custom_properties_form.dart';
 import '../form/widgets/entity_form.dart';
@@ -143,6 +145,15 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
     return errors;
   }
 
+  /// The error of a rejected creation in its field: the server names the new
+  /// resource by no id and the nested ones by their temporary ids.
+  ValidationError _placeServerError(Translations t, ServerFieldError error) {
+    final FormNode own = (node: _root!, path: [_scope.rootLabel]);
+    final at = error.subject == null ? own : nestedNodes(own)[error.subject];
+    return (at == null ? null : errorInNode(t, at, error)) ??
+        unplacedError(t, error, own.path);
+  }
+
   bool get _hasDraft => ref.read(sessionProvider).value!.config!.shacl
       ? _root != null && hasAnyValue(_root!)
       : _custom.hasAtLeastOneProperty;
@@ -188,20 +199,34 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
           }
         : customCreationPayload(_custom.properties);
     String? uri;
+    var rejected = const <ServerFieldError>[];
     final ok = await runWithProgress(
       context,
       message: t.ui.create.validating,
       action: () async {
-        uri = await ref
-            .read(entityRepositoryProvider)
-            .create(
-              structuredData: structuredData,
-              primarySource: choice.url,
-              saveDefaultSource: choice.saveAsDefault,
-            );
+        try {
+          uri = await ref
+              .read(entityRepositoryProvider)
+              .create(
+                structuredData: structuredData,
+                primarySource: choice.url,
+                saveDefaultSource: choice.saveAsDefault,
+              );
+        } on ApiException catch (error) {
+          if (error.errors.isEmpty) {
+            rethrow;
+          }
+          rejected = error.errors;
+        }
       },
     );
     if (!ok || !mounted) {
+      return;
+    }
+    if (rejected.isNotEmpty) {
+      _scope.setErrors([
+        for (final error in rejected) _placeServerError(t, error),
+      ]);
       return;
     }
     if (choice.saveAsDefault) {

@@ -6,11 +6,14 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../api/api_exception.dart';
 import '../form/collector.dart';
 import '../form/field_def.dart';
 import '../form/form_model.dart';
+import '../form/server_errors.dart';
 import '../form/validator.dart';
 import '../form/widgets/custom_properties_form.dart';
+import '../i18n/translations.g.dart';
 import 'entity_models.dart';
 import 'entity_repository.dart';
 
@@ -479,6 +482,80 @@ class EditSession extends ChangeNotifier {
                 path: [view.typeLabel, group.group.displayName],
               ),
     ];
+  }
+
+  /// The errors of a rejected save, each beside the value or in the field it
+  /// concerns, whether that belongs to this resource, to a nested resource
+  /// shown in place or to a new one.
+  List<ValidationError> serverErrors(
+    Translations t,
+    List<ServerFieldError> errors,
+  ) {
+    final path = [view.typeLabel];
+    final FormNode own = (node: root, path: path);
+    final shownInPlace = <String, FormNode>{
+      for (final group in groups)
+        for (final value in group.existing)
+          if (value.detailNode case final node?)
+            value.triple.externalEntity!: (
+              node: node,
+              path: [...path, group.group.displayName],
+            ),
+    };
+    final created = {
+      ...nestedNodes(own),
+      for (final at in shownInPlace.values) ...nestedNodes(at),
+    };
+    ValidationError place(ServerFieldError error) {
+      final at = error.subject == view.uri
+          ? own
+          : created[error.subject] ?? shownInPlace[error.subject];
+      return _savedValueError(t, error) ??
+          (at == null ? null : errorInNode(t, at, error)) ??
+          unplacedError(t, error, path);
+    }
+
+    return [for (final error in errors) place(error)];
+  }
+
+  /// The error beside a saved value: the one the error rejects, or the only
+  /// value of the field.
+  ValidationError? _savedValueError(Translations t, ServerFieldError error) {
+    for (final group in groups) {
+      final values = <({EditedValue value, String name, List<String> path})>[
+        if (error.subject == view.uri &&
+            group.group.property == error.predicate)
+          for (final value in group.existing)
+            if (!value.markedForDeletion)
+              (
+                value: value,
+                name: group.group.displayName,
+                path: [view.typeLabel],
+              ),
+        for (final value in group.existing)
+          if (value.triple.externalEntity == error.subject)
+            for (final edit in value.detailEdits.values)
+              if (edit.field.uri == error.predicate && !edit.markedForDeletion)
+                (
+                  value: edit,
+                  name: edit.field.displayName,
+                  path: [view.typeLabel, group.group.displayName],
+                ),
+      ];
+      final input = error.input;
+      final match = input == null
+          ? values.singleOrNull
+          : values.where((value) => value.value.newValue == input).firstOrNull;
+      if (match != null) {
+        return ValidationError(
+          message: describeServerError(t, error, match.name),
+          path: match.path,
+          value: match.value,
+          fieldName: match.name,
+        );
+      }
+    }
+    return null;
   }
 
   List<Map<String, Object?>> buildChanges() {
