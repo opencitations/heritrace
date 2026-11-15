@@ -105,8 +105,6 @@ form:
   tooManyAmong: The property "$name" has too many values among $values ($count). Maximum allowed is $max.
   tooFewAmong: The property "$name" has too few values among $values ($count). Minimum required is $min.
   invalidIri: Enter a full IRI, such as https://example.org/x.
-  invalidPrefix: Start with a letter and use only letters, digits, dots, hyphens and underscores.
-  maxBelowMin: The maximum is lower than the minimum.
   countsMissing: Add the minimum or maximum occurrences of the values to count.
   boundsNeedNumber: Bounds need a numeric datatype.
   labelQueryRole: A label query needs the display label role.
@@ -118,6 +116,7 @@ form:
   emptyAlternative: Each value alternative needs a datatype, SHACL shape, class or value.
   mixedAlternatives: All the value alternatives of a field set the same kind of constraint.
   exclusive: $first and $second cannot be used together.
+  exceeds: The value cannot exceed the value of "$other".
   unsupported: HERITRACE cannot represent $part.
   fileChanged: shacl.ttl changed on disk. Reload the page to see its content.
 primarySource:

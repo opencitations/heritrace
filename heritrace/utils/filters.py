@@ -288,10 +288,18 @@ def field_with_labels(details: dict, custom_filter: Filter) -> dict:
     for key in ("displayName", "description"):
         if key in field:
             field[key] = localize(field[key])
-    if "conditions" in field:
-        field["conditions"] = [
-            alternative.as_condition() for alternative in field["conditions"]
+    if "lessThanOrEquals" in field:
+        field["lessThanOrEquals"] = [
+            {
+                "path": path,
+                "name": custom_filter.human_readable_predicate(
+                    path, field["entityKey"]
+                ),
+            }
+            for path in field["lessThanOrEquals"]
         ]
+    if "patterns" in field:
+        field["patterns"] = [pattern.as_json() for pattern in field["patterns"]]
     has_value = field.get("hasValue")
     if has_value:
         field["hasValueLabel"] = (

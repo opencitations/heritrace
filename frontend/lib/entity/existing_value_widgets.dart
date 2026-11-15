@@ -263,7 +263,10 @@ class _ValueBody extends StatelessWidget {
               description: option.description,
             ),
         ],
-        onChanged: (selected) => value.setValue(selected!),
+        onChanged: (selected) {
+          value.setValue(selected!);
+          FormScope.of(context).markChecked(value);
+        },
       );
     }
     if (!editable) {
@@ -439,15 +442,21 @@ class _DetailField extends StatelessWidget {
               description: field.optionalValueDescriptions[option],
             ),
         ],
-        onChanged: (selected) => edit.setValue(selected!),
+        onChanged: (selected) {
+          edit.setValue(selected!);
+          FormScope.of(context).markChecked(edit);
+        },
       ),
     );
   }
 }
 
 String? _valueErrorText(BuildContext context, EditedValue value) {
-  final errors = FormScope.of(context).errorsForValue(value);
-  return errors.isEmpty ? null : errors.map((error) => error.message).join(' ');
+  final scope = FormScope.of(context);
+  final errors = scope.errorsForValue(value);
+  return !scope.showsErrorsFor(value) || errors.isEmpty
+      ? null
+      : errors.map((error) => error.message).join(' ');
 }
 
 class _TextValueField extends StatefulWidget {
@@ -464,11 +473,19 @@ class _TextValueFieldState extends State<_TextValueField> {
   late final TextEditingController _controller = TextEditingController(
     text: widget.value.newValue,
   );
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     widget.value.addListener(_sync);
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    if (!_focusNode.hasFocus) {
+      FormScope.of(context).markChecked(widget.value);
+    }
   }
 
   void _sync() {
@@ -480,6 +497,7 @@ class _TextValueFieldState extends State<_TextValueField> {
   @override
   void dispose() {
     widget.value.removeListener(_sync);
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -489,6 +507,7 @@ class _TextValueFieldState extends State<_TextValueField> {
     final field = widget.field;
     return AppTextField(
       controller: _controller,
+      focusNode: _focusNode,
       errorText: _valueErrorText(context, widget.value),
       multiline: field?.inputType == 'textarea',
       keyboardType: field == null ? null : valueKeyboardType(field),

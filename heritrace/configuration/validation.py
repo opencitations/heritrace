@@ -5,7 +5,6 @@
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from urllib.parse import urlparse
 
 from pyparsing import ParseException
 from rdflib import OWL, URIRef
@@ -25,22 +24,16 @@ from heritrace.configuration.shapes import (
     PropertyShape,
     Shapes,
 )
-from heritrace.configuration.vocabulary import HT, SH, SHUI
+from heritrace.configuration.vocabulary import SH, SHUI
 from heritrace.field_errors import FieldError, field_error
+from heritrace.utils.uri_utils import is_iri
 from heritrace.utils.value_bounds import NUMERIC_DATATYPES
-
-_PREFIX = re.compile(r"^[A-Za-z][\w.-]*$")
 
 
 @dataclass(frozen=True)
 class Issue:
     location: str
     message: str
-
-
-def is_iri(value: str) -> bool:
-    parsed = urlparse(value)
-    return bool(parsed.scheme) and not any(char.isspace() for char in value)
 
 
 def _check_iri(issues: list[Issue], location: str, value: str | None) -> None:
@@ -126,15 +119,6 @@ def _validate_bounds(report: _Report, prop: PropertyShape) -> None:
         for key, bound in bounds.items():
             if bound is not None:
                 report.add("boundsNeedNumber", prop.node, _BOUNDS[key])
-        return
-    lowers = [bounds["min_inclusive"], bounds["min_exclusive"]]
-    for key in ("max_inclusive", "max_exclusive"):
-        upper = bounds[key]
-        if upper is not None and any(
-            lower is not None and lower.toPython() > upper.toPython()
-            for lower in lowers
-        ):
-            report.add("maxBelowMin", prop.node, _BOUNDS[key])
 
 
 def _used_prefixes(tree: object) -> set[str]:
@@ -194,19 +178,20 @@ def _validate_counts(report: _Report, prop: PropertyShape) -> None:
     for predicate, count in ((minimum, prop.min_count), (maximum, prop.max_count)):
         if count is not None and count < 0:
             report.add("atLeast", prop.node, predicate, limit="0")
-    if (
-        prop.min_count is not None
-        and prop.max_count is not None
-        and prop.min_count > prop.max_count
-    ):
-        report.add("maxBelowMin", prop.node, maximum)
     if prop.qualified and prop.min_count is None and prop.max_count is None:
         report.add("countsMissing", prop.node, SH.qualifiedMinCount)
 
 
+def _compiles(pattern: str) -> bool:
+    try:
+        re.compile(pattern)
+    except re.error:
+        return False
+    return True
+
+
 def _validate_property(report: _Report, prop: PropertyShape) -> None:
     report.check_iri(prop.node, SH.path, prop.path)
-    report.check_iri(prop.node, HT.orderedBy, prop.ordered_by)
     _validate_counts(report, prop)
     _validate_bounds(report, prop)
     for predicate, value, known in (
@@ -223,30 +208,20 @@ def _validate_property(report: _Report, prop: PropertyShape) -> None:
     )
     if prop.kind != "any" and not prop.values:
         report.add("tooFew", prop.node, values, count=0, min=1)
-    for value in prop.values:
-        report.check_iri(prop.node, values, value)
-    for detail_path in prop.details:
-        report.check_iri(prop.node, SH.property, detail_path)
+    if prop.pattern is not None and not _compiles(prop.pattern):
+        report.add("invalidRegex", prop.node, SH.pattern)
     _validate_label_query(report, prop)
 
 
 def _validate_shape(report: _Report, shape: NodeShape) -> None:
     node = URIRef(shape.iri)
-    report.check_iri(node, SH.targetClass, shape.target_class)
     for prop in shape.properties:
         _validate_property(report, prop)
     for key in shape.duplicate_keys:
         if not key:
             report.add("tooFew", node, OWL.hasKey, count=0, min=1)
-        for prop in key:
-            report.check_iri(node, OWL.hasKey, prop)
     for rule in shape.patterns:
-        report.check_iri(rule.node, HT.conditionPath, rule.condition_path)
-        report.check_iri(rule.node, HT.conditionValue, rule.condition_value)
-        report.check_iri(rule.node, HT.checkedPath, rule.path)
-        try:
-            re.compile(rule.pattern)
-        except re.error:
+        if not _compiles(rule.pattern):
             report.add("invalidRegex", rule.node, SH.pattern)
     _check_rule_coverage(report, shape)
 
@@ -273,10 +248,7 @@ def validate_shapes(
 ) -> list[FieldError]:
     report = _Report([], editor_iri, shapes.prefixes)
     for prefix, namespace in shapes.prefixes.items():
-        declaration = shapes.prefix_nodes[prefix]
-        if not _PREFIX.match(prefix):
-            report.add("invalidPrefix", declaration, SH.prefix)
-        report.check_iri(declaration, SH.namespace, namespace)
+        report.check_iri(shapes.prefix_nodes[prefix], SH.namespace, namespace)
     for shape in shapes.shapes:
         _validate_shape(report, shape)
     return report.errors

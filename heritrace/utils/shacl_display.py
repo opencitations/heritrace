@@ -20,10 +20,10 @@ from heritrace.configuration.vocabulary import DASH, HT, SH, SHUI
 from heritrace.language import LocalizedText, localized_texts
 from heritrace.sparql import select_results
 from heritrace.utils.shacl_patterns import (
-    PatternAlternative,
+    ValuePattern,
     read_excluded_with,
-    read_pattern_alternatives,
     read_shown_with,
+    read_value_patterns,
 )
 from heritrace.utils.shacl_presentation import (
     ShapesPresentation,
@@ -39,7 +39,7 @@ from heritrace.utils.value_bounds import Bound, bound_number
 class ShaclProcessingContext:
     shacl: Graph
     presentation: ShapesPresentation
-    pattern_alternatives: list[PatternAlternative]
+    value_patterns: list[ValuePattern]
     shown_with: dict[tuple[str, str], list[str]]
     excluded_with: dict[tuple[str, str], list[str]]
     app: Flask
@@ -75,6 +75,8 @@ class _ParsedRow:
     hidden: bool
     unique_lang: bool
     ordered_by: str | None
+    node_kind: str | None
+    limit_paths: list[str]
 
 
 _BOUND_VARIABLES = {
@@ -95,13 +97,14 @@ COMMON_SPARQL_QUERY = prepareQuery(
            ?datatype
            ?max_count ?min_count ?min_inclusive ?max_inclusive ?min_exclusive
            ?max_exclusive ?has_value ?object_class
-           ?editor ?viewer ?composite ?hidden ?unique_lang ?ordered_by
+           ?editor ?viewer ?composite ?hidden ?unique_lang ?ordered_by ?node_kind
            (GROUP_CONCAT(?optional_value; separator=",")
             AS ?optional_values)
            (GROUP_CONCAT(?or_node; separator=",") AS ?or_nodes)
            (GROUP_CONCAT(?or_link_shape; separator=",") AS ?or_link_shapes)
            (SAMPLE(?iri_alternative) AS ?or_iri)
            (GROUP_CONCAT(?detail_path; separator=",") AS ?detail_paths)
+           (GROUP_CONCAT(?limit_path; separator=",") AS ?limit_paths)
     WHERE {
         ?shape sh:targetClass ?type ;
                sh:property ?property .
@@ -176,6 +179,8 @@ COMMON_SPARQL_QUERY = prepareQuery(
         OPTIONAL { ?property dash:composite ?composite . }
         OPTIONAL { ?property dash:hidden ?hidden . }
         OPTIONAL { ?property sh:uniqueLang ?unique_lang . }
+        OPTIONAL { ?property sh:nodeKind ?node_kind . }
+        OPTIONAL { ?property sh:lessThanOrEquals ?limit_path . }
         OPTIONAL { ?property ht:orderedBy ?chained_by . }
         BIND(COALESCE(
             ?chained_by,
@@ -191,7 +196,7 @@ COMMON_SPARQL_QUERY = prepareQuery(
              ?datatype
              ?max_count ?min_count ?min_inclusive ?max_inclusive ?min_exclusive
              ?max_exclusive ?has_value ?object_class
-             ?editor ?viewer ?composite ?hidden ?unique_lang ?ordered_by
+             ?editor ?viewer ?composite ?hidden ?unique_lang ?ordered_by ?node_kind
 """,
     initNs={
         "sh": "http://www.w3.org/ns/shacl#",
@@ -256,17 +261,18 @@ def _parse_row(shacl: Graph, row: ResultRow) -> _ParsedRow:
         hidden=bool(row.hidden),
         unique_lang=bool(row.unique_lang),
         ordered_by=str(row.ordered_by) if row.ordered_by else None,
+        node_kind=str(row.node_kind) if row.node_kind else None,
+        limit_paths=sorted({v for v in (row.limit_paths or "").split(",") if v}),
     )
 
 
-def _field_conditions(
+def _field_patterns(
     ctx: ShaclProcessingContext, parsed: _ParsedRow
-) -> list[PatternAlternative]:
+) -> list[ValuePattern]:
     return [
-        alternative
-        for alternative in ctx.pattern_alternatives
-        if alternative.shape == parsed.subject_shape
-        and alternative.path == parsed.predicate
+        pattern
+        for pattern in ctx.value_patterns
+        if pattern.shape == parsed.subject_shape and pattern.path == parsed.predicate
     ]
 
 
@@ -305,7 +311,7 @@ def _or_option(
         "hasValue": parsed.has_value,
         "objectClass": get_object_class(ctx.shacl, node, parsed.predicate),
         "optionalValues": parsed.optional_values,
-        "conditions": _field_conditions(ctx, parsed),
+        "patterns": _field_patterns(ctx, parsed),
         "autocomplete": parsed.editor == str(SHUI.AutoCompleteEditor),
         "detailsEditor": parsed.editor == str(SHUI.DetailsEditor),
         "detailsViewer": parsed.viewer == str(SHUI.DetailsViewer),
@@ -323,9 +329,8 @@ def _iri_option(ctx: ShaclProcessingContext, parsed: _ParsedRow) -> dict[str, ob
         "subjectShape": parsed.subject_shape,
         "min": parsed.min_count,
         "max": parsed.max_count,
-        "conditions": _field_conditions(ctx, parsed),
-        "inputType": "url",
-        "iri": True,
+        "patterns": _field_patterns(ctx, parsed),
+        "nodeKind": str(SH.IRI),
         "hidden": parsed.hidden,
     }
 
@@ -386,7 +391,7 @@ def _process_single_row(
         "hasValue": parsed.has_value,
         "objectClass": parsed.object_class,
         "optionalValues": parsed.optional_values,
-        "conditions": _field_conditions(ctx, parsed),
+        "patterns": _field_patterns(ctx, parsed),
         "inputType": determine_input_type(parsed.editor, parsed.datatype),
         "autocomplete": parsed.editor == str(SHUI.AutoCompleteEditor),
         "detailsEditor": parsed.editor == str(SHUI.DetailsEditor),
@@ -401,6 +406,8 @@ def _process_single_row(
         "description": parsed.descriptions,
         "detailPaths": parsed.detail_paths or None,
         "orderedBy": parsed.ordered_by,
+        "nodeKind": parsed.node_kind,
+        "lessThanOrEquals": parsed.limit_paths,
         "shownWith": ctx.shown_with.get((parsed.subject_shape, parsed.predicate)),
         "excludedWith": ctx.excluded_with.get((parsed.subject_shape, parsed.predicate)),
     }
@@ -591,7 +598,7 @@ def extract_shacl_form_fields(
     ctx = ShaclProcessingContext(
         shacl=shacl,
         presentation=presentation,
-        pattern_alternatives=read_pattern_alternatives(shacl),
+        value_patterns=read_value_patterns(shacl),
         shown_with=read_shown_with(shacl),
         excluded_with=read_excluded_with(shacl),
         app=app,

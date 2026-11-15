@@ -48,6 +48,8 @@ SINGLE_VALUE_PREDICATES: dict[ValueKind, URIRef] = {
     "class": SH["class"],
 }
 _ALTERNATIVE_KINDS: tuple[ValueKind, ...] = ("datatype", "node", "value", "class")
+# The kinds of node a value typed in a form can have.
+NODE_KINDS = (str(SH.IRI), str(SH.Literal), str(SH.IRIOrLiteral))
 
 
 @dataclass
@@ -63,14 +65,22 @@ class PropertyShape:
     max_inclusive: Literal | None = None
     min_exclusive: Literal | None = None
     max_exclusive: Literal | None = None
+    pattern: str | None = None
+    pattern_messages: LocalizedText = field(default_factory=dict)
+    # The properties whose values the values of this one do not exceed.
+    less_than_or_equals: list[str] = field(default_factory=list)
     editor: str | None = None
     viewer: str | None = None
     composite: bool | None = None
     hidden: bool | None = None
     unique_lang: bool | None = None
     ordered_by: str | None = None
+    node_kind: str | None = None
     kind: ValueKind = "any"
     values: list[str] = field(default_factory=list)
+    # The position of the member [ sh:nodeKind sh:IRI ] in the sh:or of the
+    # values, which lets them also be IRIs typed in place.
+    iri_alternative: int | None = None
     node_classes: dict[str, str] = field(default_factory=dict)
     qualified: bool = False
     label: bool = False
@@ -160,11 +170,32 @@ def _only_value(graph: Graph, member: Node, predicate: URIRef) -> str | None:
     return None
 
 
+def _is_iri_member(graph: Graph, member: Node) -> bool:
+    return set(graph.predicate_objects(member)) == {(SH.nodeKind, SH.IRI)}
+
+
+def _iri_alternative(graph: Graph, target: Node) -> int | None:
+    head = graph.value(target, SH["or"])
+    members = [] if head is None else list(Collection(graph, head))
+    return next(
+        (
+            index
+            for index, member in enumerate(members)
+            if _is_iri_member(graph, member)
+        ),
+        None,
+    )
+
+
 def _alternatives(graph: Graph, target: Node) -> tuple[ValueKind, list[str]] | None:
     head = graph.value(target, SH["or"])
     if head is None:
         return None
-    members = list(Collection(graph, head))
+    members = [
+        member
+        for member in Collection(graph, head)
+        if not _is_iri_member(graph, member)
+    ]
     for kind in _ALTERNATIVE_KINDS:
         predicate = SINGLE_VALUE_PREDICATES[kind]
         values = [_only_value(graph, member, predicate) for member in members]
@@ -201,6 +232,7 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
     if not isinstance(inverse_of or path, URIRef):
         return None
     qualified_shape = graph.value(property_shape, SH.qualifiedValueShape)
+    node_kind = _iri(graph, property_shape, SH.nodeKind)
     prop = PropertyShape(
         path=str(inverse_of or path),
         inverse=inverse_of is not None,
@@ -213,21 +245,31 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
         hidden=_boolean(graph, property_shape, DASH.hidden),
         unique_lang=_boolean(graph, property_shape, SH.uniqueLang),
         ordered_by=_iri(graph, property_shape, HT.orderedBy),
+        node_kind=node_kind if node_kind in NODE_KINDS else None,
         label=(property_shape, SHUI.propertyRole, SHUI.LabelRole) in graph,
         min_inclusive=_literal(graph, property_shape, SH.minInclusive),
         max_inclusive=_literal(graph, property_shape, SH.maxInclusive),
         min_exclusive=_literal(graph, property_shape, SH.minExclusive),
         max_exclusive=_literal(graph, property_shape, SH.maxExclusive),
+        pattern=_text(graph, property_shape, SH.pattern),
+        pattern_messages=localized_texts(graph, property_shape, SH.message),
+        less_than_or_equals=sorted(
+            str(other)
+            for other in graph.objects(property_shape, SH.lessThanOrEquals)
+            if isinstance(other, URIRef)
+        ),
         node=property_shape,
     )
     if qualified_shape is not None:
         prop.qualified = True
         prop.kind, prop.values = _value_constraint(graph, qualified_shape)
+        prop.iri_alternative = _iri_alternative(graph, qualified_shape)
         prop.node_classes = _node_classes(graph, qualified_shape)
         prop.min_count = _integer(graph, property_shape, SH.qualifiedMinCount)
         prop.max_count = _integer(graph, property_shape, SH.qualifiedMaxCount)
     else:
         prop.kind, prop.values = _value_constraint(graph, property_shape)
+        prop.iri_alternative = _iri_alternative(graph, property_shape)
         prop.node_classes = _node_classes(graph, property_shape)
         prop.min_count = _integer(graph, property_shape, SH.minCount)
         prop.max_count = _integer(graph, property_shape, SH.maxCount)
@@ -368,13 +410,11 @@ def _add_value(graph: Graph, target: Node, prop: PropertyShape, value: URIRef) -
 
 
 def _add_value_constraint(graph: Graph, target: Node, prop: PropertyShape) -> None:
-    if prop.kind == "any":
-        return
     values = [URIRef(value) for value in prop.values]
     if prop.kind == "options":
         graph.add((target, SH["in"], _add_list(graph, list(values))))
         return
-    if len(values) == 1:
+    if len(values) == 1 and prop.iri_alternative is None:
         _add_value(graph, target, prop, values[0])
         return
     members: list[Node] = []
@@ -382,7 +422,12 @@ def _add_value_constraint(graph: Graph, target: Node, prop: PropertyShape) -> No
         member = BNode()
         _add_value(graph, member, prop, value)
         members.append(member)
-    graph.add((target, SH["or"], _add_list(graph, members)))
+    if prop.iri_alternative is not None:
+        member = BNode()
+        graph.add((member, SH.nodeKind, SH.IRI))
+        members.insert(prop.iri_alternative, member)
+    if members:
+        graph.add((target, SH["or"], _add_list(graph, members)))
 
 
 def _add_path(graph: Graph, node: Node, prop: PropertyShape) -> None:
@@ -407,6 +452,10 @@ def _add_widgets(graph: Graph, node: Node, prop: PropertyShape) -> None:
         graph.add((node, SH.uniqueLang, Literal(prop.unique_lang)))
     if prop.ordered_by is not None:
         graph.add((node, HT.orderedBy, URIRef(prop.ordered_by)))
+    if prop.node_kind is not None:
+        graph.add((node, SH.nodeKind, URIRef(prop.node_kind)))
+    for other in prop.less_than_or_equals:
+        graph.add((node, SH.lessThanOrEquals, URIRef(other)))
     for detail_path in prop.details:
         detail = BNode()
         graph.add((node, SH.property, detail))
@@ -420,8 +469,10 @@ def _add_property(graph: Graph, shape: URIRef, prop: PropertyShape) -> None:
     _add_widgets(graph, node, prop)
     add_localized_texts(graph, node, SH.name, prop.names)
     add_localized_texts(graph, node, SH.description, prop.descriptions)
+    add_localized_texts(graph, node, SH.message, prop.pattern_messages)
     for predicate, value in (
         (SH.order, prop.order),
+        (SH.pattern, prop.pattern),
         (SH.minInclusive, prop.min_inclusive),
         (SH.maxInclusive, prop.max_inclusive),
         (SH.minExclusive, prop.min_exclusive),

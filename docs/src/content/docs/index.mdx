@@ -23,6 +23,7 @@ This method uses official Docker images published to Docker Hub and GitHub Conta
 ### 1. Download the compose file
 
 Create a new directory for HERITRACE and download the configuration:
+
 ```bash
 mkdir heritrace && cd heritrace && \
 curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/heritrace/main/docker-compose.yml
@@ -73,6 +74,7 @@ Now that HERITRACE is running, you can:
 ## Stopping the application
 
 Press Ctrl+C in the terminal running docker compose, or run:
+
 ```bash
 docker compose down
 ```
@@ -80,20 +82,24 @@ docker compose down
 ## Troubleshooting
 
 ### Port already in use
+
 If you get a port conflict on 5000, check what is using it:
 
 <Tabs>
   <TabItem label="Linux">
+
     ```bash
     ss -tulpn | grep ':5000\s'
     ```
   </TabItem>
   <TabItem label="macOS">
+
     ```bash
     netstat -an | grep ':5000\s'
     ```
   </TabItem>
   <TabItem label="Windows">
+
     ```powershell
     Get-NetTCPConnection | Where-Object {$_.LocalPort -eq 5000}
     ```
@@ -101,6 +107,7 @@ If you get a port conflict on 5000, check what is using it:
 </Tabs>
 
 ### Need help?
+
 - Review [configuration options](/heritrace/configuration/app-settings/) for advanced setup
 - Use `docker compose logs` to check application logs for specific errors
 - Visit the <a href="https://github.com/opencitations/heritrace" target="_blank" rel="noopener noreferrer">GitHub repository</a> for issues and support

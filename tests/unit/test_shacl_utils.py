@@ -13,13 +13,13 @@ import pytest
 from flask import Flask
 from rdflib import RDF, XSD, Graph, Literal, Namespace, URIRef
 
-from heritrace.utils.filters import field_with_labels
+from heritrace.utils.filters import Filter, field_with_labels
 from heritrace.utils.shacl_display import (
     ShaclProcessingContext,
     get_shape_target_class,
     process_query_results,
 )
-from heritrace.utils.shacl_patterns import PatternAlternative
+from heritrace.utils.shacl_patterns import ValuePattern
 from heritrace.utils.shacl_presentation import read_presentation
 from heritrace.utils.shacl_utils import (
     _find_entity_position_in_order_map,
@@ -104,6 +104,37 @@ class TestShaclUtils:
             "http://example.org/abstract": [({"": "Abstract"}, "textarea")],
             "http://example.org/pages": [(None, "number")],
         }
+
+    def test_a_field_names_the_properties_its_values_do_not_exceed(self) -> None:
+        app = Flask(__name__)
+        app.config["DATASET_DB_URL"] = "http://example.org/sparql"
+        shacl = Graph().parse(
+            data="""
+            @prefix sh: <http://www.w3.org/ns/shacl#> .
+            @prefix ex: <http://example.org/> .
+
+            ex:EventShape a sh:NodeShape ;
+              sh:targetClass ex:Event ;
+              sh:property [
+                sh:path ex:start ;
+                sh:lessThanOrEquals ex:end, ex:deadline ;
+              ] ;
+              sh:property [ sh:path ex:end ; sh:name "Ends on" ] .
+            """,
+            format="turtle",
+        )
+        presentation = read_presentation(shacl)
+
+        start = extract_shacl_form_fields(shacl, presentation, app)[
+            ("http://example.org/Event", "http://example.org/EventShape")
+        ]["http://example.org/start"][0]
+
+        assert field_with_labels(start, Filter(presentation, MagicMock))[
+            "lessThanOrEquals"
+        ] == [
+            {"path": "http://example.org/deadline", "name": "Deadline"},
+            {"path": "http://example.org/end", "name": "Ends on"},
+        ]
 
     def test_field_names_and_descriptions_keep_every_language(self) -> None:
         app = Flask(__name__)
@@ -304,9 +335,8 @@ class TestShaclUtils:
             "subjectShape": "http://example.org/FieldShape",
             "min": 1,
             "max": 1,
-            "conditions": [],
-            "inputType": "url",
-            "iri": True,
+            "patterns": [],
+            "nodeKind": "http://www.w3.org/ns/shacl#IRI",
             "hidden": False,
         }
         assert inverse["nodeShape"] == "http://example.org/InverseShape"
@@ -447,6 +477,8 @@ class TestShaclUtils:
             hidden: object = None
             unique_lang: object = None
             ordered_by: object = None
+            node_kind: object = None
+            limit_paths: object = None
 
         # Crea un risultato con orNodes
         results = [
@@ -490,7 +522,7 @@ class TestShaclUtils:
             ctx = ShaclProcessingContext(
                 shacl=shacl,
                 presentation=read_presentation(shacl),
-                pattern_alternatives=[],
+                value_patterns=[],
                 shown_with={},
                 excluded_with={},
                 app=app,
@@ -589,6 +621,8 @@ class TestShaclUtils:
             hidden: object = None
             unique_lang: object = None
             ordered_by: object = None
+            node_kind: object = None
+            limit_paths: object = None
 
         # Crea due risultati con lo stesso campo di base ma con datatype diversi
         # Il primo risultato crea il campo base
@@ -657,13 +691,12 @@ class TestShaclUtils:
             ctx = ShaclProcessingContext(
                 shacl=shacl,
                 presentation=read_presentation(shacl),
-                pattern_alternatives=[
-                    PatternAlternative(
+                value_patterns=[
+                    ValuePattern(
                         target_class="entity_type1",
                         shape="subjectShape1",
                         path="predicate1",
-                        condition_path="conditionPath1",
-                        condition_value="conditionValue1",
+                        condition=("conditionPath1", "conditionValue1"),
                         pattern="pattern1",
                         messages={"": "message1"},
                     )
@@ -691,9 +724,7 @@ class TestShaclUtils:
         assert "http://www.w3.org/2001/XMLSchema#string" in field_info["datatypes"]
         assert "http://www.w3.org/2001/XMLSchema#integer" in field_info["datatypes"]
 
-        assert [
-            alternative.as_condition() for alternative in field_info["conditions"]
-        ] == [
+        assert [pattern.as_json() for pattern in field_info["patterns"]] == [
             {
                 "condition": {"path": "conditionPath1", "value": "conditionValue1"},
                 "pattern": "pattern1",

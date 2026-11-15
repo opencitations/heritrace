@@ -22,7 +22,10 @@ class FormScopeController extends ChangeNotifier {
   String rootLabel;
   List<ValidationError> errors = [];
   bool validationStarted = false;
-  final Set<FormItem> checkedItems = {};
+
+  /// The items and saved values the user has left, whose errors show before
+  /// the first save attempt.
+  final Set<Object> checked = {};
 
   List<ValidationError> errorsFor(FormItem item) =>
       errors.where((error) => error.item == item).toList();
@@ -30,11 +33,11 @@ class FormScopeController extends ChangeNotifier {
   List<ValidationError> errorsForValue(Object value) =>
       errors.where((error) => error.value == value).toList();
 
-  bool showsErrorsFor(FormItem item) =>
-      validationStarted || checkedItems.contains(item);
+  bool showsErrorsFor(Object target) =>
+      validationStarted || checked.contains(target);
 
-  void markChecked(FormItem item) {
-    if (checkedItems.add(item)) {
+  void markChecked(Object target) {
+    if (checked.add(target)) {
       notifyListeners();
     }
   }
@@ -48,7 +51,7 @@ class FormScopeController extends ChangeNotifier {
   void reset() {
     errors = [];
     validationStarted = false;
-    checkedItems.clear();
+    checked.clear();
     notifyListeners();
   }
 }

@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: ISC
 
+from urllib.parse import urlparse
+
 import validators
 from rdflib import URIRef
 
@@ -26,6 +28,12 @@ def generate_unique_uri(
 
     uri = get_uri_generator().generate_uri(entity_type, context_data)
     return URIRef(uri)
+
+
+# What HERITRACE takes as an IRI: a scheme and no spaces.
+def is_iri(value: str) -> bool:
+    parsed = urlparse(value)
+    return bool(parsed.scheme) and not any(char.isspace() for char in value)
 
 
 def is_valid_url(value: str | None) -> bool:

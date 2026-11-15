@@ -27,6 +27,7 @@ HERITRACE removes this trade-off. Users interact with their data through forms a
 ## Key features
 
 ### Provenance management and change tracking
+
 HERITRACE uses the <a href="https://doi.org/10.1007/978-3-030-62466-8_28" target="_blank">OpenCitations Data Model (OCDM)</a> extending the <a href="https://www.w3.org/TR/prov-o/" target="_blank">PROV Ontology</a> to track provenance. Every modification is captured as a snapshot with:
 - Timestamp of creation/invalidation
 - Responsible agent (individual, organization, or automated process)
@@ -38,17 +39,20 @@ Changes are stored as deltas between successive snapshots (SPARQL update queries
 ![Resource editing interface showing metadata fields and editing options](../../assets/change_tracking.png)
 
 ### Time machine and recycle bin
+
 The time machine shows a timeline of an entity's versions. Users can view any previous state and restore it; linked resources are adjusted automatically. The recycle bin is a catalogue of deleted entities that can be recovered.
 
 ![Time machine interface showing version history and timeline](../../assets/time_machine.png)
 
 ### Metadata management
+
 - **Real-time validation**: SHACL constraints check data as it is entered
 - **Disambiguation**: During creation, HERITRACE detects similar existing entities to prevent duplicates
 - **Dynamic forms**: The interface adapts its fields based on entity type and SHACL definitions
 - **Relationship handling**: Entities can be linked with validation against the defined schema
 
 ### RDF integration
+
 HERITRACE works out of the box with existing RDF datasets. Connect to your triplestore and the system discovers and displays entities based on their RDF types. No data transformation or import step is needed.
 
 ## Technical foundation

@@ -322,6 +322,7 @@ meta:PropertyShapeShape
     sh:datatype xsd:integer ;
     sh:minInclusive 0 ;
     sh:maxCount 1 ;
+    sh:lessThanOrEquals sh:maxCount ;
   ] ;
   sh:property [
     sh:path sh:maxCount ;
@@ -343,20 +344,30 @@ meta:PropertyShapeShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path sh:nodeKind ;
+    sh:name "Kind of value"@en, "Tipo di valore"@it ;
+    sh:description "Whether the values are IRIs, literals or either"@en,
+      "Se i valori sono IRI, letterali o entrambi"@it ;
+    sh:order 7 ;
+    sh:in ( sh:IRI sh:Literal sh:IRIOrLiteral ) ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
     sh:path sh:minInclusive ;
     sh:name "Minimum value (included)"@en, "Valore minimo (incluso)"@it ;
     sh:description "The smallest value accepted"@en,
       "Il valore più piccolo accettato"@it ;
-    sh:order 7 ;
+    sh:order 8 ;
     sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:decimal ] ) ;
     sh:maxCount 1 ;
+    sh:lessThanOrEquals sh:maxInclusive, sh:maxExclusive ;
   ] ;
   sh:property [
     sh:path sh:maxInclusive ;
     sh:name "Maximum value (included)"@en, "Valore massimo (incluso)"@it ;
     sh:description "The largest value accepted"@en,
       "Il valore più grande accettato"@it ;
-    sh:order 8 ;
+    sh:order 9 ;
     sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:decimal ] ) ;
     sh:maxCount 1 ;
   ] ;
@@ -365,25 +376,53 @@ meta:PropertyShapeShape
     sh:name "Minimum value (excluded)"@en, "Valore minimo (escluso)"@it ;
     sh:description "Accepted values are greater than this number"@en,
       "I valori accettati sono maggiori di questo numero"@it ;
-    sh:order 9 ;
+    sh:order 10 ;
     sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:decimal ] ) ;
     sh:maxCount 1 ;
+    sh:lessThanOrEquals sh:maxInclusive, sh:maxExclusive ;
   ] ;
   sh:property [
     sh:path sh:maxExclusive ;
     sh:name "Maximum value (excluded)"@en, "Valore massimo (escluso)"@it ;
     sh:description "Accepted values are less than this number"@en,
       "I valori accettati sono minori di questo numero"@it ;
-    sh:order 10 ;
+    sh:order 11 ;
     sh:or ( [ sh:datatype xsd:integer ] [ sh:datatype xsd:decimal ] ) ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:lessThanOrEquals ;
+    sh:name "Not greater than"@en, "Non maggiore di"@it ;
+    sh:description "The IRI of another property of this type, whose values are greater than or equal to those of this field"@en,
+      "L'IRI di un'altra proprietà di questo tipo, i cui valori sono maggiori o uguali a quelli di questo campo"@it ;
+    sh:order 12 ;
+    sh:nodeKind sh:IRI ;
+  ] ;
+  sh:property [
+    sh:path sh:pattern ;
+    sh:name "Pattern"@en, "Pattern"@it ;
+    sh:description "The regular expression that each value must match"@en,
+      "L'espressione regolare che ogni valore deve rispettare"@it ;
+    sh:order 13 ;
+    sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:message ;
+    sh:name "Pattern message"@en, "Messaggio del pattern"@it ;
+    sh:description "The text shown when the value does not match the pattern"@en,
+      "Il testo mostrato quando il valore non rispetta il pattern"@it ;
+    sh:order 14 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:datatype rdf:langString ] ) ;
+    sh:uniqueLang true ;
+    shui:editor shui:TextFieldWithLangEditor ;
   ] ;
   sh:property [
     sh:path sh:node ;
     sh:name "SHACL shape of the value"@en, "Shape SHACL del valore"@it ;
     sh:description "The IRI of the SHACL shape that the value must conform to"@en,
       "L'IRI della shape SHACL a cui il valore si deve conformare"@it ;
-    sh:order 11 ;
+    sh:order 15 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
   ] ;
@@ -392,7 +431,7 @@ meta:PropertyShapeShape
     sh:name "Class of the value"@en, "Classe del valore"@it ;
     sh:description "The IRI of the class that the value must belong to"@en,
       "L'IRI della classe a cui il valore deve appartenere"@it ;
-    sh:order 12 ;
+    sh:order 16 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
   ] ;
@@ -401,7 +440,7 @@ meta:PropertyShapeShape
     sh:name "Value alternatives"@en, "Vincoli alternativi"@it ;
     sh:description "Each alternative describes a value that the property accepts, and a value has to match at least one. All alternatives use the same constraint: a datatype, a SHACL shape, a class or a value"@en,
       "Ogni vincolo descrive un valore che la proprietà accetta, e un valore deve rispettarne almeno uno. Tutti i vincoli sono dello stesso tipo: un tipo di dato, una shape SHACL, una classe o un valore"@it ;
-    sh:order 13 ;
+    sh:order 17 ;
     dash:composite true ;
     sh:node meta:ValueAlternativeShape ;
     shui:editor shui:DetailsEditor ;
@@ -413,7 +452,7 @@ meta:PropertyShapeShape
     sh:name "Allowed values"@en, "Valori ammessi"@it ;
     sh:description "The only values that the property accepts. Forms offer them in a menu, in this order"@en,
       "I soli valori che la proprietà accetta. I form li propongono in un menu, in questo ordine"@it ;
-    sh:order 14 ;
+    sh:order 18 ;
     dash:composite true ;
     sh:node meta:AllowedValueShape ;
     shui:editor shui:DetailsEditor ;
@@ -425,7 +464,7 @@ meta:PropertyShapeShape
     sh:name "Fixed value"@en, "Valore fisso"@it ;
     sh:description "An IRI that the property always has among its values. Forms add it on their own"@en,
       "Un IRI che la proprietà ha sempre fra i suoi valori. I form lo aggiungono da soli"@it ;
-    sh:order 15 ;
+    sh:order 19 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
   ] ;
@@ -434,7 +473,7 @@ meta:PropertyShapeShape
     sh:name "Values to count"@en, "Valori da contare"@it ;
     sh:description "The values of the property whose occurrences you want to limit. Set in the following fields how many times they may appear in total"@en,
       "I valori della proprietà di cui vuoi limitare le occorrenze. Indica nei campi seguenti quante volte possono comparire in tutto"@it ;
-    sh:order 16 ;
+    sh:order 20 ;
     sh:node meta:QualifiedValueShapeShape ;
     shui:editor shui:DetailsEditor ;
     shui:viewer shui:DetailsViewer ;
@@ -445,17 +484,18 @@ meta:PropertyShapeShape
     sh:name "Minimum occurrences"@en, "Occorrenze minime"@it ;
     sh:description "The fewest times the values to count may appear in total"@en,
       "Quante volte almeno compaiono, in tutto, i valori da contare"@it ;
-    sh:order 17 ;
+    sh:order 21 ;
     sh:datatype xsd:integer ;
     sh:minInclusive 0 ;
     sh:maxCount 1 ;
+    sh:lessThanOrEquals sh:qualifiedMaxCount ;
   ] ;
   sh:property [
     sh:path sh:qualifiedMaxCount ;
     sh:name "Maximum occurrences"@en, "Occorrenze massime"@it ;
     sh:description "The most times the values to count may appear in total"@en,
       "Quante volte al massimo compaiono, in tutto, i valori da contare"@it ;
-    sh:order 18 ;
+    sh:order 22 ;
     sh:datatype xsd:integer ;
     sh:minInclusive 0 ;
     sh:maxCount 1 ;
@@ -465,7 +505,7 @@ meta:PropertyShapeShape
     sh:name "Editor"@en, "Editor"@it ;
     sh:description "How this field is edited"@en,
       "Come si modifica questo campo"@it ;
-    sh:order 19 ;
+    sh:order 23 ;
     sh:in ( shui:TextFieldEditor shui:TextAreaEditor shui:TextFieldWithLangEditor shui:TextAreaWithLangEditor shui:AutoCompleteEditor shui:DetailsEditor ) ;
     sh:maxCount 1 ;
   ] ;
@@ -474,7 +514,7 @@ meta:PropertyShapeShape
     sh:name "Viewer"@en, "Visualizzatore"@it ;
     sh:description "How this field is read"@en,
       "Come si legge questo campo"@it ;
-    sh:order 20 ;
+    sh:order 24 ;
     sh:in ( shui:DetailsViewer ) ;
     sh:maxCount 1 ;
   ] ;
@@ -483,7 +523,7 @@ meta:PropertyShapeShape
     sh:name "Points to a dependent resource"@en, "Punta a una risorsa dipendente"@it ;
     sh:description "A resource reached through this property has no meaning without this link. The setting Configuration > System > Cleanup after a deletion > Dependent resources decides what happens when the link is removed"@en,
       "Una risorsa raggiunta tramite questa proprietà non ha senso senza questo collegamento. Cosa succede quando il collegamento viene rimosso lo decide l'impostazione Configurazione > Sistema > Pulizia dopo un'eliminazione > Risorse dipendenti"@it ;
-    sh:order 21 ;
+    sh:order 25 ;
     sh:datatype xsd:boolean ;
     sh:maxCount 1 ;
   ] ;
@@ -492,7 +532,7 @@ meta:PropertyShapeShape
     sh:name "Hidden"@en, "Nascosto"@it ;
     sh:description "The field does not appear in forms or on resource pages. Its values are still validated"@en,
       "Il campo non compare nei form e nelle pagine delle risorse, ma i suoi valori vengono comunque validati"@it ;
-    sh:order 22 ;
+    sh:order 26 ;
     sh:datatype xsd:boolean ;
     sh:maxCount 1 ;
   ] ;
@@ -501,7 +541,7 @@ meta:PropertyShapeShape
     sh:name "Link to the next value"@en, "Collegamento al valore successivo"@it ;
     sh:description "Useful when the order of the values matters. The IRI of the property that links each value to the next one. With this property, the values appear in order and have handles to reorder them by dragging"@en,
       "Utile se l'ordine dei valori conta. L'IRI della proprietà che collega ogni valore al successivo. Con questa proprietà, i valori compaiono in ordine e hanno delle maniglie per riordinarli trascinandoli"@it ;
-    sh:order 23 ;
+    sh:order 27 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
   ] ;
@@ -510,7 +550,7 @@ meta:PropertyShapeShape
     sh:name "Fields shown in place"@en, "Campi mostrati sul posto"@it ;
     sh:description "Useful together with “Nested form” as the editor and “Details” as the viewer. Sets the fields of the nested resource that appear directly inside the editor and the viewer of the parent. Each entry is the IRI of a property of the nested resource. When the list is empty, all of them appear"@en,
       "Utile in combinazione con “Form annidato” come editor e “Dettagli” come visualizzatore. Stabilisce i campi della risorsa annidata che compaiono direttamente dentro l'editor e il visualizzatore del genitore. Ogni voce è l'IRI di una proprietà della risorsa annidata. Se l'elenco è vuoto, compaiono tutti"@it ;
-    sh:order 24 ;
+    sh:order 28 ;
     sh:node meta:DetailFieldShape ;
   ] ;
   sh:property [
@@ -518,7 +558,7 @@ meta:PropertyShapeShape
     sh:name "One value for each language"@en, "Un valore per ogni lingua"@it ;
     sh:description "Two values of this field cannot have the same language"@en,
       "Due valori di questo campo non possono avere la stessa lingua"@it ;
-    sh:order 25 ;
+    sh:order 29 ;
     sh:datatype xsd:boolean ;
     sh:maxCount 1 ;
   ] .
@@ -681,6 +721,10 @@ meta:ValueAlternativeShape
   sh:or ( [ sh:path sh:datatype ; sh:maxCount 0 ] [ sh:path sh:hasValue ; sh:maxCount 0 ] ) ;
   sh:or ( [ sh:path sh:node ; sh:maxCount 0 ] [ sh:path sh:hasValue ; sh:maxCount 0 ] ) ;
   sh:or ( [ sh:path sh:class ; sh:maxCount 0 ] [ sh:path sh:hasValue ; sh:maxCount 0 ] ) ;
+  sh:or ( [ sh:path sh:nodeKind ; sh:maxCount 0 ] [ sh:path sh:datatype ; sh:maxCount 0 ] ) ;
+  sh:or ( [ sh:path sh:nodeKind ; sh:maxCount 0 ] [ sh:path sh:node ; sh:maxCount 0 ] ) ;
+  sh:or ( [ sh:path sh:nodeKind ; sh:maxCount 0 ] [ sh:path sh:class ; sh:maxCount 0 ] ) ;
+  sh:or ( [ sh:path sh:nodeKind ; sh:maxCount 0 ] [ sh:path sh:hasValue ; sh:maxCount 0 ] ) ;
   sh:property [
     sh:path rdf:type ;
     sh:hasValue ht:ValueAlternative ;
@@ -699,14 +743,15 @@ meta:ValueAlternativeShape
           OPTIONAL { $this sh:node ?node }
           OPTIONAL { $this sh:hasValue ?fixed }
           OPTIONAL { $this sh:class ?class }
+          OPTIONAL { $this sh:nodeKind ?kind }
           BIND(COALESCE(?datatype, ?node, ?fixed, ?class) AS ?value)
           OPTIONAL {
             ?declaration sh:prefix ?prefix ; sh:namespace ?namespace .
             FILTER(STRSTARTS(STR(?value), STR(?namespace)))
           }
-          BIND(IF(BOUND(?prefix),
+          BIND(IF(BOUND(?kind), "IRI", IF(BOUND(?prefix),
             CONCAT(?prefix, ":", STRAFTER(STR(?value), STR(?namespace))),
-            STR(?value)) AS ?label)
+            STR(?value))) AS ?label)
         }
         ORDER BY DESC(STRLEN(STR(?namespace)))
         LIMIT 1
@@ -747,6 +792,15 @@ meta:ValueAlternativeShape
       "Un IRI che la proprietà accetta. I form propongono i valori dei vincoli in un menu"@it ;
     sh:order 4 ;
     sh:nodeKind sh:IRI ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:nodeKind ;
+    sh:name "IRI typed in place"@en, "IRI inserito sul posto"@it ;
+    sh:description "The value can also be any IRI typed in the form"@en,
+      "Il valore può anche essere un IRI qualsiasi inserito nel form"@it ;
+    sh:order 5 ;
+    sh:in ( sh:IRI ) ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
@@ -1002,6 +1056,9 @@ meta:PrefixDeclarationShape
       "Il nome breve che sostituisce il namespace all'inizio di un IRI"@it ;
     sh:order 1 ;
     sh:datatype xsd:string ;
+    sh:pattern "^[A-Za-z][\\w.-]*$" ;
+    sh:message "Start with a letter and use only letters, digits, dots, hyphens and underscores"@en,
+      "Inizia con una lettera e usa solo lettere, cifre, punti, trattini e trattini bassi"@it ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -1048,3 +1105,17 @@ shui:DetailsViewer
   rdfs:label "Details"@en, "Dettagli"@it ;
   rdfs:comment "The fields of the value appear in place of the link"@en,
     "I campi del valore compaiono al posto del collegamento"@it .
+
+sh:IRI
+  rdfs:label "IRI"@en, "IRI"@it ;
+  rdfs:comment "Each value is an IRI"@en, "Ogni valore è un IRI"@it .
+
+sh:Literal
+  rdfs:label "Literal"@en, "Letterale"@it ;
+  rdfs:comment "Each value is a literal, such as a text or a number"@en,
+    "Ogni valore è un letterale, come un testo o un numero"@it .
+
+sh:IRIOrLiteral
+  rdfs:label "IRI or literal"@en, "IRI o letterale"@it ;
+  rdfs:comment "Each value is an IRI or a literal"@en,
+    "Ogni valore è un IRI o un letterale"@it .

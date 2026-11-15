@@ -32,6 +32,8 @@ import 'entity_repository.dart';
 ValidationMessages validationMessages(Translations t) => ValidationMessages(
   required: t.ui.form.required,
   invalidUrl: t.ui.form.invalidUrl,
+  invalidIri: t.ui.form.invalidIri,
+  exceeds: (other) => t.ui.form.exceeds(other: other),
   invalidInput: (expected) => t.ui.form.invalidInput(expected: expected),
   tooMany: (name, count, max) =>
       t.ui.form.tooMany(name: name, count: count, max: max),
@@ -133,6 +135,7 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
       root,
       validationMessages(t),
       path: [_scope.rootLabel],
+      values: nodeValues(root),
     );
     if (!hasAnyValue(root)) {
       errors.add(

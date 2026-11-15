@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import re
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -13,18 +12,23 @@ from rdflib import RDF, XSD, Dataset, Graph, Literal, URIRef
 from rdflib.plugins.sparql import prepareQuery
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterable, Sequence
 
     from rdflib.query import ResultRow
-    from rdflib.term import Identifier
+    from rdflib.term import Identifier, Node
 
+from heritrace.configuration.vocabulary import SH
 from heritrace.extensions import get_custom_filter, get_shacl_graph
 from heritrace.field_errors import FieldError, field_error
 from heritrace.sparql import select_results
 from heritrace.utils.datatypes import DATATYPE_MAPPING
 from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.filters import value_node
-from heritrace.utils.shacl_patterns import read_pattern_alternatives
+from heritrace.utils.shacl_patterns import (
+    broken_pattern,
+    pattern_error,
+    read_value_patterns,
+)
 from heritrace.utils.shacl_presentation import (
     fixed_value_pattern,
     qualified_option_pattern,
@@ -33,10 +37,11 @@ from heritrace.utils.sparql_utils import (
     fetch_data_graph_for_subject,
     get_triples_from_graph,
 )
-from heritrace.utils.uri_utils import is_valid_url
+from heritrace.utils.uri_utils import is_iri, is_valid_url
 from heritrace.utils.value_bounds import (
     BOUND_NAMES,
     Bound,
+    at_most,
     bound_number,
     broken_bound,
 )
@@ -230,6 +235,7 @@ def _query_shacl_constraints(
         PREFIX sh: <http://www.w3.org/ns/shacl#>
         SELECT DISTINCT ?path ?datatype ?a_class ?shape
             ?minInclusive ?maxInclusive ?minExclusive ?maxExclusive ?uniqueLang
+            ?nodeKind
             (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS
             ?optionalValues)
         WHERE {{
@@ -246,6 +252,7 @@ def _query_shacl_constraints(
             OPTIONAL {{?propertyShape sh:minExclusive ?minExclusive .}}
             OPTIONAL {{?propertyShape sh:maxExclusive ?maxExclusive .}}
             OPTIONAL {{?propertyShape sh:uniqueLang ?uniqueLang .}}
+            OPTIONAL {{?propertyShape sh:nodeKind ?nodeKind .}}
             OPTIONAL {{
                 ?propertyShape sh:or ?orList .
                 ?orList rdf:rest*/rdf:first ?orConstraint .
@@ -259,6 +266,7 @@ def _query_shacl_constraints(
         }}
         GROUP BY ?path ?datatype ?a_class ?shape
             ?minInclusive ?maxInclusive ?minExclusive ?maxExclusive ?uniqueLang
+            ?nodeKind
     """
     shacl = get_shacl_graph()
     results = shacl.query(query)
@@ -331,6 +339,54 @@ def _count_error(
     )
 
 
+def _query_pair_rules(s_types: list[str]) -> list[ResultRow]:
+    query = f"""
+        PREFIX sh: <http://www.w3.org/ns/shacl#>
+        SELECT DISTINCT ?shape ?path ?other
+        WHERE {{
+            ?shape sh:targetClass ?type ;
+                sh:property ?propertyShape .
+            ?propertyShape sh:path ?path ;
+                sh:lessThanOrEquals ?other .
+            VALUES ?type {{<{"> <".join(s_types)}>}}
+            FILTER isIRI(?path)
+        }}
+        ORDER BY ?path ?other
+    """
+    return list(select_results(get_shacl_graph().query(query)))
+
+
+# The values that a save leaves on each of [subjects] and exceed the values of
+# the field that their own field names with sh:lessThanOrEquals.
+def pair_errors(
+    data_graph: Graph | Dataset, subjects: Iterable[URIRef]
+) -> list[FieldError]:
+    def values(subject: URIRef, predicate: URIRef) -> list[Node]:
+        return [
+            triple[2]
+            for triple in get_triples_from_graph(data_graph, (subject, predicate, None))
+        ]
+
+    errors = []
+    for subject in sorted(set(subjects)):
+        types = [str(value) for value in values(subject, RDF.type)]
+        if not types:
+            continue
+        highest_priority_class = str(get_highest_priority_class(types))
+        for row in _query_pair_rules(types):
+            path, other = URIRef(str(row.path)), URIRef(str(row.other))
+            limits = values(subject, other)
+            name = get_custom_filter().human_readable_predicate(
+                str(other), (highest_priority_class, str(row.shape))
+            )
+            errors.extend(
+                field_error("exceeds", subject, path, other=name, input=str(value))
+                for value in values(subject, path)
+                if not all(at_most(value, limit) for limit in limits)
+            )
+    return errors
+
+
 # The number of values a save leaves on a property, checked once all its
 # changes are applied, so that a value can be replaced within the same save.
 # Each field of the property sets its own limits, and a qualified one counts
@@ -380,38 +436,23 @@ def _validate_pattern_constraints(  # noqa: PLR0913
     data_graph: Graph | Dataset,
     subject: URIRef,
 ) -> Checked | None:
-    applicable = [
-        alternative
-        for alternative in read_pattern_alternatives(get_shacl_graph())
-        if alternative.path == str(predicate)
-        and alternative.target_class in s_types
-        and any(
-            get_triples_from_graph(
-                data_graph,
-                (
-                    subject,
-                    URIRef(alternative.condition_path),
-                    URIRef(alternative.condition_value),
-                ),
-            )
-        )
+    patterns = [
+        pattern
+        for pattern in read_value_patterns(get_shacl_graph())
+        if pattern.path == str(predicate) and pattern.target_class in s_types
     ]
-    if not applicable or any(
-        new_value is not None and re.match(alternative.pattern, str(new_value))
-        for alternative in applicable
-    ):
+
+    def holds(condition: tuple[str, str]) -> bool:
+        path, value = condition
+        return any(
+            get_triples_from_graph(data_graph, (subject, URIRef(path), URIRef(value)))
+        )
+
+    value = str(new_value)
+    broken = broken_pattern(value, patterns, holds)
+    if broken is None:
         return None
-    return (
-        None,
-        old_value,
-        field_error(
-            "message",
-            subject,
-            predicate,
-            message=applicable[0].message(),
-            input=str(new_value),
-        ),
-    )
+    return None, old_value, pattern_error(broken, str(subject), str(predicate), value)
 
 
 def _error(ctx: ValidationContext, code: str, **params: str | int) -> FieldError:
@@ -605,11 +646,28 @@ def _typed_value(
     )
     if language_result:
         return language_result
+    node_kinds = {row.nodeKind for row in results_list if row.nodeKind is not None}
+    if SH.IRI in node_kinds and not is_iri(str(new_value)):
+        return None, ctx.old_value, _error(ctx, "invalidIri", input=str(new_value))
     if classes:
         return _validate_class_constraint(new_value, ctx, classes, s_types)
     if datatypes:
         return _validate_datatype_constraint(new_value, ctx, datatypes, results_list)
-    return _infer_value_type(new_value, ctx.old_value)
+    return _untyped_value(new_value, ctx.old_value, node_kinds)
+
+
+# A value of a field with no class or datatype is of the kind of node the field
+# declares, or else of the kind of the value it replaces.
+def _untyped_value(
+    new_value: str | URIRef | None,
+    old_value: URIRef | Literal | None,
+    node_kinds: set[Identifier],
+) -> Checked:
+    if SH.IRI in node_kinds:
+        return URIRef(str(new_value)), old_value, None
+    if SH.Literal in node_kinds:
+        return Literal(new_value, datatype=XSD.string), old_value, None
+    return _infer_value_type(new_value, old_value)
 
 
 def validate_new_triple(  # noqa: PLR0913

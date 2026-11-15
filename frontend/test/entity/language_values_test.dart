@@ -24,6 +24,8 @@ final fieldJson = {'uri': name, 'withLanguage': true};
 const messages = ValidationMessages(
   required: 'required',
   invalidUrl: 'invalid url',
+  invalidIri: 'invalid iri',
+  exceeds: _exceeds,
   invalidInput: _echo,
   tooMany: _ignore,
   tooFew: _ignore,
@@ -216,3 +218,5 @@ void main() {
     expect(find.text('Abkhazian'), findsOneWidget);
   });
 }
+
+String _exceeds(String other) => 'exceeds $other';

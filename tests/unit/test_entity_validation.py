@@ -10,11 +10,13 @@ These tests focus on validating entity data against form fields and SHACL shapes
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask import Flask
 from rdflib import XSD
 
 from heritrace.field_errors import field_error
 from heritrace.routes.entity import validate_entity_data
 from heritrace.utils.filters import Filter
+from heritrace.utils.shacl_patterns import ValuePattern
 
 
 @patch("heritrace.routes.entity._validation.get_custom_filter")
@@ -43,6 +45,7 @@ def test_validate_entity_data_valid(
                 {
                     "label": "Title",
                     "datatype": str(XSD.string),
+                    "patterns": [],
                     "required": True,
                     "min": 1,
                     "max": 1,
@@ -54,6 +57,7 @@ def test_validate_entity_data_valid(
                 {
                     "label": "Description",
                     "datatype": str(XSD.string),
+                    "patterns": [],
                     "required": False,
                     "min": 0,
                     "max": 1,
@@ -94,6 +98,7 @@ def test_validate_entity_data_missing_required(
                 {
                     "label": "Title",
                     "datatype": str(XSD.string),
+                    "patterns": [],
                     "required": True,
                     "min": 1,
                     "max": 1,
@@ -105,6 +110,7 @@ def test_validate_entity_data_missing_required(
                 {
                     "label": "Description",
                     "datatype": str(XSD.string),
+                    "patterns": [],
                     "required": False,
                     "min": 0,
                     "max": 1,
@@ -148,6 +154,7 @@ def test_validate_entity_data_invalid_entity_type(
                 {
                     "label": "Title",
                     "datatype": str(XSD.string),
+                    "patterns": [],
                     "required": True,
                     "min": 1,
                     "max": 1,
@@ -184,12 +191,14 @@ def test_validate_entity_data_with_shape(
                     "min": 1,
                     "max": 1,
                     "datatypes": [str(XSD.string)],
+                    "patterns": [],
                 },
                 {
                     "subjectShape": "business",
                     "min": 0,
                     "max": 1,
                     "datatypes": [str(XSD.string)],
+                    "patterns": [],
                 },
             ]
         }
@@ -221,6 +230,7 @@ def test_validate_entity_data_with_shape(
                 {
                     "min": 1,  # This makes the property required
                     "max": None,
+                    "patterns": [],
                 }
             ],
             "http://example.org/hasResidentialAddress": [
@@ -229,6 +239,7 @@ def test_validate_entity_data_with_shape(
                     "min": 1,  # This makes residential address required
                     "max": 1,
                     "datatypes": [str(XSD.string)],
+                    "patterns": [],
                 }
             ],
         }
@@ -291,7 +302,7 @@ def test_validate_entity_data_values_outside_bounds(
     mock_get_form_fields.return_value = {
         ("http://example.org/Document", None): {
             "http://example.org/count": [
-                {"datatypes": [str(XSD.decimal)], "min": 0, **bounds}
+                {"datatypes": [str(XSD.decimal)], "min": 0, "patterns": [], **bounds}
             ],
         }
     }
@@ -304,4 +315,48 @@ def test_validate_entity_data_values_outside_bounds(
     ) == [
         field_error(code, None, "http://example.org/count", limit=limit, input=value)
         for code, limit, value in errors
+    ]
+
+
+@patch("heritrace.routes.entity._validation.get_custom_filter")
+@patch("heritrace.routes.entity._validation.get_form_fields")
+def test_validate_entity_data_values_that_break_a_pattern(
+    mock_get_form_fields, mock_get_custom_filter, app: Flask
+) -> None:
+    mock_get_custom_filter.return_value = MagicMock(spec=Filter)
+    scheme = "http://example.org/scheme"
+    code = "http://example.org/code"
+
+    def pattern(
+        condition: tuple[str, str] | None, regex: str, messages: dict[str, str]
+    ) -> ValuePattern:
+        return ValuePattern(
+            "http://example.org/Document", "shape", code, condition, regex, messages
+        )
+
+    mock_get_form_fields.return_value = {
+        ("http://example.org/Document", None): {
+            scheme: [{"patterns": []}],
+            code: [
+                {
+                    "patterns": [
+                        pattern(None, r"^\S+$", {}),
+                        pattern((scheme, "doi"), r"^10\.", {"en": "Not a DOI"}),
+                    ],
+                }
+            ],
+        }
+    }
+
+    with app.test_request_context():
+        errors = validate_entity_data(
+            {
+                "entity_type": "http://example.org/Document",
+                "properties": {scheme: ["doi"], code: ["a b", "x", "10.1/x"]},
+            }
+        )
+
+    assert errors == [
+        field_error("invalidInput", None, code, expected=r"^\S+$", input="a b"),
+        field_error("message", None, code, message="Not a DOI", input="x"),
     ]

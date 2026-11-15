@@ -7,8 +7,8 @@ import 'package:intl/intl.dart';
 
 import '../design/controls.dart';
 import '../design/spacing.dart';
+import '../form/validator.dart';
 import '../i18n/translations.g.dart';
-import 'iri_text.dart';
 import 'orcid_list_field.dart';
 import 'settings_draft.dart';
 import 'settings_fields.dart';

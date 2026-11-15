@@ -66,6 +66,7 @@ def test_validate_modification_valid(
                 {
                     "label": "Title",
                     "datatype": str(XSD.string),
+                    "patterns": [],
                     "required": True,
                     "min": 1,
                     "max": 2,
@@ -127,6 +128,7 @@ def test_validate_entity_data_valid(
                 {
                     "label": "Title",
                     "datatype": str(XSD.string),
+                    "patterns": [],
                     "required": True,
                     "min": 1,
                     "max": 1,
@@ -138,6 +140,7 @@ def test_validate_entity_data_valid(
                 {
                     "label": "Description",
                     "datatype": str(XSD.string),
+                    "patterns": [],
                     "required": False,
                     "min": 0,
                     "max": 1,
@@ -172,6 +175,7 @@ def test_validate_entity_data_missing_required(
                 {
                     "label": "Title",
                     "datatype": str(XSD.string),
+                    "patterns": [],
                     "required": True,
                     "min": 1,
                     "max": 1,
@@ -183,6 +187,7 @@ def test_validate_entity_data_missing_required(
                 {
                     "label": "Description",
                     "datatype": str(XSD.string),
+                    "patterns": [],
                     "required": False,
                     "min": 0,
                     "max": 1,
@@ -219,6 +224,7 @@ def test_validate_entity_data_invalid_entity_type(
                 {
                     "label": "Title",
                     "datatype": str(XSD.string),
+                    "patterns": [],
                     "required": True,
                     "min": 1,
                     "max": 1,
@@ -257,12 +263,14 @@ def test_validate_entity_data_with_shape(
                     "min": 1,
                     "max": 1,
                     "datatypes": [str(XSD.string)],
+                    "patterns": [],
                 },
                 {
                     "subjectShape": "business",
                     "min": 0,
                     "max": 1,
                     "datatypes": [str(XSD.string)],
+                    "patterns": [],
                 },
             ]
         }
@@ -296,6 +304,7 @@ def test_validate_entity_data_with_shape(
                     "min": 1,  # This makes the property required
                     "max": None,
                     "datatypes": [str(XSD.string)],
+                    "patterns": [],
                 }
             ],
             "http://example.org/hasResidentialAddress": [
@@ -304,6 +313,7 @@ def test_validate_entity_data_with_shape(
                     "min": 1,  # This makes residential address required
                     "max": 1,
                     "datatypes": [str(XSD.string)],
+                    "patterns": [],
                 }
             ],
         }
@@ -343,6 +353,7 @@ def test_process_modification_data() -> None:
                 "predicate": "http://example.org/title",
                 "object": "New Title",
                 "datatype": str(XSD.string),
+                "patterns": [],
             }
         ],
     }
@@ -394,6 +405,7 @@ def test_validate_modification_max_count(
         "predicate": "http://example.org/name",
         "value": "Another Name",
         "datatype": "http://www.w3.org/2001/XMLSchema#string",
+        "patterns": [],
     }
 
     is_valid, error = validate_modification(

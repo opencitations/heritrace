@@ -2,27 +2,38 @@
 #
 # SPDX-License-Identifier: ISC
 
+import re
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from rdflib import Graph
 from rdflib.plugins.sparql import prepareQuery
 
 from heritrace.configuration.vocabulary import SH
+from heritrace.field_errors import FieldError, field_error
 from heritrace.language import LocalizedText, localize, localized_texts
 from heritrace.sparql import select_results
 
-_ALTERNATIVES_QUERY = prepareQuery(
+# A field's own sh:pattern applies to each of its values. A pattern in an
+# alternative of a node shape's sh:or applies when the resource holds the fixed
+# value of the alternative, and a value then needs to match one of them.
+_PATTERNS_QUERY = prepareQuery(
     """
     SELECT ?type ?shape ?path ?condition_path ?condition_value ?pattern
            ?value_shape
     WHERE {
-        ?shape sh:targetClass ?type ;
-               sh:or/rdf:rest*/rdf:first ?alternative .
-        ?alternative sh:property ?value_shape, ?condition_shape .
+        ?shape sh:targetClass ?type .
+        {
+            ?shape sh:property ?value_shape .
+        } UNION {
+            ?shape sh:or/rdf:rest*/rdf:first ?alternative .
+            ?alternative sh:property ?value_shape, ?condition_shape .
+            ?condition_shape sh:path ?condition_path ;
+                             sh:hasValue ?condition_value .
+        }
         ?value_shape sh:path ?path ;
                      sh:pattern ?pattern .
-        ?condition_shape sh:path ?condition_path ;
-                         sh:hasValue ?condition_value .
+        FILTER isIRI(?path)
     }
     ORDER BY ?shape ?condition_value ?pattern
     """,
@@ -34,39 +45,79 @@ _ALTERNATIVES_QUERY = prepareQuery(
 
 
 @dataclass(frozen=True, slots=True)
-class PatternAlternative:
+class ValuePattern:
     target_class: str
     shape: str
     path: str
-    condition_path: str
-    condition_value: str
+    # The field and the value that make the pattern apply, or None for the
+    # pattern of the field itself.
+    condition: tuple[str, str] | None
     pattern: str
     messages: LocalizedText
 
-    def message(self) -> str:
-        return localize(self.messages) or f"Value must match pattern: {self.pattern}"
+    def message(self) -> str | None:
+        return localize(self.messages)
 
-    def as_condition(self) -> dict[str, object]:
+    def as_json(self) -> dict[str, object]:
         return {
-            "condition": {"path": self.condition_path, "value": self.condition_value},
+            "condition": None
+            if self.condition is None
+            else {"path": self.condition[0], "value": self.condition[1]},
             "pattern": self.pattern,
             "message": self.message(),
         }
 
 
-def read_pattern_alternatives(shacl: Graph) -> list[PatternAlternative]:
+def read_value_patterns(shacl: Graph) -> list[ValuePattern]:
     return [
-        PatternAlternative(
+        ValuePattern(
             target_class=str(row.type),
             shape=str(row.shape),
             path=str(row.path),
-            condition_path=str(row.condition_path),
-            condition_value=str(row.condition_value),
+            condition=None
+            if row.condition_path is None
+            else (str(row.condition_path), str(row.condition_value)),
             pattern=str(row.pattern),
             messages=localized_texts(shacl, row.value_shape, SH.message),
         )
-        for row in select_results(shacl.query(_ALTERNATIVES_QUERY))
+        for row in select_results(shacl.query(_PATTERNS_QUERY))
     ]
+
+
+# The pattern that a value breaks among those of its field. The field's own
+# patterns apply to every value; among the conditional ones whose condition
+# holds, the value needs to match one.
+def broken_pattern(
+    value: str,
+    patterns: list[ValuePattern],
+    holds: Callable[[tuple[str, str]], bool],
+) -> ValuePattern | None:
+    applicable = [
+        pattern
+        for pattern in patterns
+        if pattern.condition is None or holds(pattern.condition)
+    ]
+    own = [pattern for pattern in applicable if pattern.condition is None]
+    conditional = [pattern for pattern in applicable if pattern.condition is not None]
+    for pattern in own:
+        if not re.search(pattern.pattern, value):
+            return pattern
+    if conditional and not any(
+        re.search(pattern.pattern, value) for pattern in conditional
+    ):
+        return conditional[0]
+    return None
+
+
+def pattern_error(
+    pattern: ValuePattern, subject: str | None, predicate: str, value: str
+) -> FieldError:
+    message = pattern.message()
+    if message is None:
+        return field_error(
+            "invalidInput", subject, predicate, expected=pattern.pattern, input=value
+        )
+    return field_error("message", subject, predicate, message=message, input=value)
 
 
 _SHOWN_WITH_QUERY = prepareQuery(

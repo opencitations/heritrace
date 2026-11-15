@@ -12,6 +12,8 @@ import 'fixtures.dart';
 const messages = ValidationMessages(
   required: 'required',
   invalidUrl: 'invalid url',
+  invalidIri: 'invalid iri',
+  exceeds: _exceeds,
   invalidInput: _invalidInput,
   tooMany: _tooMany,
   tooFew: _tooFew,
@@ -92,21 +94,39 @@ void main() {
     addTearDown(node.dispose);
     group(node, documentContext).addItem();
 
-    expect(validateEntity(node, messages, path: ['Article']), isEmpty);
+    expect(
+      validateEntity(
+        node,
+        messages,
+        path: ['Article'],
+        values: nodeValues(node),
+      ),
+      isEmpty,
+    );
   });
 
   test('an empty required link reports the link itself', () {
     final node = linkNode(min: 1);
     addTearDown(node.dispose);
 
-    final errors = validateEntity(node, messages, path: ['Article']);
+    final errors = validateEntity(
+      node,
+      messages,
+      path: ['Article'],
+      values: nodeValues(node),
+    );
 
     expect(errors.map((e) => e.fullMessage), ['Volume: required']);
     expect(errors.single.item, group(node, documentContext).items.single);
   });
 
   test('required empty fields are reported with their path', () {
-    final errors = validateEntity(root, messages, path: ['Journal Article']);
+    final errors = validateEntity(
+      root,
+      messages,
+      path: ['Journal Article'],
+      values: nodeValues(root),
+    );
 
     expect(errors.map((e) => e.fullMessage), ['Title: required']);
     expect(errors.single.path, ['Journal Article']);
@@ -124,6 +144,7 @@ void main() {
         root,
         messages,
         path: ['Journal Article'],
+        values: nodeValues(root),
       ).map((e) => e.fullMessage),
       ['Publication Date: expected date in format YYYY-MM-DD'],
     );
@@ -135,6 +156,7 @@ void main() {
         root,
         messages,
         path: ['Journal Article'],
+        values: nodeValues(root),
       ).map((e) => e.fullMessage),
       ['Publication Date: expected year in format YYYY'],
     );
@@ -147,7 +169,12 @@ void main() {
     (group(authorItem.child, name).addItem() as LiteralItem).setValue('Jane');
     group(authorItem.child, identifier).addItem();
 
-    final errors = validateEntity(root, messages, path: ['Journal Article']);
+    final errors = validateEntity(
+      root,
+      messages,
+      path: ['Journal Article'],
+      values: nodeValues(root),
+    );
 
     expect(errors.single.fullMessage, 'Value: required');
     expect(errors.single.path, [
@@ -169,6 +196,7 @@ void main() {
         root,
         messages,
         path: ['Journal Article'],
+        values: nodeValues(root),
       ).map((e) => e.fullMessage),
       ['Title too many 2/1'],
     );
@@ -206,6 +234,7 @@ void main() {
         node,
         messages,
         path: ['Article'],
+        values: nodeValues(node),
       ).map((e) => e.fullMessage).toList();
     };
   }
@@ -259,7 +288,15 @@ void main() {
     (group(root, title).items.single as LiteralItem).setValue('Ok');
     group(root, documentContext).addItem();
 
-    expect(validateEntity(root, messages, path: ['Journal Article']), isEmpty);
+    expect(
+      validateEntity(
+        root,
+        messages,
+        path: ['Journal Article'],
+        values: nodeValues(root),
+      ),
+      isEmpty,
+    );
   });
 
   test('hasAnyValue ignores mandatory values', () {
@@ -276,4 +313,100 @@ void main() {
     authorItem.selectExisting('https://w3id.org/oc/meta/ar/1', 'An author');
     expect(hasAnyValue(root), isTrue);
   });
+
+  test("a value matches its field's patterns and one that applies", () {
+    const scheme = 'http://example.org/scheme';
+    const code = 'http://example.org/code';
+    const field = <String, Object?>{
+      'uri': code,
+      'displayName': 'Code',
+      'entityType': article,
+      'subjectShape': articleShape,
+      'patterns': [
+        {'condition': null, 'pattern': r'^\S+$', 'message': null},
+        {
+          'condition': {'path': scheme, 'value': 'doi'},
+          'pattern': r'^10\.',
+          'message': 'not a DOI',
+        },
+        {
+          'condition': {'path': scheme, 'value': 'doi'},
+          'pattern': r'^doi:',
+          'message': 'not a prefixed DOI',
+        },
+      ],
+    };
+    final def = parseFormFields([
+      [
+        code,
+        [field],
+      ],
+    ]).single;
+    List<String> problems(String value, List<String> schemes) => valueProblems(
+      value,
+      def,
+      const [],
+      messages,
+      (predicate) => predicate == scheme ? schemes : const [],
+    );
+
+    expect(problems('a b', const []), [r'expected ^\S+$']);
+    expect(problems('x', const []), isEmpty);
+    expect(problems('x', const ['doi']), ['not a DOI']);
+    expect(problems('doi:10.1/x', const ['doi']), isEmpty);
+  });
+
+  test('a field of IRIs takes any IRI and nothing else', () {
+    const source = 'http://example.org/source';
+    final def = parseFormFields([
+      [
+        source,
+        [
+          {
+            'uri': source,
+            'displayName': 'Source',
+            'entityType': article,
+            'subjectShape': articleShape,
+            'nodeKind': shIri,
+          },
+        ],
+      ],
+    ]).single;
+    List<String> problems(String value) =>
+        valueProblems(value, def, const [], messages, (_) => const []);
+
+    expect(problems('urn:isbn:0451450523'), isEmpty);
+    expect(problems('not an iri'), ['invalid iri']);
+  });
+
+  test('a value does not exceed the values of the field it names', () {
+    const start = 'http://example.org/start';
+    const end = 'http://example.org/end';
+    final def = parseFormFields([
+      [
+        start,
+        [
+          {
+            'uri': start,
+            'displayName': 'Start',
+            'entityType': article,
+            'subjectShape': articleShape,
+            'lessThanOrEquals': [
+              {'path': end, 'name': 'End'},
+            ],
+          },
+        ],
+      ],
+    ]).single;
+    List<String> problems(String value, List<String> ends) =>
+        valueProblems(value, def, const [], messages, (_) => ends);
+
+    expect(problems('2', const ['10']), isEmpty);
+    expect(problems('2020-05', const ['2020-04']), ['exceeds End']);
+    expect(problems('2020-05-01', const ['2020-05-01', '2021-01-01']), isEmpty);
+    expect(problems('2020', const ['2020-05-01']), ['exceeds End']);
+    expect(problems('2', const []), isEmpty);
+  });
 }
+
+String _exceeds(String other) => 'exceeds $other';

@@ -172,6 +172,7 @@ environment:
 
 <Tabs>
   <TabItem label="Virtuoso (Recommended)">
+
     ```yaml
     environment:
       - DATASET_DB_TRIPLESTORE=virtuoso
@@ -192,6 +193,7 @@ environment:
 
   </TabItem>
   <TabItem label="Blazegraph">
+
     ```yaml
     environment:
       - DATASET_DB_TRIPLESTORE=blazegraph
@@ -374,6 +376,7 @@ environment:
 
 4.  **Add Credentials to `docker-compose.yml`**:
     Update your environment variables with the credentials from ORCID.
+
     ```yaml
     environment:
       - ORCID_CLIENT_ID=APP-XXXXXXXXXX  # From ORCID registration

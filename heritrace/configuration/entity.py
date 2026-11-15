@@ -4,6 +4,7 @@
 
 import time
 from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
 from typing import cast
 from uuid import uuid4
@@ -470,6 +471,10 @@ def export_shacl(config_dir: Path, view: Graph) -> None:
     write_shacl(config_dir, canonical(view))
 
 
+def _meta_owner(meta: Graph, field: Node) -> Node:
+    return cast("Node", meta.value(predicate=SH.property, object=field))
+
+
 def _meta_field(meta: Graph, shape: Node, path: str) -> tuple[int, str]:
     field = next(
         field
@@ -530,7 +535,7 @@ _PLAIN_CODES = {
 
 # The code of each constraint that the meta-shapes use, with the parameters of
 # its message. pyshacl's own message, in English, stands for any other one.
-def _meta_error(  # noqa: PLR0911
+def _meta_error(
     graph: Graph, meta: Graph, report: Graph, result: Node
 ) -> list[FieldError]:
     component = cast("URIRef", report.value(result, SH.sourceConstraintComponent))
@@ -568,15 +573,32 @@ def _meta_error(  # noqa: PLR0911
         return error(code, **{name: compact(constraint(predicate))})
     if component in _PLAIN_CODES:
         return error(_PLAIN_CODES[component])
+    code, params = _rule_error(meta, report, result, compact)
+    return error(code, **params)
+
+
+# The constraints of the meta-shapes that name another node: the allowed values,
+# the field whose values a value does not exceed and the message of a pattern.
+def _rule_error(
+    meta: Graph, report: Graph, result: Node, compact: Callable[[Node], str]
+) -> tuple[str, dict[str, str]]:
+    component = report.value(result, SH.sourceConstraintComponent)
+    source = cast("Node", report.value(result, SH.sourceShape))
     if component == SH.InConstraintComponent:
-        options = Collection(meta, constraint(SH["in"]))
-        return error("notAllowed", values=", ".join(map(compact, options)))
+        options = Collection(meta, cast("Node", meta.value(source, SH["in"])))
+        return "notAllowed", {"values": ", ".join(map(compact, options))}
+    if component == SH.LessThanOrEqualsConstraintComponent:
+        other = str(meta.value(source, SH.lessThanOrEquals))
+        return "exceeds", {
+            "other": _meta_field(meta, _meta_owner(meta, source), other)[1],
+            "input": str(report.value(result, SH.value)),
+        }
     message = (
         localize(localized_texts(meta, source, SH.message))
         if component == SH.PatternConstraintComponent
         else str(report.value(result, SH.resultMessage))
     )
-    return error("message", message=cast("str", message))
+    return "message", {"message": cast("str", message)}
 
 
 def _meta_violations(graph: Graph) -> list[FieldError]:

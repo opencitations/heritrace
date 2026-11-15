@@ -37,6 +37,12 @@ bool isValidUrl(String value) => RegExp(
   caseSensitive: false,
 ).hasMatch(value);
 
+final _whitespace = RegExp(r'\s');
+
+/// What HERITRACE takes as an IRI, on the server too: a scheme and no spaces.
+bool isIri(String value) =>
+    Uri.tryParse(value)?.hasScheme == true && !value.contains(_whitespace);
+
 class DatatypeRule {
   const DatatypeRule(this.check, this.expectedFormat);
 
@@ -265,6 +271,8 @@ class ValidationMessages {
   const ValidationMessages({
     required this.required,
     required this.invalidUrl,
+    required this.invalidIri,
+    required this.exceeds,
     required this.invalidInput,
     required this.tooMany,
     required this.tooFew,
@@ -276,6 +284,8 @@ class ValidationMessages {
 
   final String required;
   final String invalidUrl;
+  final String invalidIri;
+  final String Function(String other) exceeds;
   final String Function(String expected) invalidInput;
   final String Function(String name, int count, int max) tooMany;
   final String Function(String name, int count, int min) tooFew;
@@ -285,21 +295,36 @@ class ValidationMessages {
   final String Function(num limit) lessThan;
 }
 
+/// The values a resource holds for a property, which the rules of its other
+/// fields read.
+typedef FieldValues = Iterable<String> Function(String predicate);
+
+/// The values that the items of [node] hold.
+FieldValues nodeValues(EntityNode node) =>
+    (predicate) => [
+      for (final group in node.groups)
+        if (group.def.uri == predicate)
+          for (final item in group.items)
+            if (item.textValue case final value? when value.isNotEmpty) value,
+    ];
+
+/// The errors of the items of [node]; [values] gives the values of its fields.
 List<ValidationError> validateEntity(
   EntityNode node,
   ValidationMessages messages, {
   required List<String> path,
+  required FieldValues values,
 }) {
   final errors = <ValidationError>[];
   for (final group in node.groups) {
-    _validateGroup(group, node, messages, path, errors);
+    _validateGroup(group, values, messages, path, errors);
   }
   return errors;
 }
 
 void _validateGroup(
   FieldGroup group,
-  EntityNode node,
+  FieldValues values,
   ValidationMessages messages,
   List<String> path,
   List<ValidationError> errors,
@@ -326,7 +351,7 @@ void _validateGroup(
     );
   }
   for (final item in group.items) {
-    _validateItem(item, node, messages, path, errors);
+    _validateItem(item, values, messages, path, errors);
   }
 }
 
@@ -344,7 +369,7 @@ ValidationError _requiredError(
 
 void _validateItem(
   FormItem item,
-  EntityNode node,
+  FieldValues values,
   ValidationMessages messages,
   List<String> path,
   List<ValidationError> errors,
@@ -367,13 +392,14 @@ void _validateItem(
             item.child,
             messages,
             path: [...path, def.displayName],
+            values: nodeValues(item.child),
           ),
         );
       }
     case OrItem():
       final selected = item.selectedItem;
       if (selected != null) {
-        _validateItem(selected, node, messages, path, errors);
+        _validateItem(selected, values, messages, path, errors);
       } else if (def.isRequired) {
         errors.add(_requiredError(item, messages, path));
       }
@@ -387,46 +413,102 @@ void _validateItem(
         }
         return;
       }
-      if (def.inputType == 'url' && !isValidUrl(value)) {
-        errors.add(
-          ValidationError(
-            message: messages.invalidUrl,
-            path: path,
-            item: item,
-            fieldName: def.displayName,
-          ),
-        );
-      }
       final datatypes = item is DateItem ? [item.datatype] : def.datatypes;
-      final expected = datatypeProblem(value, datatypes);
-      final boundProblem = expected == null
-          ? _boundProblem(value, def, messages)
-          : null;
-      if (expected != null || boundProblem != null) {
-        errors.add(
+      errors.addAll([
+        for (final problem in valueProblems(
+          value,
+          def,
+          datatypes,
+          messages,
+          values,
+        ))
           ValidationError(
-            message: boundProblem ?? messages.invalidInput(expected!),
+            message: problem,
             path: path,
             item: item,
             fieldName: def.displayName,
           ),
-        );
-      }
-      for (final condition in def.conditions) {
-        final dependent = _siblingValue(node, condition.path);
-        if (dependent == condition.value &&
-            !RegExp(condition.pattern).hasMatch(value)) {
-          errors.add(
-            ValidationError(
-              message: condition.message,
-              path: path,
-              item: item,
-              fieldName: def.displayName,
-            ),
-          );
-        }
-      }
+      ]);
   }
+}
+
+/// The rules that [value], of one of [datatypes], breaks in the field of
+/// [def]; [values] gives the values of the other fields of its resource.
+List<String> valueProblems(
+  String value,
+  FieldDef def,
+  List<String> datatypes,
+  ValidationMessages messages,
+  FieldValues values,
+) {
+  final expected = datatypeProblem(value, datatypes);
+  return [
+    if (def.inputType == 'url' && !isValidUrl(value)) messages.invalidUrl,
+    if (def.takesIri && !isIri(value)) messages.invalidIri,
+    if (expected != null)
+      messages.invalidInput(expected)
+    else
+      ?_boundProblem(value, def, messages),
+    if (brokenPattern(value, def.patterns, values) case final broken?)
+      broken.message ?? messages.invalidInput(broken.pattern),
+    ...limitProblems(value, def, messages, values),
+  ];
+}
+
+/// The fields of the resource whose values [value] exceeds, among those that
+/// the field of [def] names with `sh:lessThanOrEquals`.
+List<String> limitProblems(
+  String value,
+  FieldDef def,
+  ValidationMessages messages,
+  FieldValues values,
+) => [
+  for (final limit in def.lessThanOrEquals)
+    if (!values(limit.path).every((other) => atMost(value, other)))
+      messages.exceeds(limit.name),
+];
+
+final _year = RegExp(r'^\d{4}$');
+final _yearMonth = RegExp(r'^\d{4}-\d{2}$');
+final _date = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+
+/// Whether [value] does not exceed [limit]. Numbers compare with numbers and
+/// dates with dates of the same kind; any other pair cannot be compared and
+/// breaks the rule, as on the server.
+bool atMost(String value, String limit) {
+  final (number, limitNumber) = (num.tryParse(value), num.tryParse(limit));
+  if (number != null && limitNumber != null) {
+    return number <= limitNumber;
+  }
+  return [
+        _year,
+        _yearMonth,
+        _date,
+      ].any((kind) => kind.hasMatch(value) && kind.hasMatch(limit)) &&
+      value.compareTo(limit) <= 0;
+}
+
+/// The pattern that [value] breaks among those of its field. The field's own
+/// patterns apply to every value; among the conditional ones whose condition
+/// holds in [values], the value needs to match one.
+ValuePattern? brokenPattern(
+  String value,
+  List<ValuePattern> patterns,
+  FieldValues values,
+) {
+  bool matches(ValuePattern pattern) => RegExp(pattern.pattern).hasMatch(value);
+  final conditional = [
+    for (final pattern in patterns)
+      if (pattern.condition case final condition?
+          when values(condition.path).contains(condition.value))
+        pattern,
+  ];
+  return patterns
+          .where((pattern) => pattern.condition == null && !matches(pattern))
+          .firstOrNull ??
+      (conditional.isNotEmpty && !conditional.any(matches)
+          ? conditional.first
+          : null);
 }
 
 String? _boundProblem(String value, FieldDef def, ValidationMessages messages) {
@@ -442,21 +524,6 @@ String? _boundProblem(String value, FieldDef def, ValidationMessages messages) {
   }
   if (def.maxExclusive case final limit? when number() >= limit) {
     return messages.lessThan(limit);
-  }
-  return null;
-}
-
-String? _siblingValue(EntityNode node, String predicate) {
-  for (final group in node.groups) {
-    if (group.def.uri != predicate) {
-      continue;
-    }
-    for (final item in group.items) {
-      final value = item.textValue;
-      if (value != null && value.isNotEmpty) {
-        return value;
-      }
-    }
   }
   return null;
 }

@@ -26,6 +26,7 @@ from heritrace.utils.shacl_validation import (
     convert_to_matching_class,
     convert_to_matching_literal,
     get_valid_predicates,
+    pair_errors,
     validate_new_triple,
 )
 from tests.test_config import BASE_DIR
@@ -1024,7 +1025,7 @@ def test_process_nested_shapes_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         ctx = ShaclProcessingContext(
             shacl=shacl_graph,
             presentation=read_presentation(shacl_graph),
-            pattern_alternatives=[],
+            value_patterns=[],
             shown_with={},
             excluded_with={},
             app=app,
@@ -1041,7 +1042,7 @@ def test_process_nested_shapes_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         ctx2 = ShaclProcessingContext(
             shacl=shacl_graph,
             presentation=read_presentation(shacl_graph),
-            pattern_alternatives=[],
+            value_patterns=[],
             shown_with={},
             excluded_with={},
             app=app,
@@ -1101,7 +1102,7 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         ctx = ShaclProcessingContext(
             shacl=shacl_graph,
             presentation=read_presentation(shacl_graph),
-            pattern_alternatives=[],
+            value_patterns=[],
             shown_with={},
             excluded_with={},
             app=app,
@@ -1119,7 +1120,7 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         ctx = ShaclProcessingContext(
             shacl=shacl_graph,
             presentation=read_presentation(shacl_graph),
-            pattern_alternatives=[],
+            value_patterns=[],
             shown_with={},
             excluded_with={},
             app=app,
@@ -1265,6 +1266,173 @@ def test_validate_new_triple_with_pattern_validation(
     )
 
 
+_CODE_SHAPES = """
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <http://example.org/> .
+
+ex:ItemShape a sh:NodeShape ;
+  sh:targetClass ex:Item ;
+  sh:property [
+    sh:path ex:code ;
+    sh:datatype xsd:string ;
+    sh:pattern "^\\\\d+$" ;
+  ] .
+"""
+
+
+@pytest.mark.parametrize(
+    ("value", "error"),
+    [
+        ("123", None),
+        (
+            "12a",
+            field_error(
+                "invalidInput",
+                "http://example.org/item",
+                "http://example.org/code",
+                expected=r"^\d+$",
+                input="12a",
+            ),
+        ),
+    ],
+)
+def test_a_field_pattern_checks_each_saved_value(
+    app: Flask, value: str, error: object
+) -> None:
+    subject = URIRef("http://example.org/item")
+    data_graph = Graph()
+    data_graph.add((subject, RDF.type, URIRef("http://example.org/Item")))
+    with (
+        app.test_request_context(),
+        app.app_context(),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph",
+            return_value=Graph().parse(data=_CODE_SHAPES, format="turtle"),
+        ),
+        patch(
+            "heritrace.utils.shacl_validation.fetch_data_graph_for_subject",
+            return_value=data_graph,
+        ),
+    ):
+        _value, _old, found = validate_new_triple(
+            subject,
+            URIRef("http://example.org/code"),
+            value,
+            "create",
+            entity_types=["http://example.org/Item"],
+        )
+
+    assert found == error
+
+
+_KIND_SHAPES = """
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.org/> .
+
+ex:ItemShape a sh:NodeShape ;
+  sh:targetClass ex:Item ;
+  sh:property [ sh:path ex:source ; sh:nodeKind sh:IRI ] ;
+  sh:property [ sh:path ex:note ; sh:nodeKind sh:Literal ] .
+"""
+
+
+@pytest.mark.parametrize(
+    ("predicate", "value", "checked"),
+    [
+        ("source", "urn:isbn:0451450523", (URIRef("urn:isbn:0451450523"), None)),
+        (
+            "source",
+            "not an iri",
+            (
+                None,
+                field_error(
+                    "invalidIri",
+                    "http://example.org/item",
+                    "http://example.org/source",
+                    input="not an iri",
+                ),
+            ),
+        ),
+        (
+            "note",
+            "http://example.org/x",
+            (Literal("http://example.org/x", datatype=XSD.string), None),
+        ),
+    ],
+)
+def test_a_value_takes_the_kind_of_node_of_its_field(
+    app: Flask, predicate: str, value: str, checked: tuple[object, object]
+) -> None:
+    subject = URIRef("http://example.org/item")
+    data_graph = Graph()
+    data_graph.add((subject, RDF.type, URIRef("http://example.org/Item")))
+    with (
+        app.test_request_context(),
+        app.app_context(),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph",
+            return_value=Graph().parse(data=_KIND_SHAPES, format="turtle"),
+        ),
+        patch(
+            "heritrace.utils.shacl_validation.fetch_data_graph_for_subject",
+            return_value=data_graph,
+        ),
+    ):
+        stored, _old, error = validate_new_triple(
+            subject,
+            URIRef(f"http://example.org/{predicate}"),
+            value,
+            "create",
+            entity_types=["http://example.org/Item"],
+        )
+
+    assert (stored, error) == checked
+
+
+_EVENT_SHAPES = """
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.org/> .
+
+ex:EventShape a sh:NodeShape ;
+  sh:targetClass ex:Event ;
+  sh:property [ sh:path ex:start ; sh:lessThanOrEquals ex:end ] ;
+  sh:property [ sh:path ex:end ] .
+"""
+
+
+def test_a_start_after_the_end_breaks_the_rule(app: Flask) -> None:
+    ex = Namespace("http://example.org/")
+    data_graph = Graph()
+    for event, start, end in (
+        ("late", Literal("2020-05-01", datatype=XSD.date), "2020-04-01"),
+        ("same", Literal("2020-04-01", datatype=XSD.date), "2020-04-01"),
+        ("year", Literal("2020", datatype=XSD.gYear), "2021-01-01"),
+    ):
+        data_graph.add((ex[event], RDF.type, ex.Event))
+        data_graph.add((ex[event], ex.start, start))
+        data_graph.add((ex[event], ex.end, Literal(end, datatype=XSD.date)))
+    custom_filter = MagicMock()
+    custom_filter.human_readable_predicate.return_value = "End"
+    with (
+        app.app_context(),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph",
+            return_value=Graph().parse(data=_EVENT_SHAPES, format="turtle"),
+        ),
+        patch(
+            "heritrace.utils.shacl_validation.get_custom_filter",
+            return_value=custom_filter,
+        ),
+    ):
+        errors = pair_errors(data_graph, [ex.late, ex.same, ex.year])
+
+    assert errors == [
+        field_error("exceeds", ex.late, ex.start, other="End", input="2020-05-01"),
+        field_error("exceeds", ex.year, ex.start, other="End", input="2020"),
+    ]
+
+
 def test_validate_new_triple_with_invalid_uri(
     app: Flask, shacl_graph: Graph, mock_fetch_data_graph
 ) -> None:
@@ -1397,6 +1565,7 @@ def test_validate_new_triple_with_literal_conversion(
                 self.minExclusive = None
                 self.maxExclusive = None
                 self.optionalValues = ""
+                self.nodeKind = None
                 self.shape = URIRef("http://example.org/TestShape")
 
         # Create a mock result with a datatype constraint
@@ -1481,6 +1650,8 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 self.unique_lang = None
                 self.property = None
                 self.ordered_by = None
+                self.node_kind = None
+                self.limit_paths = None
                 self.node_shape = node_shape
                 self.min_count = (
                     Literal(min_count, datatype=XSD.integer) if min_count else None
@@ -1553,7 +1724,7 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
             ctx = ShaclProcessingContext(
                 shacl=shacl_graph,
                 presentation=read_presentation(shacl_graph),
-                pattern_alternatives=[],
+                value_patterns=[],
                 shown_with={},
                 excluded_with={},
                 app=app,
@@ -1597,7 +1768,7 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
             ctx = ShaclProcessingContext(
                 shacl=shacl_graph,
                 presentation=read_presentation(shacl_graph),
-                pattern_alternatives=[],
+                value_patterns=[],
                 shown_with={},
                 excluded_with={},
                 app=app,
@@ -1677,6 +1848,7 @@ def test_validate_new_triple_with_datatype_conversion_failure() -> None:
                 self.maxCount = None
                 self.minCount = None
                 self.optionalValues = ""
+                self.nodeKind = None
 
         mock_results = [
             MockRow(
@@ -1758,6 +1930,7 @@ def test_validate_new_triple_with_invalid_url() -> None:
                 self.maxCount = None
                 self.minCount = None
                 self.optionalValues = None
+                self.nodeKind = None
 
         mock_results = [
             MockRow(

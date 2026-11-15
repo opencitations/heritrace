@@ -21,13 +21,6 @@ The system settings live in SQLite because no vocabulary for them has been chose
 
 The configuration pages do not offer to delete the configuration, an entity type or a field. Decide what deleting means for each of them: whether removing an entity type also removes its fields, what happens to the data that uses it, and how a deleted part is restored, since the configuration has no recycle bin.
 
-## Show configuration errors beside the field they concern
-
-A save can break a rule of the configuration, such as a value to count with neither occurrence count or a maximum lower than the minimum. The editor then shows an English message in a dialog, as in "shapes.8.properties.1.qualifiedMinCount: Add the minimum or maximum occurrences of the values to count". The location points into the internal model of the shapes. A field that several resource types share repeats the message once for each of them. Show each error once, in the language of the interface, beside the field to correct. Points raised so far:
-
-- A rule that the meta-shapes can state, such as the occurrence counts of a value to count, belongs in the form: a resource-level `sh:or` with an `sh:message`, which the form and the server would both honour. The form reads a resource-level `sh:or` only for conditional patterns.
-- For the other errors, the server could name the field resource and return a code that the client translates, as the system settings already do with the location of each field.
-
 ## Accept literals as fixed and allowed values
 
 SHACL lets `sh:hasValue` and the members of `sh:in` be any RDF term. HERITRACE handles only IRIs: the shapes model turns a literal into an IRI or leaves it out, forms and saves treat the value as a plain string, and the count of qualified values compares IRIs. Support literals, with their datatype or language, wherever `sh:hasValue` and `sh:in` apply: on a field, inside a value to count and among the allowed values. Points raised so far:

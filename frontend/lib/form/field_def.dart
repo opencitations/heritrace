@@ -9,6 +9,7 @@ const xsdGYear = 'http://www.w3.org/2001/XMLSchema#gYear';
 const xsdString = 'http://www.w3.org/2001/XMLSchema#string';
 
 const _xsd = 'http://www.w3.org/2001/XMLSchema#';
+const shIri = 'http://www.w3.org/ns/shacl#IRI';
 const _unsignedIntegerDatatypes = {
   '${_xsd}nonNegativeInteger',
   '${_xsd}positiveInteger',
@@ -28,28 +29,30 @@ const _integerDatatypes = {
   '${_xsd}nonPositiveInteger',
 };
 
-class FieldCondition {
-  const FieldCondition({
-    required this.path,
-    required this.value,
+/// A pattern that the values of a field match: the field's own, or one that
+/// applies when the resource holds [condition]'s value in its field.
+class ValuePattern {
+  const ValuePattern({
+    required this.condition,
     required this.pattern,
     required this.message,
   });
 
-  factory FieldCondition.fromJson(Map<String, dynamic> json) {
-    final condition = json['condition'] as Map<String, dynamic>;
-    return FieldCondition(
-      path: condition['path'] as String,
-      value: condition['value'] as String,
-      pattern: json['pattern'] as String,
-      message: json['message'] as String,
-    );
-  }
+  factory ValuePattern.fromJson(Map<String, dynamic> json) => ValuePattern(
+    condition: switch (json['condition']) {
+      final Map<String, dynamic> condition => (
+        path: condition['path'] as String,
+        value: condition['value'] as String,
+      ),
+      _ => null,
+    },
+    pattern: json['pattern'] as String,
+    message: json['message'] as String?,
+  );
 
-  final String path;
-  final String value;
+  final ({String path, String value})? condition;
   final String pattern;
-  final String message;
+  final String? message;
 }
 
 enum FieldKind { or, nested, mandatory, select, date, literal }
@@ -75,7 +78,7 @@ class FieldDef {
     required this.optionalValues,
     required this.optionalValueLabels,
     required this.optionalValueDescriptions,
-    required this.conditions,
+    required this.patterns,
     required this.inputType,
     required this.orderedBy,
     required this.autocomplete,
@@ -83,7 +86,8 @@ class FieldDef {
     required this.detailPaths,
     required this.nestedShape,
     required this.or,
-    required this.iri,
+    required this.nodeKind,
+    required this.lessThanOrEquals,
     required this.hidden,
     required this.withLanguage,
     required this.shownWith,
@@ -128,8 +132,8 @@ class FieldDef {
                 .entries)
           entry.key: entry.value as String,
       },
-      conditions: (json['conditions'] as List<dynamic>? ?? [])
-          .map((e) => FieldCondition.fromJson(e as Map<String, dynamic>))
+      patterns: (json['patterns'] as List<dynamic>? ?? [])
+          .map((e) => ValuePattern.fromJson(e as Map<String, dynamic>))
           .toList(),
       inputType: json['inputType'] as String? ?? 'text',
       orderedBy: json['orderedBy'] as String?,
@@ -142,7 +146,14 @@ class FieldDef {
       or: (json['or'] as List<dynamic>?)
           ?.map((e) => FieldDef.fromJson(e as Map<String, dynamic>))
           .toList(),
-      iri: json['iri'] == true,
+      nodeKind: json['nodeKind'] as String?,
+      lessThanOrEquals: [
+        for (final limit in json['lessThanOrEquals'] as List<dynamic>? ?? [])
+          (
+            path: (limit as Map<String, dynamic>)['path'] as String,
+            name: limit['name'] as String,
+          ),
+      ],
       hidden: json['hidden'] == true,
       withLanguage: json['withLanguage'] == true,
       shownWith: (json['shownWith'] as List<dynamic>? ?? []).cast<String>(),
@@ -172,7 +183,7 @@ class FieldDef {
   final List<String> optionalValues;
   final Map<String, String> optionalValueLabels;
   final Map<String, String> optionalValueDescriptions;
-  final List<FieldCondition> conditions;
+  final List<ValuePattern> patterns;
   final String inputType;
   final String? orderedBy;
   final bool autocomplete;
@@ -186,8 +197,15 @@ class FieldDef {
   final List<FieldDef>? nestedShape;
   final List<FieldDef>? or;
 
-  /// An alternative of a `sh:or` field that takes an IRI typed in place.
-  final bool iri;
+  /// The `sh:nodeKind` of the values; for an alternative of a `sh:or` field,
+  /// `sh:IRI` marks the one that takes an IRI typed in place.
+  final String? nodeKind;
+
+  bool get takesIri => nodeKind == shIri;
+
+  /// The fields of the same resource whose values the values of this one do
+  /// not exceed, declared with `sh:lessThanOrEquals`.
+  final List<({String path, String name})> lessThanOrEquals;
   final bool hidden;
 
   /// Each value carries a language, picked next to its input.

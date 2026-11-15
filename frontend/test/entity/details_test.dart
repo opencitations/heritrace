@@ -453,6 +453,8 @@ void main() {
 const _messages = ValidationMessages(
   required: '',
   invalidUrl: '',
+  invalidIri: 'invalid iri',
+  exceeds: _exceeds,
   invalidInput: _echo,
   tooMany: _ignore,
   tooFew: _ignore,
@@ -467,3 +469,5 @@ String _ignoreBound(num bound) => '';
 String _echo(String expected) => expected;
 
 String _ignore(String name, int count, int limit) => '';
+
+String _exceeds(String other) => 'exceeds $other';

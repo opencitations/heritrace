@@ -5,13 +5,10 @@
 import operator
 from collections.abc import Callable, Mapping
 from decimal import Decimal
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
-from rdflib import XSD
+from rdflib import XSD, Literal
 from rdflib.term import Node
-
-if TYPE_CHECKING:
-    from rdflib import Literal
 
 Bound = int | float | None
 
@@ -52,6 +49,27 @@ def bound_number(bound: Node | None) -> Bound:
         return None
     value = cast("Literal", bound).toPython()
     return value if isinstance(value, int) else float(value)
+
+
+# The kinds of date that the forms offer, whose values compare by their text.
+_DATE_DATATYPES = frozenset(
+    str(datatype) for datatype in (XSD.date, XSD.gYearMonth, XSD.gYear)
+)
+
+
+# Whether a value does not exceed a limit. Numbers compare with numbers and
+# dates with dates of the same kind; any other pair cannot be compared and
+# breaks the rule, as in SHACL.
+def at_most(value: Node, limit: Node) -> bool:
+    if not (isinstance(value, Literal) and isinstance(limit, Literal)):
+        return False
+    if {str(value.datatype), str(limit.datatype)} <= NUMERIC_DATATYPES:
+        return Decimal(str(value)) <= Decimal(str(limit))
+    return (
+        value.datatype == limit.datatype
+        and str(value.datatype) in _DATE_DATATYPES
+        and str(value) <= str(limit)
+    )
 
 
 def broken_bound(

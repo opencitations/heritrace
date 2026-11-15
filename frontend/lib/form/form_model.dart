@@ -9,6 +9,12 @@ import 'field_def.dart';
 
 enum DateType { date, month, year }
 
+String dateDatatype(DateType type) => switch (type) {
+  DateType.date => xsdDate,
+  DateType.month => xsdGYearMonth,
+  DateType.year => xsdGYear,
+};
+
 List<DateType> dateTypesFor(List<String> datatypes) => [
   if (datatypes.contains(xsdDate)) DateType.date,
   if (datatypes.contains(xsdGYearMonth)) DateType.month,
@@ -304,11 +310,7 @@ class DateItem extends FormItem {
   @override
   String get textValue => value;
 
-  String get datatype => switch (dateType) {
-    DateType.date => xsdDate,
-    DateType.month => xsdGYearMonth,
-    DateType.year => xsdGYear,
-  };
+  String get datatype => dateDatatype(dateType);
 
   void setValue(String next) {
     value = next;
@@ -438,7 +440,8 @@ class OrItem extends FormItem {
 
   /// Starts on the alternative that takes an IRI typed in place, when the
   /// field offers one.
-  void selectIri() => _show(def.or!.where((option) => option.iri).firstOrNull);
+  void selectIri() =>
+      _show(def.or!.where((option) => option.takesIri).firstOrNull);
 
   void _show(FieldDef? option) {
     selectedItem?.dispose();

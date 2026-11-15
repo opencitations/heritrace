@@ -470,17 +470,106 @@ class EditSession extends ChangeNotifier {
   }
 
   List<ValidationError> validate() {
+    final path = [view.typeLabel];
     return [
-      ...validateEntity(root, validationMessages, path: [view.typeLabel]),
+      ...validateEntity(root, validationMessages, path: path, values: _values),
       for (final group in groups)
         if (applies(group))
           for (final value in group.existing)
-            if (value.detailNode case final node? when !value.markedForDeletion)
-              ...validateEntity(
-                node,
-                validationMessages,
-                path: [view.typeLabel, group.group.displayName],
-              ),
+            if (!value.markedForDeletion) ...[
+              if (group.group.field case final field?)
+                ..._savedValueErrors(
+                  value,
+                  value.isModified,
+                  field,
+                  dateTypesFor(field.datatypes).isEmpty
+                      ? field.datatypes
+                      : [dateDatatype(value.dateType)],
+                  _values,
+                  path,
+                ),
+              for (final edit in value.detailEdits.values)
+                if (!edit.markedForDeletion)
+                  ..._savedValueErrors(
+                    edit,
+                    edit.isModified,
+                    edit.field,
+                    edit.field.datatypes,
+                    _detailValues(value),
+                    [...path, group.group.displayName],
+                  ),
+              if (value.detailNode case final node?)
+                ...validateEntity(
+                  node,
+                  validationMessages,
+                  path: [...path, group.group.displayName],
+                  values: _detailValues(value),
+                ),
+            ],
+    ];
+  }
+
+  /// The values of each property of the resource, saved or new.
+  Iterable<String> _values(String predicate) => [
+    for (final group in groups)
+      if (group.group.property == predicate)
+        for (final value in group.existing)
+          if (!value.markedForDeletion)
+            value.isEntityLink ? value.triple.object : value.newValue,
+    ...nodeValues(root)(predicate),
+  ];
+
+  /// The values of each property of the nested resource that [value] shows in
+  /// place, saved or new.
+  FieldValues _detailValues(ExistingValue value) =>
+      (predicate) => [
+        for (final detail in value.triple.details ?? const <EntityDetail>[])
+          if (detail.property == predicate)
+            for (final saved in detail.values) ?_detailText(value, saved),
+        if (value.detailNode case final node?) ...nodeValues(node)(predicate),
+      ];
+
+  /// The text of a saved value of a nested resource, as the user left it;
+  /// null once removed.
+  static String? _detailText(ExistingValue value, DetailValue saved) =>
+      switch (value.detailEdits[saved]) {
+        null => saved.value,
+        final edit when edit.markedForDeletion => null,
+        final edit => edit.newValue,
+      };
+
+  /// The rules that a saved value breaks, beside the value: all of them once
+  /// the user [changed] it, and otherwise those that compare it with other
+  /// fields, whose values may have changed.
+  List<ValidationError> _savedValueErrors(
+    EditedValue value,
+    bool changed,
+    FieldDef field,
+    List<String> datatypes,
+    FieldValues values,
+    List<String> path,
+  ) {
+    final text = value.newValue.trim();
+    final problems = switch ((changed, text.isEmpty)) {
+      (true, true) => [if (field.isRequired) validationMessages.required],
+      (true, false) => valueProblems(
+        text,
+        field,
+        datatypes,
+        validationMessages,
+        values,
+      ),
+      (false, _) => limitProblems(text, field, validationMessages, values),
+    };
+    return [
+      for (final problem in problems)
+        ValidationError(
+          message: problem,
+          path: path,
+          value: value,
+          fieldName: field.displayName,
+          required: text.isEmpty,
+        ),
     ];
   }
 

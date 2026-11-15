@@ -47,6 +47,6 @@ Only one administrator at a time can edit the system settings. While someone edi
 
 All the shapes form a single entity, shown in the **Resource types** tab. Each resource type, a SHACL node shape, and each field, a property shape, has its own page. These are the same pages HERITRACE uses for the data, so every change has a history and any past version can be restored.
 
-Each save checks the whole set of shapes, not only the part you changed. When the result is not valid, such as a field whose maximum is lower than its minimum, HERITRACE shows the reason and stores nothing.
+The form checks each field as you fill it in, with the same rules that HERITRACE applies to the data. Each save then checks the whole set of shapes, not only the part you changed: when the result is not valid, such as a label query that uses an undeclared prefix, HERITRACE shows the reason beside the field it concerns and stores nothing.
 
 The pages of the configuration do not offer to delete it, nor any of its resource types or fields.

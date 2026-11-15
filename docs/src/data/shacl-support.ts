@@ -48,6 +48,7 @@ export const specifications: Specification[] = [
         supported: [
           'sh:class',
           'sh:datatype',
+          'sh:nodeKind',
           'sh:minCount',
           'sh:maxCount',
           'sh:pattern',
@@ -63,10 +64,10 @@ export const specifications: Specification[] = [
           'sh:maxInclusive',
           'sh:minExclusive',
           'sh:maxExclusive',
+          'sh:lessThanOrEquals',
           'sh:uniqueLang',
         ],
         unsupported: [
-          'sh:nodeKind',
           'sh:minLength',
           'sh:maxLength',
           'sh:flags',
@@ -80,7 +81,6 @@ export const specifications: Specification[] = [
           'sh:disjoint',
           'sh:subsetOf',
           'sh:lessThan',
-          'sh:lessThanOrEquals',
           'sh:uniqueValuesFor',
           'sh:not',
           'sh:and',

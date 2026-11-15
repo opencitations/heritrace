@@ -41,7 +41,11 @@ from heritrace.utils.primary_source_utils import (
     save_user_default_primary_source,
 )
 from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
-from heritrace.utils.shacl_validation import cardinality_error, validate_new_triple
+from heritrace.utils.shacl_validation import (
+    cardinality_error,
+    pair_errors,
+    validate_new_triple,
+)
 from heritrace.utils.sparql_utils import (
     CatalogQuery,
     DeletedEntitiesQuery,
@@ -808,12 +812,22 @@ def _changed_properties(change: dict) -> list[tuple[URIRef, URIRef]]:
     return []
 
 
-def _check_final_cardinality(editor: Editor, changes: list[dict]) -> None:
+# The rules that hold only on the values a save leaves: the number of values of
+# each changed property, and the values that sh:lessThanOrEquals compares.
+def _check_final_state(
+    editor: Editor, changes: list[dict], temp_id_to_uri: dict[str, str]
+) -> None:
     changed = {pair for change in changes for pair in _changed_properties(change)}
+    subjects = {URIRef(change["subject"]) for change in changes if "subject" in change}
     errors = [
-        error
-        for subject, predicate in sorted(changed)
-        if (error := cardinality_error(editor.g_set, subject, predicate))
+        *(
+            error
+            for subject, predicate in sorted(changed)
+            if (error := cardinality_error(editor.g_set, subject, predicate))
+        ),
+        *pair_errors(
+            editor.g_set, subjects | {URIRef(uri) for uri in temp_id_to_uri.values()}
+        ),
     ]
     if errors:
         raise RejectedError(errors)
@@ -910,7 +924,7 @@ def apply_changes() -> tuple[Response, int]:
         _process_remaining_changes(
             editor, changes, graph_uri, deleted_entities, temp_id_to_uri
         )
-        _check_final_cardinality(editor, changes)
+        _check_final_state(editor, changes, temp_id_to_uri)
 
         return _save_and_respond(editor)
 

@@ -10,6 +10,7 @@ from flask_login import current_user, login_required
 from rdflib import RDF, XSD, Literal, URIRef
 
 from heritrace.apis.orcid import get_responsible_agent_uri
+from heritrace.configuration.vocabulary import SH
 from heritrace.editor import Editor, EditorError
 from heritrace.extensions import (
     get_custom_filter,
@@ -31,6 +32,7 @@ from heritrace.utils.inverse_paths import (
 )
 from heritrace.utils.primary_source_utils import save_user_default_primary_source
 from heritrace.utils.shacl_utils import find_matching_form_field
+from heritrace.utils.shacl_validation import pair_errors
 from heritrace.utils.sparql_utils import import_referenced_entities
 from heritrace.utils.uri_utils import generate_unique_uri, is_valid_url
 
@@ -239,6 +241,12 @@ def _handle_create_entity_post(
             default_graph_uri,
         )
 
+    errors = pair_errors(
+        editor.g_set,
+        {node for node in editor.g_set.subjects() if isinstance(node, URIRef)},
+    )
+    if errors:
+        raise RejectedError(errors)
     try:
         editor.save()
         _process_inverse_values_after_creation(
@@ -371,9 +379,12 @@ def process_entity_value(
         msg = "Missing entity_uri in existing entity reference"
         raise ValueError(msg)
     str_value = str(value)
+    node_kind = matching_field_def.get("nodeKind") if matching_field_def else None
     if is_tagged(value):
         object_value: URIRef | Literal = tagged_literal(value)
-    elif is_valid_url(str_value):
+    elif node_kind == str(SH.IRI) or (
+        node_kind != str(SH.Literal) and is_valid_url(str_value)
+    ):
         object_value = URIRef(str_value)
     else:
         datatype_uris = []

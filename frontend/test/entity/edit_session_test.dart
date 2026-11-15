@@ -89,6 +89,8 @@ EntityView view() => EntityView.fromJson({
 const messages = ValidationMessages(
   required: 'required',
   invalidUrl: 'invalid url',
+  invalidIri: 'invalid iri',
+  exceeds: _exceeds,
   invalidInput: _echo,
   tooMany: _ignore,
   tooFew: _ignore,
@@ -338,6 +340,179 @@ void main() {
     );
   });
 
+  test('a changed saved value is checked against its field and the others', () {
+    const scheme = 'http://purl.org/spar/datacite/usesIdentifierScheme';
+    const literal =
+        'http://www.essepuntato.it/2010/06/literalreification/'
+        'hasLiteralValue';
+    const doi = 'http://purl.org/spar/datacite/doi';
+    const count = 'https://example.org/count';
+    const identifier = 'https://w3id.org/oc/meta/id/1';
+    Map<String, Object?> savedGroup(
+      String property,
+      Map<String, Object?> field,
+      String value,
+    ) => {
+      'display_name': property,
+      'property': property,
+      'object_shape': null,
+      'is_draggable': false,
+      'ordered_by': null,
+      'field': {'uri': property, 'displayName': property, 'max': 1, ...field},
+      'triples': [
+        {
+          'subject': identifier,
+          'predicate': property,
+          'value': value,
+          'object': value,
+          'external_entity': null,
+          'is_mandatory': false,
+          'label': null,
+        },
+      ],
+    };
+    final identifierSession = EditSession(
+      view: EntityView.fromJson({
+        'uri': identifier,
+        'label': 'doi:10.1/x',
+        'type': 'http://purl.org/spar/datacite/Identifier',
+        'type_label': 'Identifier',
+        'shape': null,
+        'classes': <String>[],
+        'is_deleted': false,
+        'has_history': true,
+        'shacl': true,
+        'has_form_fields': true,
+        'can_be_added': <String>[],
+        'can_be_deleted': <String>[],
+        'datatypes': <String, dynamic>{},
+        'optional_values': <String, dynamic>{},
+        'groups': [
+          savedGroup(scheme, {}, doi),
+          savedGroup(literal, {
+            'patterns': [
+              {
+                'condition': {'path': scheme, 'value': doi},
+                'pattern': r'^10\.',
+                'message': 'not a DOI',
+              },
+            ],
+          }, '10.1/x'),
+          savedGroup(count, {
+            'datatypes': ['http://www.w3.org/2001/XMLSchema#integer'],
+            'min': 1,
+          }, '1'),
+        ],
+      }),
+      entityType: 'http://purl.org/spar/datacite/Identifier',
+      repository: EntityRepository(Dio(), EntityStore.dataset),
+      validationMessages: messages,
+      atLeastOnePropertyMessage: 'at least one',
+    );
+    addTearDown(identifierSession.dispose);
+    final [_, value, number] = [
+      for (final group in identifierSession.groups) group.existing.single,
+    ];
+
+    value.setValue('x');
+    number.setValue('one');
+    expect(
+      [
+        for (final error in identifierSession.validate())
+          (error.message, error.value),
+      ],
+      [('not a DOI', value), ('whole number', number)],
+    );
+
+    number.setValue('');
+    expect(
+      [
+        for (final error in identifierSession.validate())
+          (error.message, error.value),
+      ],
+      [('not a DOI', value), ('required', number)],
+    );
+  });
+
+  test('lowering a saved maximum flags the saved minimum it falls below', () {
+    const minimum = 'http://www.w3.org/ns/shacl#minCount';
+    const maximum = 'http://www.w3.org/ns/shacl#maxCount';
+    const field = 'https://w3id.org/heritrace/genid/field';
+    Map<String, Object?> savedGroup(
+      String property,
+      Map<String, Object?> definition,
+      String value,
+    ) => {
+      'display_name': property,
+      'property': property,
+      'object_shape': null,
+      'is_draggable': false,
+      'ordered_by': null,
+      'field': {
+        'uri': property,
+        'displayName': property,
+        'max': 1,
+        ...definition,
+      },
+      'triples': [
+        {
+          'subject': field,
+          'predicate': property,
+          'value': value,
+          'object': value,
+          'external_entity': null,
+          'is_mandatory': false,
+          'label': null,
+        },
+      ],
+    };
+    final fieldSession = EditSession(
+      view: EntityView.fromJson({
+        'uri': field,
+        'label': 'A field',
+        'type': 'http://www.w3.org/ns/shacl#PropertyShape',
+        'type_label': 'Field',
+        'shape': null,
+        'classes': <String>[],
+        'is_deleted': false,
+        'has_history': true,
+        'shacl': true,
+        'has_form_fields': true,
+        'can_be_added': <String>[],
+        'can_be_deleted': <String>[],
+        'datatypes': <String, dynamic>{},
+        'optional_values': <String, dynamic>{},
+        'groups': [
+          savedGroup(minimum, {
+            'lessThanOrEquals': [
+              {'path': maximum, 'name': 'Maximum'},
+            ],
+          }, '2'),
+          savedGroup(maximum, {}, '3'),
+        ],
+      }),
+      entityType: 'http://www.w3.org/ns/shacl#PropertyShape',
+      repository: EntityRepository(Dio(), EntityStore.configuration),
+      validationMessages: messages,
+      atLeastOnePropertyMessage: 'at least one',
+    );
+    addTearDown(fieldSession.dispose);
+    final [low, high] = [
+      for (final group in fieldSession.groups) group.existing.single,
+    ];
+
+    expect(fieldSession.validate(), isEmpty);
+
+    high.setValue('1');
+    expect(
+      [
+        for (final error in fieldSession.validate())
+          (error.message, error.value),
+      ],
+      [('exceeds Maximum', low)],
+    );
+  });
+
   test('a rejected save puts each error beside its value or field', () {
     final t = AppLocale.it.buildSync();
     final role = group(documentContext).formGroup!.addItem() as NestedItem;
@@ -349,10 +524,10 @@ void main() {
 
     final errors = session.serverErrors(t, [
       const ServerFieldError(
-        code: 'maxBelowMin',
+        code: 'exceeds',
         subject: subject,
         predicate: title,
-        params: {},
+        params: {'other': 'Subtitle', 'input': 'Old title'},
       ),
       ServerFieldError(
         code: 'invalidInput',
@@ -375,7 +550,7 @@ void main() {
       ],
       [
         (
-          'Il massimo è minore del minimo.',
+          'Il valore non può superare quello di "Subtitle".',
           'Journal Article',
           null,
           group(title).existing.single,
@@ -415,3 +590,5 @@ void main() {
     expect(group(documentContext).formGroup!.items, isEmpty);
   });
 }
+
+String _exceeds(String other) => 'exceeds $other';

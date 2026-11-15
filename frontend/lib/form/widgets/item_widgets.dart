@@ -21,6 +21,8 @@ import 'option_sheet.dart';
 
 TextInputType valueKeyboardType(FieldDef def) => def.isInteger
     ? TextInputType.numberWithOptions(signed: def.acceptsNegative)
+    : def.takesIri
+    ? TextInputType.url
     : switch (def.inputType) {
         'number' => const TextInputType.numberWithOptions(
           decimal: true,
@@ -372,7 +374,7 @@ class OrSelector extends StatelessWidget {
               for (final option in item.def.or!)
                 AppMenuOption(
                   option,
-                  option.iri ? t.ui.form.iriOption : option.displayName,
+                  option.takesIri ? t.ui.form.iriOption : option.displayName,
                 ),
             ],
             onChanged: item.select,

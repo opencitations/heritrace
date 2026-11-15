@@ -324,7 +324,13 @@ def test_an_invalid_configuration_is_not_saved(
     field = _literal_property(_data(config_app))
 
     assert _update(admin_client, field, SH.minCount, "1", "5") == _rejected(
-        field_error("maxBelowMin", field, SH.maxCount)
+        field_error(
+            "exceeds",
+            field,
+            SH.minCount,
+            other="Maximum number of values",
+            input="5",
+        )
     )
     assert [path.read_bytes() for path in files] == before
 
@@ -413,7 +419,15 @@ def test_a_minimum_value_above_the_maximum_is_not_saved(
 
     assert _add(
         admin_client, field, {SH.minInclusive: "5", SH.maxInclusive: "1"}
-    ) == _rejected(field_error("maxBelowMin", field, SH.maxInclusive))
+    ) == _rejected(
+        field_error(
+            "exceeds",
+            field,
+            SH.minInclusive,
+            other="Maximum value (included)",
+            input="5",
+        )
+    )
 
 
 def test_bounds_on_a_text_field_are_not_saved(
@@ -446,8 +460,7 @@ def test_a_rejected_creation_names_new_resources_as_the_client_does(
                             "properties": {
                                 str(RDF.type): [str(SH.PropertyShape)],
                                 str(SH.path): [str(DCTERMS.title)],
-                                str(SH.minCount): ["2"],
-                                str(SH.maxCount): ["1"],
+                                str(SH.minCount): ["-1"],
                             },
                         }
                     ],
@@ -458,8 +471,8 @@ def test_a_rejected_creation_names_new_resources_as_the_client_does(
     )
 
     assert (response.status_code, response.get_json()) == _rejected(
-        field_error("invalidIri", None, SH.targetClass),
-        field_error("maxBelowMin", "temp-1", SH.maxCount),
+        field_error("atLeast", "temp-1", SH.minCount, limit="0", input="-1"),
+        field_error("invalidIri", None, SH.targetClass, input="not an iri"),
     )
 
 
@@ -481,7 +494,7 @@ def test_a_field_shared_by_two_types_is_reported_once(config_app: Flask) -> None
         ensure_configuration_entity(config_dir)
 
     assert [(error.code, error.predicate) for error in rejection.value.errors] == [
-        ("maxBelowMin", str(SH.maxCount))
+        ("exceeds", str(SH.minCount))
     ]
 
 
@@ -558,6 +571,71 @@ def test_a_new_prefix_is_declared(admin_client: FlaskClient, config_app: Flask) 
     assert status == 200
     shapes = read_shapes(read_shacl(config_app.config["CONFIG_DIR"]))
     assert shapes.prefixes["ex"] == "http://example.org/"
+
+
+def test_a_prefix_that_starts_with_a_digit_is_not_declared(
+    admin_client: FlaskClient,
+) -> None:
+    status, body = _add(
+        admin_client,
+        ROOT,
+        {
+            SH.declare: {
+                "entity_type": str(SH.PrefixDeclaration),
+                "entity_shape": str(META.PrefixDeclarationShape),
+                "properties": {
+                    str(SH.prefix): ["1x"],
+                    str(SH.namespace): ["http://example.org/"],
+                },
+            }
+        },
+    )
+
+    assert (status, _codes(body)) == (
+        422,
+        [
+            (
+                "message",
+                str(SH.prefix),
+                {
+                    "input": "1x",
+                    "message": "Start with a letter and use only letters, digits,"
+                    " dots, hyphens and underscores",
+                },
+            )
+        ],
+    )
+
+
+def test_a_field_keeps_its_own_pattern(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    field = _literal_property(_data(config_app))
+
+    status, _ = _add(
+        admin_client,
+        field,
+        {SH.pattern: r"^\d+$", SH.message: {"value": "Digits only", "language": "en"}},
+    )
+
+    assert status == 200
+    shapes = read_shapes(read_shacl(config_app.config["CONFIG_DIR"]))
+    assert [
+        (prop.pattern, prop.pattern_messages)
+        for shape in shapes.shapes
+        for prop in shape.properties
+        if prop.pattern is not None
+    ] == [(r"^\d+$", {"en": "Digits only"})]
+
+
+def test_an_invalid_field_pattern_is_not_saved(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    field = _literal_property(_data(config_app))
+
+    assert _add(admin_client, field, {SH.pattern: "("}) == _rejected(
+        field_error("invalidRegex", field, SH.pattern)
+    )
 
 
 def test_a_field_reads_its_property_backwards(
@@ -2145,3 +2223,56 @@ def test_named_values_keep_their_names_and_descriptions() -> None:
     assert set(shapes_to_graph(shapes).triples((hardcover, None, None))) == set(
         graph.triples((hardcover, None, None))
     )
+
+
+@pytest.mark.parametrize(
+    ("constraints", "unsupported"),
+    [
+        ("sh:nodeKind sh:IRI", []),
+        ("sh:nodeKind sh:IRIOrLiteral ; sh:datatype xsd:string", []),
+        ("sh:or ( [ sh:nodeKind sh:IRI ] [ sh:node ex:PersonShape ] )", []),
+        ("sh:or ( [ sh:node ex:PersonShape ] [ sh:nodeKind sh:IRI ] )", []),
+        (
+            "sh:nodeKind sh:BlankNode",
+            ["http://example.org/BookShape: sh:nodeKind (1)"],
+        ),
+    ],
+)
+def test_shapes_written_by_hand_keep_the_kinds_of_node_a_form_can_give(
+    constraints: str, unsupported: list[str]
+) -> None:
+    graph = Graph().parse(
+        data=f"""
+        @prefix sh: <http://www.w3.org/ns/shacl#> .
+        @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+        @prefix ex: <http://example.org/> .
+
+        ex:BookShape a sh:NodeShape ;
+          sh:targetClass ex:Book ;
+          sh:property [ sh:path ex:author ; {constraints} ] .
+        """,
+        format="turtle",
+    )
+
+    assert unsupported_parts(graph, read_shapes(graph)) == unsupported
+
+
+def test_shapes_written_by_hand_keep_the_fields_a_value_does_not_exceed() -> None:
+    graph = Graph().parse(
+        data="""
+        @prefix sh: <http://www.w3.org/ns/shacl#> .
+        @prefix ex: <http://example.org/> .
+
+        ex:EventShape a sh:NodeShape ;
+          sh:targetClass ex:Event ;
+          sh:property [ sh:path ex:start ; sh:lessThanOrEquals ex:end, ex:deadline ] .
+        """,
+        format="turtle",
+    )
+    shapes = read_shapes(graph)
+
+    assert unsupported_parts(graph, shapes) == []
+    assert shapes.shapes[0].properties[0].less_than_or_equals == [
+        "http://example.org/deadline",
+        "http://example.org/end",
+    ]

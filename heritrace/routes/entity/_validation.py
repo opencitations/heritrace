@@ -6,13 +6,16 @@ from dataclasses import dataclass, replace
 
 from rdflib import RDF, URIRef
 
+from heritrace.configuration.vocabulary import SH
 from heritrace.extensions import get_custom_filter, get_form_fields
 from heritrace.field_errors import FieldError, field_error
 from heritrace.language import is_tagged
 from heritrace.utils.datatypes import DATATYPE_MAPPING
 from heritrace.utils.filters import Filter
+from heritrace.utils.shacl_patterns import broken_pattern, pattern_error
 from heritrace.utils.shacl_presentation import is_inverse_path
 from heritrace.utils.shacl_utils import find_matching_form_field
+from heritrace.utils.uri_utils import is_iri
 from heritrace.utils.value_bounds import BOUND_NAMES, broken_bound
 
 
@@ -25,6 +28,14 @@ class PropertyValidationInput:
     custom_filter: Filter
     # The temporary id of the resource, or None for the one the request creates.
     subject: str | None
+    # The values of every property of the resource, which conditional patterns
+    # read.
+    properties: dict
+
+    def holds(self, condition: tuple[str, str]) -> bool:
+        path, value = condition
+        values = self.properties.get(path, [])
+        return value in (values if isinstance(values, list) else [values])
 
     def label(self, iri: str) -> str:
         return self.custom_filter.human_readable_predicate(iri, self.entity_key)
@@ -64,45 +75,55 @@ def _validate_property_values(
 ) -> None:
     for value in prop_input.normalized_prop_values:
         if isinstance(value, dict) and "entity_type" in value:
-            nested_errors = validate_entity_data(value)
-            errors.extend(nested_errors)
+            errors.extend(validate_entity_data(value))
         else:
-            datatypes = prop_input.matching_field_def.get("datatypes", [])
-            if datatypes:
-                is_valid_datatype = False
-                for dtype in datatypes:
-                    validation_func = next(
-                        (d[1] for d in DATATYPE_MAPPING if d[0] == URIRef(dtype)),
-                        None,
-                    )
-                    if validation_func and validation_func(value):
-                        is_valid_datatype = True
-                        break
-                if not is_valid_datatype:
-                    expected = ", ".join(prop_input.label(dtype) for dtype in datatypes)
-                    errors.append(
-                        prop_input.error(
-                            "invalidInput", expected=expected, input=str(value)
-                        )
-                    )
-                elif broken := broken_bound(
-                    str(value),
-                    {
-                        name: prop_input.matching_field_def.get(name)
-                        for name in BOUND_NAMES
-                    },
-                ):
-                    code, limit = broken
-                    errors.append(
-                        prop_input.error(code, limit=str(limit), input=str(value))
-                    )
+            errors.extend(_value_errors(prop_input, str(value)))
 
-            optional_values = prop_input.matching_field_def.get("optionalValues", [])
-            if optional_values and value not in optional_values:
-                allowed = ", ".join(prop_input.label(val) for val in optional_values)
-                errors.append(
-                    prop_input.error("notAllowed", values=allowed, input=str(value))
-                )
+
+def _datatype_error(
+    prop_input: PropertyValidationInput, value: str
+) -> FieldError | None:
+    field_def = prop_input.matching_field_def
+    datatypes = field_def.get("datatypes", [])
+    if not datatypes:
+        return None
+    checks = [
+        check
+        for datatype in datatypes
+        for iri, check, _ in DATATYPE_MAPPING
+        if iri == URIRef(datatype)
+    ]
+    if not any(check(value) for check in checks):
+        expected = ", ".join(prop_input.label(datatype) for datatype in datatypes)
+        return prop_input.error("invalidInput", expected=expected, input=value)
+    broken = broken_bound(value, {name: field_def.get(name) for name in BOUND_NAMES})
+    if broken:
+        code, limit = broken
+        return prop_input.error(code, limit=str(limit), input=value)
+    return None
+
+
+def _value_errors(prop_input: PropertyValidationInput, value: str) -> list[FieldError]:
+    field_def = prop_input.matching_field_def
+    optional_values = field_def.get("optionalValues", [])
+    broken = broken_pattern(value, field_def["patterns"], prop_input.holds)
+    errors = [
+        _datatype_error(prop_input, value),
+        prop_input.error("invalidIri", input=value)
+        if field_def.get("nodeKind") == str(SH.IRI) and not is_iri(value)
+        else None,
+        prop_input.error(
+            "notAllowed",
+            values=", ".join(prop_input.label(option) for option in optional_values),
+            input=value,
+        )
+        if optional_values and value not in optional_values
+        else None,
+        pattern_error(broken, prop_input.subject, prop_input.prop_uri, value)
+        if broken
+        else None,
+    ]
+    return [error for error in errors if error is not None]
 
 
 def _validate_languages(
@@ -237,6 +258,7 @@ def validate_entity_data(structured_data: dict) -> list[FieldError]:
                 entity_key=entity_key,
                 custom_filter=custom_filter,
                 subject=subject,
+                properties=properties,
             )
             _validate_property_cardinality(errors, prop_input)
             _validate_property_values(

@@ -27,8 +27,10 @@ HERITRACE reads some supported terms only in part. Each item below says which pa
 -   `sh:path` takes a single predicate or an inverse path. SHACL also allows paths that combine several steps, such as a sequence of predicates or a repeated predicate. HERITRACE does not follow those paths.
 -   `sh:values` says that the values of a property are computed instead of being stored in the data. SHACL offers several ways to describe the computation: a fixed value, the values found by following a path, or a SPARQL query written with `sh:select`. HERITRACE computes a single case: the entity label, written as a SPARQL query on the property shape that carries `shui:LabelRole`. Any other property shape with `sh:values` is left out of forms.
 -   `sh:class` takes a single class. SHACL also accepts a list of classes, meaning that a value may belong to any of them, but HERITRACE does not read that form.
--   `sh:pattern` and `sh:message` are read only inside the alternatives of a node shape's `sh:or`, as described in [Pattern matching](#pattern-matching-shpattern-and-shmessage).
--   `sh:or` is read in two places. On a property shape, its members can be datatypes, node shapes or fixed values. On a node shape, each member must pair a fixed value with a pattern. Members of any other kind are ignored.
+-   `sh:message` is read only next to `sh:pattern`: HERITRACE shows it when a value does not match the pattern of the same shape.
+-   `sh:nodeKind` takes `sh:IRI`, `sh:Literal` or `sh:IRIOrLiteral`; `sh:BlankNode` is not supported.
+-   `sh:lessThanOrEquals` compares numbers, and dates of the same kind. SHACL also compares texts, which HERITRACE treats as values that cannot be compared.
+-   `sh:or` is read in two places. On a property shape, its members can be datatypes, node shapes, fixed values or the member `[ sh:nodeKind sh:IRI ]`. On a node shape, each member must pair a fixed value with a pattern. Members of any other kind are ignored.
 
 ## Official documentation
 
@@ -48,6 +50,7 @@ Example shapes are available in [`example_configurations/`](https://github.com/o
 ## Core concepts
 
 ### Namespaces
+
 Define the ontologies and vocabularies you'll use at the top of your Turtle file.
 
 ```ttl
@@ -67,6 +70,7 @@ Define the ontologies and vocabularies you'll use at the top of your Turtle file
 ```
 
 ### Shape definition
+
 Each shape targets a specific class and defines its properties.
 
 ```ttl
@@ -83,6 +87,7 @@ schema:JournalArticleShape
 SHACL constraints define the validation rules for properties on a targeted class.
 
 ### Cardinality (`sh:minCount` and `sh:maxCount`)
+
 Control how many values a property can have. Both count every value of `sh:path` on the
 entity, even when the shape declares several property shapes with the same path. For example,
 an entity typed both `fabio:Expression` and `fabio:JournalArticle` fails `sh:maxCount 1` on
@@ -109,6 +114,7 @@ sh:property [
 ```
 
 ### Datatype (`sh:datatype`)
+
 Specify the expected data type for a literal value. You can provide alternatives using `sh:or`.
 
 ```ttl
@@ -129,13 +135,30 @@ sh:property [
 ] .
 ```
 
-In the [configuration editor](../editor/), the **Value alternatives** of a field set `sh:or`. Each alternative sets one constraint: a datatype, a SHACL shape, a class or a value, and a SHACL shape can also carry the class it targets. All the alternatives of a field set the same kind of constraint, for example only datatypes or only SHACL shapes, and the editor refuses to save a mix. The alternatives also take the place of the constraints of the field itself: while a field has alternatives, the editor hides its datatype, class, SHACL shape, fixed value, allowed values and values to count. A single alternative is saved as the constraint of the field.
+In the [configuration editor](../editor/), the **Value alternatives** of a field set `sh:or`. Each alternative sets one constraint: a datatype, a SHACL shape, a class or a value, and a SHACL shape can also carry the class it targets. All the alternatives of a field set the same kind of constraint, for example only datatypes or only SHACL shapes, and the editor refuses to save a mix; an **IRI typed in place** can join alternatives of any kind. The alternatives also take the place of the constraints of the field itself: while a field has alternatives, the editor hides its datatype, class, SHACL shape, fixed value, allowed values and values to count. A single alternative is saved as the constraint of the field.
 
 <Aside type="caution" title="Limits of HERITRACE, not of SHACL">
 SHACL accepts any shape as an alternative, including alternatives that mix kinds of constraint, lists with a single member and alternatives next to other constraints of the same field ([SHACL, section 4.6.3](https://www.w3.org/TR/shacl/#OrConstraintComponent)). The rules above come from the current implementation of HERITRACE.
 </Aside>
 
+### Kind of value (`sh:nodeKind`)
+
+`sh:nodeKind` says whether the values of a property are IRIs (`sh:IRI`), literals (`sh:Literal`) or either (`sh:IRIOrLiteral`).
+
+```ttl
+schema:JournalArticleShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:JournalArticle ;
+  sh:property [
+    sh:path dcterms:source ;
+    sh:nodeKind sh:IRI ;
+  ] .
+```
+
+In the [configuration editor](../editor/), the **Kind of value** of a field sets this term, and the **IRI typed in place** of a value alternative adds the member to the `sh:or`.
+
 ### Numeric bounds (`sh:minInclusive`, `sh:maxInclusive`, `sh:minExclusive` and `sh:maxExclusive`)
+
 Limit a number to a range. With `sh:minInclusive` and `sh:maxInclusive` the range includes the bound value, while with `sh:minExclusive` and `sh:maxExclusive` the range excludes the bound value. HERITRACE compares numbers only: the property needs a numeric datatype, such as `xsd:integer` or `xsd:decimal`, and each bound must be an integer or a decimal. When a whole-number field cannot go below zero, the form also ignores the minus sign as the user types.
 
 ```ttl
@@ -147,7 +170,31 @@ sh:property [
 ] .
 ```
 
+### Values that do not exceed another field (`sh:lessThanOrEquals`)
+
+Use `sh:lessThanOrEquals` to keep each value of a property at or below the values of another property of the same entity, such as a start date that does not follow the end date.
+
+```ttl
+schema:EventShape
+  a sh:NodeShape ;
+  sh:targetClass schema:Event ;
+  sh:property [
+    sh:path schema:startDate ;
+    sh:datatype xsd:date ;
+    sh:lessThanOrEquals schema:endDate ;
+  ] ;
+  sh:property [
+    sh:path schema:endDate ;
+    sh:datatype xsd:date ;
+  ] .
+```
+
+HERITRACE compares numbers with numbers and dates with dates of the same kind, such as two years or two full dates. Any other pair cannot be compared and breaks the rule, as in SHACL. The form shows the error under the field that carries the rule, before the save.
+
+In the [configuration editor](../editor/), the **Not greater than** of a field sets this term, with the IRI of the other property.
+
 ### Value range (`sh:in` and `sh:hasValue`)
+
 Restrict property values to a specific set of options.
 
 - `sh:hasValue`: The property must have at least one value that equals the specified node.
@@ -175,6 +222,7 @@ For `sh:in`, forms offer the members of the list in a menu, in their order.
 In the [configuration editor](../editor/), the **Fixed value** of a field sets `sh:hasValue`, and its **Allowed values** set `sh:in`.
 
 ### Occurrences of a specific value (`sh:qualifiedValueShape`)
+
 Constrain how many values of a property match a given condition, leaving the other values
 unconstrained.
 
@@ -220,6 +268,7 @@ sh:property [
 In the configuration editor, **Values to count** holds the condition, whose **Values** are the IRIs to count, while **Minimum occurrences** and **Maximum occurrences** set the counts. Two or more values become an `sh:or` when saved. The editor rejects a condition without either count.
 
 ### Shape reference (`sh:node`)
+
 Specify that a property's value must conform to another shape. This is used to validate complex objects or relationships.
 
 ```ttl
@@ -236,6 +285,7 @@ A shape is recursive when following `sh:node` leads back to it, for example when
 </Aside>
 
 ### Inverse paths (`sh:inversePath`)
+
 A field normally shows the triples that start from the current entity. Sometimes the triples to show end at the current entity instead. `sh:inversePath` reads them backwards: the field shows the entities they start from.
 
 For example, a citation can be stored as a separate entity that states which article cites and which one is cited:
@@ -261,7 +311,25 @@ When a user adds a citation from this field, the form does not ask for the citin
 In the [configuration editor](../editor/), the **Property** of a field offers two choices. **IRI** takes the property itself; **Inverse path** asks for the property whose triples the field reads backwards.
 
 ### Pattern matching (`sh:pattern` and `sh:message`)
-Use a regular expression to check the format of a string value, and `sh:message` to tell users what went wrong.
+
+Use `sh:pattern` to check the format of a value with a regular expression, and `sh:message` to tell users what went wrong. On a property shape, the pattern checks every value of the field.
+
+```ttl
+schema:JournalShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:Journal ;
+  sh:property [
+    sh:path prism:issn ;
+    sh:datatype xsd:string ;
+    sh:pattern "^\\d{4}-\\d{3}[\\dX]$" ;
+    sh:message "Enter an ISSN, such as 0138-9130." ;
+  ] .
+```
+
+A value matches when the expression finds a match anywhere in it. Start the expression with `^` and end it with `$` to check the whole value. Without `sh:message`, the form shows the pattern it expects.
+
+A pattern can also depend on another field of the same entity. Put it in an alternative of the node shape's `sh:or`, next to the fixed value that makes it apply:
+
 ```ttl
 schema:JournalArticleIdentifierShape
   a sh:NodeShape ;
@@ -300,9 +368,12 @@ schema:JournalArticleIdentifierShape
   ) .
 ```
 
-In the [configuration editor](../editor/), the **Format rules** of a resource type set this `sh:or`. Each rule names a **Condition field** and a **Condition value**, then the **Checked field** and the **Pattern** its value must match, with an optional **Message** in each language.
+A value needs to match one of the patterns whose condition holds, as well as the patterns of its own field.
+
+In the [configuration editor](../editor/), the **Pattern** and **Pattern message** of a field set its own pattern. The **Format rules** of a resource type set the `sh:or`: each rule names a **Condition field** and a **Condition value**, then the **Checked field** and the **Pattern** its value must match, with an optional **Message** in each language.
 
 ### Values that depend on their entity (`dash:composite`)
+
 Add `dash:composite true` to a property shape when its values have a meaning only in relation to the entity that holds them. When such a value is removed, or the entity that holds it is deleted, the value becomes useless. The **Dependent resources** option in the [system settings](../editor/) chooses what HERITRACE does with it: delete it, ask each time, or keep it. A value that another entity also reaches through the same property stays in any case.
 
 Without `dash:composite`, removing a value removes only the link, and the linked entity stays.
@@ -337,6 +408,7 @@ HERITRACE takes from the shapes graph the names of entity types and fields, thei
 
 On a node shape, `sh:name` names the kind of entity that the shape describes, so `schema:JournalArticleShape` appears as "Journal Article".
 On the other hand, `sh:name` on a property shape names the property, so `dcterms:title` appears as "Title".
+
 ```ttl
 schema:JournalArticleShape
     a sh:NodeShape ;

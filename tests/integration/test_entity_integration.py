@@ -691,6 +691,7 @@ def test_validate_entity_data(app: Flask) -> None:
                     "min": 1,
                     "max": 1,
                     "datatypes": [str(XSD.string)],
+                    "patterns": [],
                 }
             ],
             "http://www.w3.org/ns/dcat#keyword": [
@@ -698,6 +699,7 @@ def test_validate_entity_data(app: Flask) -> None:
                     "min": 0,
                     "max": None,
                     "datatypes": [str(XSD.string)],
+                    "patterns": [],
                 }
             ],
         }

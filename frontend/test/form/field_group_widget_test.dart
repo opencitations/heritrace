@@ -363,7 +363,7 @@ void main() {
               'uri': path,
               'displayName': 'Property',
               'inputType': 'url',
-              'iri': true,
+              'nodeKind': shIri,
             },
             {
               'uri': path,

@@ -105,8 +105,6 @@ form:
   tooManyAmong: La proprietà "$name" ha troppi valori tra $values ($count). Il massimo consentito è $max.
   tooFewAmong: La proprietà "$name" ha troppo pochi valori tra $values ($count). Il minimo richiesto è $min.
   invalidIri: Inserisci un IRI completo, come https://example.org/x.
-  invalidPrefix: Inizia con una lettera e usa solo lettere, cifre, punti, trattini e trattini bassi.
-  maxBelowMin: Il massimo è minore del minimo.
   countsMissing: Aggiungi le occorrenze minime o massime dei valori da contare.
   boundsNeedNumber: I limiti richiedono un datatype numerico.
   labelQueryRole: Una query dell'etichetta richiede il ruolo di etichetta.
@@ -118,6 +116,7 @@ form:
   emptyAlternative: Ogni alternativa di valore richiede un datatype, una shape SHACL, una classe o un valore.
   mixedAlternatives: Tutte le alternative di valore di un campo impostano lo stesso tipo di vincolo.
   exclusive: $first e $second non si possono usare insieme.
+  exceeds: Il valore non può superare quello di "$other".
   unsupported: HERITRACE non può rappresentare $part.
   fileChanged: shacl.ttl è cambiato sul disco. Ricarica la pagina per vederne il contenuto.
 primarySource:
