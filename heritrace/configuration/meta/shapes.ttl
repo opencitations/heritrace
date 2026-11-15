@@ -186,6 +186,16 @@ meta:NodeShapeShape
     dash:composite true ;
     sh:node meta:DuplicateCriterionShape ;
     shui:editor shui:DetailsEditor ;
+  ] ;
+  sh:property [
+    sh:path sh:or ;
+    sh:name "Format rules"@en, "Regole di formato"@it ;
+    sh:description "Each rule links two fields of this resource type: the value of the condition field decides which pattern the checked field must match"@en,
+      "Ogni regola lega due campi di questo tipo di risorsa: il valore del campo della condizione decide quale pattern deve rispettare il campo da controllare"@it ;
+    sh:order 7 ;
+    dash:composite true ;
+    sh:node meta:PatternRuleShape ;
+    shui:editor shui:DetailsEditor ;
   ] .
 
 meta:PropertyShapeShape
@@ -739,6 +749,89 @@ meta:ValueAlternativeShape
     dash:hidden true ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
+  ] .
+
+meta:PatternRuleShape
+  a sh:NodeShape ;
+  sh:name "Format rule"@en, "Regola di formato"@it ;
+  sh:targetClass ht:PatternRule ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue ht:PatternRule ;
+    dash:hidden true ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:prefixes meta:ShapesGraph ;
+      sh:select """
+        SELECT ?label WHERE {
+          $this ht:conditionValue ?value .
+          OPTIONAL {
+            ?declaration sh:prefix ?prefix ; sh:namespace ?namespace .
+            FILTER(STRSTARTS(STR(?value), STR(?namespace)))
+          }
+          BIND(IF(BOUND(?prefix),
+            CONCAT(?prefix, ":", STRAFTER(STR(?value), STR(?namespace))),
+            STR(?value)) AS ?label)
+        }
+        ORDER BY DESC(STRLEN(STR(?namespace)))
+        LIMIT 1
+      """ ;
+    ] ;
+  ] ;
+  sh:property [
+    sh:path ht:conditionPath ;
+    sh:name "Condition field"@en, "Campo della condizione"@it ;
+    sh:description "The IRI of the property whose value decides whether the rule applies"@en,
+      "L'IRI della proprietà il cui valore decide se la regola si applica"@it ;
+    sh:order 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path ht:conditionValue ;
+    sh:name "Condition value"@en, "Valore della condizione"@it ;
+    sh:description "The IRI that the condition field holds when the rule applies"@en,
+      "L'IRI che il campo della condizione contiene quando la regola si applica"@it ;
+    sh:order 2 ;
+    sh:nodeKind sh:IRI ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path ht:checkedPath ;
+    sh:name "Checked field"@en, "Campo da controllare"@it ;
+    sh:description "The IRI of the property whose value the pattern checks"@en,
+      "L'IRI della proprietà il cui valore viene controllato dal pattern"@it ;
+    sh:order 3 ;
+    sh:nodeKind sh:IRI ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:pattern ;
+    sh:name "Pattern"@en, "Pattern"@it ;
+    sh:description "The regular expression that the value of the checked field must match"@en,
+      "L'espressione regolare che il valore del campo da controllare deve rispettare"@it ;
+    sh:order 4 ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:message ;
+    sh:name "Message"@en, "Messaggio"@it ;
+    sh:description "The text shown when the value does not match the pattern"@en,
+      "Il testo mostrato quando il valore non rispetta il pattern"@it ;
+    sh:order 5 ;
+    sh:or ( [ sh:datatype xsd:string ] [ sh:datatype rdf:langString ] ) ;
+    sh:uniqueLang true ;
+    shui:editor shui:TextFieldWithLangEditor ;
   ] .
 
 meta:DuplicateCriterionShape

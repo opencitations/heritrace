@@ -94,10 +94,10 @@ def create_app(config_object: type) -> Flask:
         static_url_path="",
     )
     app.config.from_object(config_object)
-    if app.config["FRONTEND_ORIGIN"]:
+    if app.config["FRONTEND_ORIGINS"]:
         CORS(
             app,
-            origins=[app.config["FRONTEND_ORIGIN"]],
+            origins=app.config["FRONTEND_ORIGINS"],
             supports_credentials=True,
         )
 

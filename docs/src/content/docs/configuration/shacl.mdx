@@ -287,6 +287,8 @@ schema:JournalArticleIdentifierShape
   ) .
 ```
 
+In the [configuration editor](../editor/), the **Format rules** of a resource type set this `sh:or`. Each rule names a **Condition field** and a **Condition value**, then the **Checked field** and the **Pattern** its value must match, with an optional **Message** in each language.
+
 ### Values that depend on their entity (`dash:composite`)
 Add `dash:composite true` to a property shape when its values have a meaning only in relation to the entity that holds them. When such a value is removed, or the entity that holds it is deleted, the value becomes useless. The **Dependent resources** option in the [system settings](../editor/) chooses what HERITRACE does with it: delete it, ask each time, or keep it. A value that another entity also reaches through the same property stays in any case.
 

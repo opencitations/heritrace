@@ -12,6 +12,7 @@ from rdflib.plugins.sparql.parser import parseQuery
 from rdflib.plugins.sparql.parserutils import CompValue
 
 from heritrace.apis.orcid import is_valid_orcid_id, normalize_orcid
+from heritrace.configuration.labels import compact_iri
 from heritrace.configuration.settings import STRATEGIES, Settings
 from heritrace.configuration.shapes import (
     EDITORS,
@@ -208,6 +209,27 @@ def _validate_shape(
             issues.append(
                 Issue(f"{rule_location}.pattern", "This regular expression is invalid")
             )
+    _check_rule_coverage(issues, location, shape, prefixes)
+
+
+# A resource matches the rules of its type only through one of them, and a value
+# of the condition field that no rule names is therefore always rejected.
+def _check_rule_coverage(
+    issues: list[Issue], location: str, shape: NodeShape, prefixes: dict[str, str]
+) -> None:
+    namespaces = {namespace: prefix for prefix, namespace in prefixes.items()}
+    covered = {(rule.condition_path, rule.condition_value) for rule in shape.patterns}
+    conditions = {path for path, _ in covered}
+    issues.extend(
+        Issue(
+            f"{location}.patterns",
+            f"{compact_iri(value, namespaces)} has no format rule",
+        )
+        for prop in shape.properties
+        if prop.path in conditions and not prop.inverse and prop.kind == "options"
+        for value in prop.values
+        if (prop.path, value) not in covered
+    )
 
 
 def validate_shapes(shapes: Shapes) -> list[Issue]:

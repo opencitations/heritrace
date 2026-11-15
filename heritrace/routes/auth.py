@@ -4,6 +4,7 @@
 
 import os
 from datetime import timedelta
+from urllib.parse import urlsplit
 
 from flask import Blueprint, current_app, redirect, request, session, url_for
 from flask_login import current_user, login_user, logout_user
@@ -22,8 +23,18 @@ LOGIN_ERROR_PATH = "/?login_error="
 DEMO_USER = "http://example.org/demo/demo_user"
 
 
+def _frontend_origin() -> str:
+    origins = current_app.config["FRONTEND_ORIGINS"]
+    if request.referrer is not None:
+        referrer = urlsplit(request.referrer)
+        origin = f"{referrer.scheme}://{referrer.netloc}"
+        if origin in origins:
+            return origin
+    return origins[0] if origins else ""
+
+
 def _frontend(path: str) -> str:
-    return current_app.config["FRONTEND_ORIGIN"] + path
+    return session["frontend_origin"] + path
 
 
 def _start_session(user: User) -> None:
@@ -45,6 +56,7 @@ def _may_sign_in(orcid_id: str) -> bool:
 
 @auth_bp.route("/login")
 def login() -> WerkzeugResponse:
+    session["frontend_origin"] = _frontend_origin()
     if current_user.is_authenticated:
         return redirect(_frontend(CATALOGUE_PATH))
 

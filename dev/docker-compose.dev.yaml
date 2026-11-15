@@ -61,7 +61,7 @@ services:
       - PROVENANCE_DB_URL=http://provenance:7103
       - CONFIG_DIR=/app/config
       - BASE_IRI=https://example.org
-      - FRONTEND_ORIGIN=https://127.0.0.1:5100
+      - FRONTEND_ORIGINS=https://127.0.0.1:5100
       - HOST_UID=${HOST_UID:-1000}
       - HOST_GID=${HOST_GID:-1000}
     depends_on:

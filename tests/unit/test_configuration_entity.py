@@ -1306,6 +1306,153 @@ def test_value_alternatives_are_checked_when_saved(
     assert isomorphic(read_shacl(config_app.config["CONFIG_DIR"]), before)
 
 
+_DOI_PATTERN = "^10[.].+/.+$"
+_PMID_PATTERN = "^[0-9]+$"
+
+
+@pytest.fixture
+def rules_app(tmp_path: Path) -> Generator[Flask, None, None]:
+    (tmp_path / "shacl.ttl").write_text(
+        EDITOR_SHAPES.read_text()
+        + f"""schema:IdentifierShape sh:or (
+  [
+    sh:property [ sh:path datacite:usesIdentifierScheme ; sh:hasValue datacite:doi ] ;
+    sh:property [
+      sh:path literal:hasLiteralValue ;
+      sh:pattern "{_DOI_PATTERN}" ;
+      sh:message "Not a DOI"@en, "Non è un DOI"@it ;
+    ] ;
+  ]
+  [
+    sh:property [ sh:path datacite:usesIdentifierScheme ; sh:hasValue datacite:pmid ] ;
+    sh:property [ sh:path literal:hasLiteralValue ; sh:pattern "{_PMID_PATTERN}" ] ;
+  ]
+) .
+"""
+    )
+    seed_config(tmp_path, test_example_dir)
+
+    class Config(TestConfig):
+        CONFIG_DIR = tmp_path
+
+    app = create_app(Config)
+    with app.app_context():
+        yield app
+
+
+def _rule_group(client: FlaskClient) -> dict:
+    groups = client.get(
+        f"/api/configuration/entity/{quote(str(IDENTIFIER_SHAPE), safe='')}",
+        headers={"Accept-Language": "en"},
+    ).get_json()["groups"]
+    return next(group for group in groups if group["property"] == str(SH["or"]))
+
+
+def _saved_rules(app: Flask) -> list[tuple[str, str, str, dict[str, str]]]:
+    shapes = read_shapes(read_shacl(app.config["CONFIG_DIR"]))
+    shape = next(shape for shape in shapes.shapes if shape.iri == str(IDENTIFIER_SHAPE))
+    return sorted(
+        (rule.condition_value, rule.path, rule.pattern, rule.messages)
+        for rule in shape.patterns
+    )
+
+
+def _pmid_rule_change(client: FlaskClient) -> dict:
+    pmid = next(
+        triple["object"]
+        for triple in _rule_group(client)["triples"]
+        if triple["value"] == "datacite:pmid"
+    )
+    deletion = {
+        "subject": str(IDENTIFIER_SHAPE),
+        "predicate": str(SH["or"]),
+        "shape": str(META.PatternRuleShape),
+        "entity_type": str(SH.NodeShape),
+        "entity_shape": str(META.NodeShapeShape),
+        "action": "delete",
+        "object": pmid,
+    }
+    orphans = client.post(
+        "/api/configuration/check_orphans",
+        json={"changes": [deletion], "entity_type": str(SH.NodeShape)},
+    ).get_json()
+    return {
+        **deletion,
+        "affected_entities": orphans["affected_entities"],
+        "delete_affected": orphans["should_delete"],
+    }
+
+
+def test_format_rules_are_shown_by_their_condition(rules_app: Flask) -> None:
+    group = _rule_group(_signed_in(rules_app))
+
+    assert (
+        group["is_draggable"],
+        sorted((triple["value"], triple["details"]) for triple in group["triples"]),
+    ) == (False, [("datacite:doi", None), ("datacite:pmid", None)])
+
+
+def test_format_rules_are_removed_and_added(rules_app: Flask) -> None:
+    client = _signed_in(rules_app)
+    rule = {
+        "entity_type": str(HT.PatternRule),
+        "entity_shape": str(META.PatternRuleShape),
+        "properties": {
+            str(HT.conditionPath): [str(USES_SCHEME)],
+            str(HT.conditionValue): [f"{DATACITE}pmid"],
+            str(HT.checkedPath): [str(LITERAL_VALUE)],
+            str(SH.pattern): ["^[1-9][0-9]*$"],
+            str(SH.message): [{"value": "Not a PMID", "language": "en"}],
+        },
+    }
+
+    response = client.post(
+        "/api/configuration/apply_changes",
+        json=[
+            _pmid_rule_change(client),
+            {
+                "action": "create",
+                "subject": str(IDENTIFIER_SHAPE),
+                "data": {"properties": {str(SH["or"]): [rule]}},
+            },
+        ],
+    )
+
+    assert response.status_code == 200
+    assert _saved_rules(rules_app) == [
+        (
+            f"{DATACITE}doi",
+            str(LITERAL_VALUE),
+            _DOI_PATTERN,
+            {"en": "Not a DOI", "it": "Non è un DOI"},
+        ),
+        (f"{DATACITE}pmid", str(LITERAL_VALUE), "^[1-9][0-9]*$", {"en": "Not a PMID"}),
+    ]
+    assert (
+        set(
+            read_shacl(rules_app.config["CONFIG_DIR"]).subjects(
+                RDF.type, HT.PatternRule
+            )
+        )
+        == set()
+    )
+
+
+def test_an_allowed_value_without_a_format_rule_is_rejected(rules_app: Flask) -> None:
+    client = _signed_in(rules_app)
+    before = read_shacl(rules_app.config["CONFIG_DIR"])
+
+    response = client.post(
+        "/api/configuration/apply_changes", json=[_pmid_rule_change(client)]
+    )
+
+    assert (
+        response.status_code,
+        [issue.split(": ", 1)[1] for issue in response.get_json()["errors"]],
+    ) == (422, ["datacite:pmid has no format rule"])
+    assert isomorphic(read_shacl(rules_app.config["CONFIG_DIR"]), before)
+
+
 def _criterion_group(client: FlaskClient, shape: URIRef, language: str = "en") -> dict:
     groups = client.get(
         f"/api/configuration/entity/{quote(str(shape), safe='')}",
@@ -1703,6 +1850,7 @@ def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -
         "Allowed value",
         "Criterion for finding duplicates",
         "Field",
+        "Format rule",
         "Inverse path",
         "Label query",
         "Prefix",
@@ -1715,6 +1863,7 @@ def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -
     assert _entity_types(admin_client, "it") == {
         "Campo",
         "Criterio per individuare i duplicati",
+        "Regola di formato",
         "Percorso inverso",
         "Prefisso",
         "Query dell'etichetta",

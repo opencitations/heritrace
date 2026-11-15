@@ -25,7 +25,7 @@ class TestConfig:
     SECRET_KEY = "test-secret-key-for-testing-only"
     SESSION_COOKIE_SAMESITE = "Lax"
     FRONTEND_BUILD_DIR = test_frontend_build_dir
-    FRONTEND_ORIGIN = ""
+    FRONTEND_ORIGINS: ClassVar[list[str]] = []
     SERVER_NAME = "localhost:5000"
     APPLICATION_ROOT = "/"
     PREFERRED_URL_SCHEME = "http"

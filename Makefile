@@ -17,7 +17,7 @@ frontend-dev:
 	cd frontend && dart run slang && flutter run -d chrome \
 		--web-hostname 127.0.0.1 --web-port 5100 \
 		--web-tls-cert-path ../dev/ssl/cert.pem --web-tls-cert-key-path ../dev/ssl/key.pem \
-		--dart-define=API_BASE_URL=https://127.0.0.1:5001
+		--dart-define=API_PORT=5001
 
 dev-big dev-small: dev-%: .env
 	./dev/fetch-databases.sh $*

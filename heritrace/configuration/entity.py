@@ -76,6 +76,7 @@ _HELPER_TYPES = (
     HT.QualifiedValueShape,
     HT.AllowedValue,
     HT.ValueAlternative,
+    HT.PatternRule,
     HT.DuplicateCriterion,
     HT.SelectExpression,
 )
@@ -88,12 +89,14 @@ def _is_helper_triple(graph: Graph, triple: tuple[Node, Node, Node]) -> bool:
         HT.labelQuery,
     ):
         return True
+    if any((node, RDF.type, HT.PatternRule) in graph for node in (subject, value)) or (
+        predicate != RDF.rest and (subject, RDF.type, HT.ValueAlternative) in graph
+    ):
+        return True
     if predicate == SH["in"]:
         return (None, RDF.rest, value) in graph
     if predicate == SH["or"]:
         return (None, RDF.rest, value) in graph or _single_alternative(graph, value)
-    if predicate != RDF.rest and (subject, RDF.type, HT.ValueAlternative) in graph:
-        return True
     if predicate != RDF.type:
         return False
     return value in _HELPER_TYPES or (
@@ -130,6 +133,67 @@ def _add_value_alternatives(graph: Graph, property_shape: Node) -> None:
             graph.remove((cell, RDF.first, alternative))
             graph.add((property_shape, SH["or"], cell))
             graph.add((cell, RDF.type, HT.ValueAlternative))
+
+
+# A rule of a resource type pairs the field that sets the condition with the
+# field whose format it checks.
+_RULE_CONDITION: dict[Node, URIRef] = {
+    SH.path: HT.conditionPath,
+    SH.hasValue: HT.conditionValue,
+}
+_RULE_CHECK: dict[Node, URIRef] = {
+    SH.path: HT.checkedPath,
+    SH.pattern: SH.pattern,
+    SH.message: SH.message,
+}
+_RULE_REQUIRED = {HT.conditionPath, HT.conditionValue, HT.checkedPath, SH.pattern}
+
+
+def _pattern_rule(graph: Graph, alternative: Node) -> list[tuple[Node, Node]] | None:
+    property_shapes = list(graph.objects(alternative, SH.property))
+    conditions = [
+        shape for shape in property_shapes if (shape, SH.hasValue, None) in graph
+    ]
+    checks = [shape for shape in property_shapes if shape not in conditions]
+    if (
+        set(graph.predicates(alternative)) != {SH.property}
+        or len(conditions) != 1
+        or len(checks) != 1
+    ):
+        return None
+    rule = []
+    for property_shape, fields in (
+        (conditions[0], _RULE_CONDITION),
+        (checks[0], _RULE_CHECK),
+    ):
+        pairs = list(graph.predicate_objects(property_shape))
+        if not {predicate for predicate, _ in pairs} <= fields.keys():
+            return None
+        rule.extend((fields[predicate], value) for predicate, value in pairs)
+    if _RULE_REQUIRED - {predicate for predicate, _ in rule}:
+        return None
+    return rule
+
+
+# The rules of a resource type have no order: the editor shows each one as a
+# resource of the type that holds both fields.
+def _add_pattern_rules(graph: Graph, shape: Node) -> None:
+    for head in list(graph.objects(shape, SH["or"])):
+        cells = _list_cells(graph, head)
+        alternatives = [cast("Node", graph.value(cell, RDF.first)) for cell in cells]
+        rules = [_pattern_rule(graph, alternative) for alternative in alternatives]
+        if None in rules:
+            continue
+        graph.remove((shape, SH["or"], head))
+        for cell, alternative, rule in zip(cells, alternatives, rules, strict=True):
+            for property_shape in list(graph.objects(alternative, SH.property)):
+                graph.remove((property_shape, None, None))
+            graph.remove((alternative, None, None))
+            graph.remove((cell, None, None))
+            for predicate, value in cast("list[tuple[Node, Node]]", rule):
+                graph.add((cell, predicate, value))
+            graph.add((cell, RDF.type, HT.PatternRule))
+            graph.add((shape, SH["or"], cell))
 
 
 # The properties of a key have no order, so the editor shows each key as a
@@ -199,6 +263,7 @@ def normalize(graph: Graph) -> Graph:
     for shape in shape_subjects(result):
         result.add((ROOT, DCTERMS.hasPart, shape))
         result.add((shape, RDF.type, SH.NodeShape))
+        _add_pattern_rules(result, shape)
     _move_label_queries(result)
     for property_shape in set(result.objects(None, SH.property)):
         result.add((property_shape, RDF.type, SH.PropertyShape))
@@ -245,6 +310,33 @@ def _restore_list_cells(graph: Graph, result: Graph) -> None:
                 result.add((_restore(target), predicate, _restore(value)))
 
 
+def _restore_pattern_rules(graph: Graph, result: Graph) -> None:
+    rules: dict[Node, list[Node]] = {}
+    for rule in graph.subjects(RDF.type, HT.PatternRule):
+        shape = cast("Node", graph.value(predicate=SH["or"], object=rule))
+        rules.setdefault(shape, []).append(rule)
+    for shape, shape_rules in rules.items():
+        alternatives = []
+        for rule in sorted(shape_rules, key=lambda rule: _rule_order(graph, rule)):
+            alternative, condition, check = BNode(), BNode(), BNode()
+            result.add((alternative, SH.property, condition))
+            result.add((alternative, SH.property, check))
+            for target, fields in ((condition, _RULE_CONDITION), (check, _RULE_CHECK)):
+                for predicate, helper in fields.items():
+                    for value in graph.objects(rule, helper):
+                        result.add((target, predicate, _restore(value)))
+            alternatives.append(alternative)
+        head = BNode()
+        Collection(result, head, alternatives)
+        result.add((_restore(shape), SH["or"], head))
+
+
+def _rule_order(graph: Graph, rule: Node) -> tuple[str, str]:
+    return str(graph.value(rule, HT.conditionValue)), str(
+        graph.value(rule, HT.checkedPath)
+    )
+
+
 def canonical(graph: Graph) -> Graph:
     result = Graph()
     for triple in graph:
@@ -255,6 +347,7 @@ def canonical(graph: Graph) -> Graph:
             continue
         result.add((_restore(subject), predicate, _restore(value)))
     _restore_list_cells(graph, result)
+    _restore_pattern_rules(graph, result)
     for criterion in graph.subjects(RDF.type, HT.DuplicateCriterion):
         properties = sorted(graph.objects(criterion, HT.keyProperty), key=str)
         Collection(result, _restore(criterion), properties)

@@ -50,7 +50,7 @@ Keep sensitive credentials secure. Use Docker secrets or external secret managem
 |---------------------|------|-------------|----------|---------|
 | `SECRET_KEY` | String | Flask secret key that signs the session cookies | **Yes** | None |
 | `FLASK_ENV` | String | `demo` signs every visitor in as the demo user `http://example.org/demo/demo_user`, without ORCID. `development` and `production` require ORCID | No | `development` |
-| `FRONTEND_ORIGIN` | String | Origin of a web client served from another address, such as `https://127.0.0.1:5100`. HERITRACE accepts requests with cookies from this origin | No | None |
+| `FRONTEND_ORIGINS` | String | Origins of web clients served from other addresses, separated by spaces, such as `https://127.0.0.1:5100 https://192.168.1.177:5100`. HERITRACE accepts requests with cookies from each of them and, after sign-in, returns to the one the user came from | No | None |
 
 <Aside type="caution">
 Set a unique `SECRET_KEY` in production.

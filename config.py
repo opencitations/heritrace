@@ -24,7 +24,9 @@ class Config:
     SECRET_KEY = os.environ["SECRET_KEY"]
     SESSION_COOKIE_SAMESITE = "Lax"
     FRONTEND_BUILD_DIR = _BASE_DIR / "frontend" / "build" / "web"
-    FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "")
+    FRONTEND_ORIGINS: ClassVar[list[str]] = os.environ.get(
+        "FRONTEND_ORIGINS", ""
+    ).split()
 
     # If REDIS_URL is not set, the application uses an internal Redis instance
     REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")

@@ -9,11 +9,13 @@ import '../i18n/language.dart';
 import '../session/session_controller.dart';
 
 const _apiTimeout = Duration(seconds: 120);
-const _configuredApiBaseUrl = String.fromEnvironment('API_BASE_URL');
+// The backend answers on the host that served the page, which keeps its session
+// cookie on the same site as the page.
+const _apiPort = int.fromEnvironment('API_PORT');
 
-final String apiBaseUrl = _configuredApiBaseUrl.isEmpty
+final String apiBaseUrl = _apiPort == 0
     ? Uri.base.origin
-    : _configuredApiBaseUrl;
+    : Uri.base.replace(port: _apiPort).origin;
 
 String backendUrl(String path) => '$apiBaseUrl$path';
 
