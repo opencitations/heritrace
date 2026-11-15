@@ -234,7 +234,7 @@ class _ValueBody extends StatelessWidget {
       return _Details(
         details: details,
         alternative: triple.alternative,
-        edits: editable ? value.detailEdits : null,
+        value: editable ? value : null,
       );
     }
     if (triple.externalEntity != null) {
@@ -294,20 +294,21 @@ class _ValueBody extends StatelessWidget {
 }
 
 /// The fields of a linked entity, shown in place of the link. In edit mode,
-/// [edits] holds the values the user can change there.
+/// [value] holds the values the user can change, remove and add there.
 class _Details extends StatelessWidget {
   const _Details({
     required this.details,
     required this.alternative,
-    required this.edits,
+    required this.value,
   });
 
   final List<EntityDetail> details;
   final String? alternative;
-  final Map<DetailValue, DetailEdit>? edits;
+  final ExistingValue? value;
 
   @override
   Widget build(BuildContext context) {
+    final edits = value?.detailEdits;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: appCaptionSpacing,
@@ -320,27 +321,91 @@ class _Details extends StatelessWidget {
             children: [
               if (details.length > 1)
                 Text(detail.name, style: AppTextStyles.of(context).caption),
-              for (final value in detail.values)
-                if (edits?[value] case final edit?)
-                  _DetailField(edit: edit)
-                else if (edits == null && value.uri != null)
+              for (final (index, detailValue) in detail.values.indexed)
+                if (edits?[detailValue] case final edit?)
+                  Padding(
+                    padding: listItemSpacing(index),
+                    child: _DetailRow(owner: value!, edit: edit),
+                  )
+                else if (edits == null && detailValue.uri != null)
                   _EntityLink(
-                    uri: value.uri!,
+                    uri: detailValue.uri!,
                     child: ConstrainedBox(
                       constraints: _valueRowConstraints,
                       child: Row(
                         children: [
-                          Expanded(child: Text(value.label)),
+                          Expanded(child: Text(detailValue.label)),
                           const CupertinoListTileChevron(),
                         ],
                       ),
                     ),
                   )
                 else
-                  Text(value.label),
+                  Text(detailValue.label),
+              if (_newValues(detail) case final group?) ...[
+                const SizedBox(height: appInputSpacing),
+                FieldGroupWidget(group: group),
+              ],
             ],
           ),
       ],
+    );
+  }
+
+  /// The values the user adds to [detail], when its field takes several.
+  FieldGroup? _newValues(EntityDetail detail) {
+    final edits = value?.detailEdits;
+    if (edits == null) return null;
+    final field = detail.values
+        .map((detailValue) => edits[detailValue]?.field)
+        .nonNulls
+        .firstOrNull;
+    return field == null ? null : value!.detailGroup(field);
+  }
+}
+
+/// A value of a nested entity in edit mode, with the minus that removes it
+/// when its field takes several values.
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.owner, required this.edit});
+
+  final ExistingValue owner;
+  final DetailEdit edit;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    return ListenableBuilder(
+      listenable: owner,
+      builder: (context, _) {
+        final deleted = edit.markedForDeletion;
+        final row = Row(
+          children: [
+            if (deleted)
+              RowLeadingButton(
+                icon: CupertinoIcons.arrow_uturn_left,
+                label: t.ui.entity.revert,
+                onPressed: edit.undoDeletion,
+              )
+            else if (owner.canDeleteDetail(edit))
+              RemoveButton(
+                label: t.ui.actions.delete,
+                onPressed: edit.markForDeletion,
+              ),
+            Expanded(
+              child: deleted
+                  ? DefaultTextStyle.merge(
+                      style: const TextStyle(
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                      child: Text(edit.value.label),
+                    )
+                  : _DetailField(edit: edit),
+            ),
+          ],
+        );
+        return ConstrainedBox(constraints: _valueRowConstraints, child: row);
+      },
     );
   }
 }

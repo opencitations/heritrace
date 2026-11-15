@@ -33,8 +33,9 @@ class DetailEdit extends ChangeNotifier implements EditedValue {
   final DetailValue value;
   @override
   String newValue;
+  bool markedForDeletion = false;
 
-  bool get isModified => newValue != value.value;
+  bool get isModified => !markedForDeletion && newValue != value.value;
 
   @override
   void setValue(String value) {
@@ -42,7 +43,20 @@ class DetailEdit extends ChangeNotifier implements EditedValue {
     notifyListeners();
   }
 
-  void reset() => setValue(value.value);
+  void markForDeletion() {
+    markedForDeletion = true;
+    notifyListeners();
+  }
+
+  void undoDeletion() {
+    markedForDeletion = false;
+    notifyListeners();
+  }
+
+  void reset() {
+    markedForDeletion = false;
+    setValue(value.value);
+  }
 }
 
 class ExistingValue extends ChangeNotifier implements EditedValue {
@@ -52,6 +66,13 @@ class ExistingValue extends ChangeNotifier implements EditedValue {
       dateType = _dateTypeFor(triple.value) {
     for (final edit in detailEdits.values) {
       edit.addListener(notifyListeners);
+    }
+    final node = detailNode;
+    if (node != null) {
+      for (final group in node.groups) {
+        group.keptCount = () => keptDetails(group.def).length;
+      }
+      node.addListener(notifyListeners);
     }
   }
 
@@ -73,6 +94,37 @@ class ExistingValue extends ChangeNotifier implements EditedValue {
                 value: value,
               ),
   };
+
+  /// The fields of the nested entity that take several values typed by hand:
+  /// the form adds new values to them, as it does for a field of the entity.
+  late final EntityNode? detailNode = switch ({
+    for (final edit in detailEdits.values)
+      if (edit.field.max != 1) edit.field,
+  }) {
+    final fields when fields.isNotEmpty => EntityNode(
+      entityType: fields.first.entityType!,
+      entityShape: fields.first.subjectShape,
+      fields: fields.toList(),
+      depth: 1,
+      fillMinimum: false,
+    ),
+    _ => null,
+  };
+
+  Iterable<DetailEdit> keptDetails(FieldDef field) => detailEdits.values.where(
+    (edit) => edit.field == field && !edit.markedForDeletion,
+  );
+
+  /// Whether the user can remove [edit]: its field takes several values, and
+  /// the values left still reach the minimum of the field.
+  bool canDeleteDetail(DetailEdit edit) {
+    final group = detailGroup(edit.field);
+    return group != null &&
+        keptDetails(edit.field).length + group.items.length > edit.field.min;
+  }
+
+  FieldGroup? detailGroup(FieldDef field) =>
+      detailNode?.groups.where((group) => group.def == field).firstOrNull;
 
   FieldDef? _detailField(String property) {
     final field = group.field;
@@ -101,6 +153,17 @@ class ExistingValue extends ChangeNotifier implements EditedValue {
 
   Iterable<DetailEdit> get modifiedDetails =>
       detailEdits.values.where((edit) => edit.isModified);
+
+  Iterable<DetailEdit> get deletedDetails =>
+      detailEdits.values.where((edit) => edit.markedForDeletion);
+
+  Map<String, List<Object>> get newDetails =>
+      collectGroups(detailNode?.groups ?? const []);
+
+  bool get detailsChanged =>
+      modifiedDetails.isNotEmpty ||
+      deletedDetails.isNotEmpty ||
+      newDetails.isNotEmpty;
 
   bool get isEntityLink => triple.externalEntity != null;
 
@@ -147,6 +210,11 @@ class ExistingValue extends ChangeNotifier implements EditedValue {
     for (final edit in detailEdits.values) {
       edit.reset();
     }
+    for (final group in detailNode?.groups ?? const <FieldGroup>[]) {
+      for (final item in [...group.items]) {
+        group.removeItem(item);
+      }
+    }
     notifyListeners();
   }
 
@@ -155,6 +223,7 @@ class ExistingValue extends ChangeNotifier implements EditedValue {
     for (final edit in detailEdits.values) {
       edit.dispose();
     }
+    detailNode?.dispose();
     super.dispose();
   }
 }
@@ -343,10 +412,7 @@ class EditSession extends ChangeNotifier {
       groups.any(
         (group) =>
             group.existing.any(
-              (v) =>
-                  v.isModified ||
-                  v.markedForDeletion ||
-                  v.modifiedDetails.isNotEmpty,
+              (v) => v.isModified || v.markedForDeletion || v.detailsChanged,
             ) ||
             group.orderChanged,
       ) ||
@@ -401,12 +467,18 @@ class EditSession extends ChangeNotifier {
   }
 
   List<ValidationError> validate() {
-    final errors = validateEntity(
-      root,
-      validationMessages,
-      path: [view.typeLabel],
-    );
-    return errors;
+    return [
+      ...validateEntity(root, validationMessages, path: [view.typeLabel]),
+      for (final group in groups)
+        if (applies(group))
+          for (final value in group.existing)
+            if (value.detailNode case final node? when !value.markedForDeletion)
+              ...validateEntity(
+                node,
+                validationMessages,
+                path: [view.typeLabel, group.group.displayName],
+              ),
+    ];
   }
 
   List<Map<String, Object?>> buildChanges() {
@@ -441,16 +513,33 @@ class EditSession extends ChangeNotifier {
           });
         }
         if (!dropped && !value.markedForDeletion) {
+          Map<String, Object?> detail(String action, DetailEdit edit) => {
+            'action': action,
+            'subject': edit.subject,
+            'predicate': edit.field.uri,
+            'entity_type': edit.field.entityType,
+            'entity_shape': edit.field.subjectShape,
+            'object': edit.value.value,
+            'language': ?edit.value.language,
+          };
+          for (final edit in value.deletedDetails) {
+            changes.add({...detail('delete', edit), 'newObject': null});
+          }
           for (final edit in value.modifiedDetails) {
             changes.add({
-              'action': 'update',
-              'subject': edit.subject,
-              'predicate': edit.field.uri,
-              'entity_type': edit.field.entityType,
-              'entity_shape': edit.field.subjectShape,
-              'object': edit.value.value,
+              ...detail('update', edit),
               'newObject': edit.newValue,
-              'language': ?edit.value.language,
+            });
+          }
+          if (value.newDetails case final properties
+              when properties.isNotEmpty) {
+            changes.add({
+              'action': 'create',
+              'subject': value.triple.externalEntity,
+              'data': {
+                'entity_type': value.detailNode!.entityType,
+                'properties': properties,
+              },
             });
           }
         }

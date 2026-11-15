@@ -168,7 +168,7 @@ def _validate_property(
         issues.append(
             Issue(
                 f"{location}.qualifiedMinCount",
-                "Add the minimum or maximum occurrences of the value to count",
+                "Add the minimum or maximum occurrences of the values to count",
             )
         )
     _validate_bounds(issues, location, prop)

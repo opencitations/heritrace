@@ -765,7 +765,7 @@ def test_qualified_values_are_shown_in_place(qualified_app: Flask) -> None:
     }
     assert details == [
         {
-            "name": "Value",
+            "name": "Values",
             "property": str(SH.hasValue),
             "values": [
                 {
@@ -778,16 +778,86 @@ def test_qualified_values_are_shown_in_place(qualified_app: Flask) -> None:
         }
     ]
     assert _label(client, qualified, "en") == "fabio:Expression"
+    assert _label(client, genre, "en") == "Genre"
     assert [
-        (triple["value"], triple["details"])
+        (triple["value"], [value["label"] for value in triple["details"][0]["values"]])
         for group in genre_groups
         if group["property"] == str(SH.qualifiedValueShape)
         for triple in group["triples"]
-    ] == [("fabio:Book, fabio:Thesis", None)]
+    ] == [("fabio:Book, fabio:Thesis", ["fabio:Book", "fabio:Thesis"])]
+
+
+def test_values_to_count_are_removed_and_added_in_place(
+    qualified_app: Flask,
+) -> None:
+    client = _signed_in(qualified_app)
+    _, qualified = _volume_field(qualified_app, "Genre")
+    detail = {
+        "subject": str(qualified),
+        "predicate": str(SH.hasValue),
+        "entity_type": str(HT.QualifiedValueShape),
+        "entity_shape": str(META.QualifiedValueShapeShape),
+    }
+
+    response = client.post(
+        "/api/configuration/apply_changes",
+        json=[
+            {**detail, "action": "delete", "object": f"{FABIO}Book"},
+            {
+                "action": "create",
+                "subject": str(qualified),
+                "data": {
+                    "entity_type": str(HT.QualifiedValueShape),
+                    "properties": {str(SH.hasValue): [f"{FABIO}Journal"]},
+                },
+            },
+        ],
+    )
+
+    assert response.status_code == 200
+    assert [
+        (prop.kind, prop.values)
+        for shape in read_shapes(read_shacl(qualified_app.config["CONFIG_DIR"])).shapes
+        for prop in shape.properties
+        if prop.path == str(DCTERMS.type)
+    ] == [("value", [f"{FABIO}Journal", f"{FABIO}Thesis"])]
+
+
+def test_values_to_count_keep_at_least_one(qualified_app: Flask) -> None:
+    client = _signed_in(qualified_app)
+    _, qualified = _volume_field(qualified_app, "Genre")
+    before = read_shacl(qualified_app.config["CONFIG_DIR"])
+
+    response = client.post(
+        "/api/configuration/apply_changes",
+        json=[
+            {
+                "action": "delete",
+                "subject": str(qualified),
+                "predicate": str(SH.hasValue),
+                "entity_type": str(HT.QualifiedValueShape),
+                "entity_shape": str(META.QualifiedValueShapeShape),
+                "object": f"{FABIO}{name}",
+            }
+            for name in ("Book", "Thesis")
+        ],
+    )
+
+    assert (response.status_code, response.get_json()) == (
+        400,
+        {
+            "error_type": "validation",
+            "message": "The property Values requires at least 1 value",
+            "status": "error",
+        },
+    )
+    assert isomorphic(read_shacl(qualified_app.config["CONFIG_DIR"]), before)
 
 
 def _add_qualified_field(
-    client: FlaskClient, counts: dict[URIRef, list[str]]
+    client: FlaskClient,
+    counts: dict[URIRef, list[str]],
+    values: tuple[str, ...] = (f"{FABIO}Book",),
 ) -> tuple[int, dict]:
     return _add(
         client,
@@ -802,7 +872,7 @@ def _add_qualified_field(
                         {
                             "entity_type": str(HT.QualifiedValueShape),
                             "entity_shape": str(META.QualifiedValueShapeShape),
-                            "properties": {str(SH.hasValue): [f"{FABIO}Book"]},
+                            "properties": {str(SH.hasValue): list(values)},
                         }
                     ],
                     **{str(predicate): value for predicate, value in counts.items()},
@@ -812,10 +882,16 @@ def _add_qualified_field(
     )
 
 
+@pytest.mark.parametrize(
+    "values",
+    [(f"{FABIO}Book",), (f"{FABIO}Thesis", f"{FABIO}Book")],
+)
 def test_a_field_counts_only_its_qualified_values(
-    admin_client: FlaskClient, config_app: Flask
+    admin_client: FlaskClient, config_app: Flask, values: tuple[str, ...]
 ) -> None:
-    status, _ = _add_qualified_field(admin_client, {SH.qualifiedMaxCount: ["1"]})
+    status, _ = _add_qualified_field(
+        admin_client, {SH.qualifiedMaxCount: ["1"]}, values
+    )
 
     assert status == 200
     saved = read_shacl(config_app.config["CONFIG_DIR"])
@@ -829,7 +905,7 @@ def test_a_field_counts_only_its_qualified_values(
         (prop.kind, prop.values, prop.min_count, prop.max_count)
         for prop in volume.properties
         if prop.qualified
-    ] == [("value", [f"{FABIO}Book"], None, 1)]
+    ] == [("value", sorted(values), None, 1)]
 
 
 def test_qualified_values_need_a_number_to_count(
@@ -841,7 +917,7 @@ def test_qualified_values_need_a_number_to_count(
 
     assert (status, [error.split(": ", 1)[1] for error in body["errors"]]) == (
         422,
-        ["Add the minimum or maximum occurrences of the value to count"],
+        ["Add the minimum or maximum occurrences of the values to count"],
     )
     assert isomorphic(read_shacl(config_app.config["CONFIG_DIR"]), before)
 
@@ -1855,7 +1931,7 @@ def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -
         "Label query",
         "Prefix",
         "Value alternative",
-        "Value to count",
+        "Values to count",
         "Resource type",
         "Resource types",
     }
@@ -1868,7 +1944,7 @@ def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -
         "Prefisso",
         "Query dell'etichetta",
         "Tipi di risorsa",
-        "Valore da contare",
+        "Valori da contare",
         "Tipo di risorsa",
         "Valore ammesso",
         "Vincolo alternativo",

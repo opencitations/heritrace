@@ -129,7 +129,7 @@ sh:property [
 ] .
 ```
 
-In the [configuration editor](../editor/), the **Value alternatives** of a field set `sh:or`. Each alternative sets one constraint: a datatype, a SHACL shape, a class or a value, and a SHACL shape can also carry the class it targets. All the alternatives of a field set the same kind of constraint, for example only datatypes or only SHACL shapes, and the editor refuses to save a mix. The alternatives also take the place of the constraints of the field itself: while a field has alternatives, the editor hides its datatype, class, SHACL shape, fixed value, allowed values and value to count. A single alternative is saved as the constraint of the field.
+In the [configuration editor](../editor/), the **Value alternatives** of a field set `sh:or`. Each alternative sets one constraint: a datatype, a SHACL shape, a class or a value, and a SHACL shape can also carry the class it targets. All the alternatives of a field set the same kind of constraint, for example only datatypes or only SHACL shapes, and the editor refuses to save a mix. The alternatives also take the place of the constraints of the field itself: while a field has alternatives, the editor hides its datatype, class, SHACL shape, fixed value, allowed values and values to count. A single alternative is saved as the constraint of the field.
 
 <Aside type="caution" title="Limits of HERITRACE, not of SHACL">
 SHACL accepts any shape as an alternative, including alternatives that mix kinds of constraint, lists with a single member and alternatives next to other constraints of the same field ([SHACL, section 4.6.3](https://www.w3.org/TR/shacl/#OrConstraintComponent)). The rules above come from the current implementation of HERITRACE.
@@ -204,7 +204,20 @@ sh:property [
 ] .
 ```
 
-In the configuration editor, **Value to count** holds the condition, whose **Value** is the IRI to count, while **Minimum occurrences** and **Maximum occurrences** set the counts. The editor rejects a condition without either count.
+A condition can also count several values together, through an `sh:or` of `sh:hasValue`, and the counts then apply to their total.
+
+```ttl
+# The entity can be typed at most once as fabio:Book or fabio:Thesis
+sh:property [
+    sh:path rdf:type ;
+    sh:qualifiedValueShape [
+        sh:or ( [ sh:hasValue fabio:Book ] [ sh:hasValue fabio:Thesis ] )
+    ] ;
+    sh:qualifiedMaxCount 1 ;
+] .
+```
+
+In the configuration editor, **Values to count** holds the condition, whose **Values** are the IRIs to count, while **Minimum occurrences** and **Maximum occurrences** set the counts. Two or more values become an `sh:or` when saved. The editor rejects a condition without either count.
 
 ### Shape reference (`sh:node`)
 Specify that a property's value must conform to another shape. This is used to validate complex objects or relationships.

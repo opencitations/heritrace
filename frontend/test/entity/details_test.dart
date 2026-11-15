@@ -5,10 +5,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:heritrace/design/controls.dart';
 import 'package:heritrace/entity/edit_session.dart';
 import 'package:heritrace/entity/entity_models.dart';
 import 'package:heritrace/entity/entity_repository.dart';
 import 'package:heritrace/entity/existing_value_widgets.dart';
+import 'package:heritrace/form/form_scope.dart';
 import 'package:heritrace/form/validator.dart';
 import 'package:heritrace/navigation/entity_store.dart';
 
@@ -205,6 +207,144 @@ void main() {
         'entity_shape': queryShape,
         'object': 'SELECT ?a WHERE {}',
         'newObject': 'SELECT ?b WHERE {}',
+      },
+    ]);
+  });
+
+  testWidgets('a value shown in place gains and loses values of a field', (
+    tester,
+  ) async {
+    const counted = 'http://www.w3.org/ns/shacl#qualifiedValueShape';
+    const hasValue = 'http://www.w3.org/ns/shacl#hasValue';
+    const condition = 'https://w3id.org/heritrace/genid/condition';
+    const conditionType = 'https://w3id.org/heritrace#QualifiedValueShape';
+    const conditionShape =
+        'https://w3id.org/heritrace/meta/QualifiedValueShapeShape';
+    const fabio = 'http://purl.org/spar/fabio/';
+    Map<String, Object?> detailValue(String name) => {
+      'label': 'fabio:$name',
+      'uri': null,
+      'value': '$fabio$name',
+      'language': null,
+    };
+    final view = EntityView.fromJson({
+      'uri': field,
+      'label': 'Type',
+      'type': 'http://www.w3.org/ns/shacl#PropertyShape',
+      'type_label': 'Field',
+      'shape': null,
+      'classes': ['http://www.w3.org/ns/shacl#PropertyShape'],
+      'is_deleted': false,
+      'has_history': true,
+      'shacl': true,
+      'has_form_fields': true,
+      'can_be_added': <String>[],
+      'can_be_deleted': <String>[],
+      'datatypes': <String, dynamic>{},
+      'optional_values': <String, dynamic>{},
+      'groups': [
+        {
+          'display_name': 'Values to count',
+          'property': counted,
+          'object_shape': conditionShape,
+          'is_draggable': false,
+          'ordered_by': null,
+          'field': {
+            'uri': counted,
+            'displayName': 'Values to count',
+            'nodeShape': conditionShape,
+            'max': 1,
+            'nestedShape': [
+              {
+                'uri': hasValue,
+                'displayName': 'Values',
+                'entityType': conditionType,
+                'subjectShape': conditionShape,
+                'min': 1,
+              },
+            ],
+          },
+          'triples': [
+            {
+              'subject': field,
+              'predicate': counted,
+              'value': 'fabio:Book, fabio:Thesis',
+              'object': condition,
+              'language': null,
+              'external_entity': condition,
+              'is_mandatory': false,
+              'label': null,
+              'alternative': null,
+              'details_shape': conditionShape,
+              'details': [
+                {
+                  'name': 'Values',
+                  'property': hasValue,
+                  'values': [detailValue('Book'), detailValue('Thesis')],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    final session = EditSession(
+      view: view,
+      entityType: 'http://www.w3.org/ns/shacl#PropertyShape',
+      repository: EntityRepository(Dio(), EntityStore.configuration),
+      validationMessages: _messages,
+      atLeastOnePropertyMessage: 'at least one',
+    );
+    addTearDown(session.dispose);
+
+    await pumpApp(
+      tester,
+      child: CupertinoApp(
+        home: CupertinoPageScaffold(
+          child: FormScope(
+            notifier: FormScopeController(rootLabel: 'Type'),
+            child: ExistingValueWidget(
+              value: session.groups.single.existing.single,
+              view: view,
+              editing: true,
+              takenLanguages: const {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byType(RemoveButton).first);
+    await tester.pump();
+
+    expect(find.byType(RemoveButton), findsNothing);
+
+    await tester.tap(find.text('Add Values'));
+    await tester.pump();
+    await tester.enterText(
+      find.byType(CupertinoTextField).last,
+      '${fabio}Journal',
+    );
+
+    expect(find.text('fabio:Book'), findsOneWidget);
+    expect(session.buildChanges(), [
+      {
+        'action': 'delete',
+        'subject': condition,
+        'predicate': hasValue,
+        'entity_type': conditionType,
+        'entity_shape': conditionShape,
+        'object': '${fabio}Book',
+        'newObject': null,
+      },
+      {
+        'action': 'create',
+        'subject': condition,
+        'data': {
+          'entity_type': conditionType,
+          'properties': {
+            hasValue: ['${fabio}Journal'],
+          },
+        },
       },
     ]);
   });

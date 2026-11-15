@@ -256,6 +256,10 @@ meta:PropertyShapeShape
           BIND(IF(BOUND(?inverse), CONCAT("^", ?property), ?property) AS ?shortPath)
           OPTIONAL {
             $this sh:hasValue|sh:qualifiedValueShape/sh:hasValue ?fixed .
+            FILTER NOT EXISTS {
+              $this sh:qualifiedValueShape/sh:hasValue ?otherFixed .
+              FILTER(?otherFixed != ?fixed)
+            }
             OPTIONAL {
               ?fixedDeclaration sh:prefix ?fixedPrefix ; sh:namespace ?fixedNamespace .
               FILTER(STRSTARTS(STR(?fixed), STR(?fixedNamespace)))
@@ -427,9 +431,9 @@ meta:PropertyShapeShape
   ] ;
   sh:property [
     sh:path sh:qualifiedValueShape ;
-    sh:name "Value to count"@en, "Valore da contare"@it ;
-    sh:description "A value of the property whose occurrences you want to limit. Set how many times it may appear in the following fields"@en,
-      "Un valore della proprietà di cui vuoi limitare le occorrenze. Indica nei campi seguenti quante volte può comparire"@it ;
+    sh:name "Values to count"@en, "Valori da contare"@it ;
+    sh:description "The values of the property whose occurrences you want to limit. Set in the following fields how many times they may appear in total"@en,
+      "I valori della proprietà di cui vuoi limitare le occorrenze. Indica nei campi seguenti quante volte possono comparire in tutto"@it ;
     sh:order 16 ;
     sh:node meta:QualifiedValueShapeShape ;
     shui:editor shui:DetailsEditor ;
@@ -439,8 +443,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:qualifiedMinCount ;
     sh:name "Minimum occurrences"@en, "Occorrenze minime"@it ;
-    sh:description "The fewest times the value to count may appear"@en,
-      "Quante volte almeno compare il valore da contare"@it ;
+    sh:description "The fewest times the values to count may appear in total"@en,
+      "Quante volte almeno compaiono, in tutto, i valori da contare"@it ;
     sh:order 17 ;
     sh:datatype xsd:integer ;
     sh:minInclusive 0 ;
@@ -449,8 +453,8 @@ meta:PropertyShapeShape
   sh:property [
     sh:path sh:qualifiedMaxCount ;
     sh:name "Maximum occurrences"@en, "Occorrenze massime"@it ;
-    sh:description "The most times the value to count may appear"@en,
-      "Quante volte al massimo compare il valore da contare"@it ;
+    sh:description "The most times the values to count may appear in total"@en,
+      "Quante volte al massimo compaiono, in tutto, i valori da contare"@it ;
     sh:order 18 ;
     sh:datatype xsd:integer ;
     sh:minInclusive 0 ;
@@ -582,7 +586,7 @@ meta:InversePathShape
 
 meta:QualifiedValueShapeShape
   a sh:NodeShape ;
-  sh:name "Value to count"@en, "Valore da contare"@it ;
+  sh:name "Values to count"@en, "Valori da contare"@it ;
   sh:targetClass ht:QualifiedValueShape ;
   sh:property [
     sh:path rdf:type ;
@@ -612,10 +616,11 @@ meta:QualifiedValueShapeShape
   ] ;
   sh:property [
     sh:path sh:hasValue ;
-    sh:name "Value"@en, "Valore"@it ;
-    sh:description "The IRI to count"@en, "L'IRI da contare"@it ;
+    sh:name "Values"@en, "Valori"@it ;
+    sh:description "The IRIs to count. A value counts when it matches one of them"@en,
+      "Gli IRI da contare. Un valore conta se coincide con uno di essi"@it ;
     sh:nodeKind sh:IRI ;
-    sh:maxCount 1 ;
+    sh:minCount 1 ;
   ] .
 
 meta:AllowedValueShape

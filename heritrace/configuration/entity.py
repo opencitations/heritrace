@@ -89,8 +89,10 @@ def _is_helper_triple(graph: Graph, triple: tuple[Node, Node, Node]) -> bool:
         HT.labelQuery,
     ):
         return True
-    if any((node, RDF.type, HT.PatternRule) in graph for node in (subject, value)) or (
-        predicate != RDF.rest and (subject, RDF.type, HT.ValueAlternative) in graph
+    if (
+        any((node, RDF.type, HT.PatternRule) in graph for node in (subject, value))
+        or (predicate != RDF.rest and (subject, RDF.type, HT.ValueAlternative) in graph)
+        or (predicate == SH.hasValue and len(_counted_values(graph, subject)) > 1)
     ):
         return True
     if predicate == SH["in"]:
@@ -133,6 +135,51 @@ def _add_value_alternatives(graph: Graph, property_shape: Node) -> None:
             graph.remove((cell, RDF.first, alternative))
             graph.add((property_shape, SH["or"], cell))
             graph.add((cell, RDF.type, HT.ValueAlternative))
+
+
+def _counted_value(graph: Graph, member: Node) -> Node | None:
+    pairs = list(graph.predicate_objects(member))
+    if len(pairs) == 1 and pairs[0][0] == SH.hasValue:
+        return pairs[0][1]
+    return None
+
+
+# The values to count have no order: the editor shows an sh:or of single values
+# as several values of the condition.
+def _add_counted_values(graph: Graph) -> None:
+    for qualified in set(graph.objects(None, SH.qualifiedValueShape)):
+        for head in list(graph.objects(qualified, SH["or"])):
+            cells = _list_cells(graph, head)
+            members = [cast("Node", graph.value(cell, RDF.first)) for cell in cells]
+            values = [_counted_value(graph, member) for member in members]
+            if None in values:
+                continue
+            graph.remove((qualified, SH["or"], head))
+            for node in (*cells, *members):
+                graph.remove((node, None, None))
+            for value in cast("list[Node]", values):
+                graph.add((qualified, SH.hasValue, value))
+
+
+def _counted_values(graph: Graph, node: Node) -> list[Node]:
+    if (node, RDF.type, HT.QualifiedValueShape) not in graph:
+        return []
+    return sorted(graph.objects(node, SH.hasValue), key=str)
+
+
+def _restore_counted_values(graph: Graph, result: Graph) -> None:
+    for qualified in graph.subjects(RDF.type, HT.QualifiedValueShape):
+        values = _counted_values(graph, qualified)
+        if len(values) <= 1:
+            continue
+        members = []
+        for value in values:
+            member = BNode()
+            result.add((member, SH.hasValue, value))
+            members.append(member)
+        head = BNode()
+        Collection(result, head, members)
+        result.add((_restore(qualified), SH["or"], head))
 
 
 # A rule of a resource type pairs the field that sets the condition with the
@@ -265,6 +312,7 @@ def normalize(graph: Graph) -> Graph:
         result.add((shape, RDF.type, SH.NodeShape))
         _add_pattern_rules(result, shape)
     _move_label_queries(result)
+    _add_counted_values(result)
     for property_shape in set(result.objects(None, SH.property)):
         result.add((property_shape, RDF.type, SH.PropertyShape))
         _add_allowed_values(result, property_shape)
@@ -348,6 +396,7 @@ def canonical(graph: Graph) -> Graph:
         result.add((_restore(subject), predicate, _restore(value)))
     _restore_list_cells(graph, result)
     _restore_pattern_rules(graph, result)
+    _restore_counted_values(graph, result)
     for criterion in graph.subjects(RDF.type, HT.DuplicateCriterion):
         properties = sorted(graph.objects(criterion, HT.keyProperty), key=str)
         Collection(result, _restore(criterion), properties)
