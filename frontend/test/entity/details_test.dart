@@ -10,6 +10,7 @@ import 'package:heritrace/entity/edit_session.dart';
 import 'package:heritrace/entity/entity_models.dart';
 import 'package:heritrace/entity/entity_repository.dart';
 import 'package:heritrace/entity/existing_value_widgets.dart';
+import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_scope.dart';
 import 'package:heritrace/form/validator.dart';
 import 'package:heritrace/navigation/entity_store.dart';
@@ -129,6 +130,7 @@ void main() {
           'field': {
             'uri': values,
             'displayName': 'Label query',
+            'editor': resourceDialogEditor,
             'nodeShape': queryShape,
             'nestedShape': [
               {
@@ -136,7 +138,7 @@ void main() {
                 'displayName': 'SPARQL query',
                 'entityType': queryType,
                 'subjectShape': queryShape,
-                'inputType': 'textarea',
+                'editor': shuiTextAreaEditor,
               },
             ],
           },
@@ -352,12 +354,14 @@ void main() {
           'field': {
             'uri': counted,
             'displayName': 'Values to count',
+            'editor': resourceDialogEditor,
             'nodeShape': conditionShape,
             'max': 1,
             'nestedShape': [
               {
                 'uri': hasValue,
                 'displayName': 'Values',
+                'editor': textFieldEditor,
                 'entityType': conditionType,
                 'subjectShape': conditionShape,
                 'min': 1,

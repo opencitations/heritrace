@@ -15,6 +15,7 @@ import 'package:heritrace/i18n/translations.g.dart';
 import 'package:heritrace/navigation/entity_store.dart';
 
 import '../form/fixtures.dart';
+import '../helpers.dart';
 
 const subject = 'https://w3id.org/oc/meta/br/1';
 
@@ -283,7 +284,7 @@ void main() {
       'object_shape': null,
       'is_draggable': false,
       'ordered_by': null,
-      'field': {'uri': property, 'max': 1, ...field},
+      'field': {'uri': property, 'editor': textFieldEditor, 'max': 1, ...field},
       'triples': [
         {
           'subject': fieldShape,
@@ -314,7 +315,7 @@ void main() {
         'optional_values': <String, dynamic>{},
         'groups': [
           existingGroup(composite, {
-            'inputType': 'checkbox',
+            'editor': shuiBooleanEditor,
             'shownWith': [node],
           }, 'true'),
           existingGroup(node, {}, 'https://example.org/nested'),
@@ -358,7 +359,13 @@ void main() {
       'object_shape': null,
       'is_draggable': false,
       'ordered_by': null,
-      'field': {'uri': property, 'displayName': property, 'max': 1, ...field},
+      'field': {
+        'uri': property,
+        'displayName': property,
+        'editor': textFieldEditor,
+        'max': 1,
+        ...field,
+      },
       'triples': [
         {
           'subject': identifier,
@@ -399,6 +406,7 @@ void main() {
             ],
           }, '10.1/x'),
           savedGroup(count, {
+            'editor': shuiNumberFieldEditor,
             'datatypes': ['http://www.w3.org/2001/XMLSchema#integer'],
             'min': 1,
           }, '1'),
@@ -451,6 +459,7 @@ void main() {
       'field': {
         'uri': property,
         'displayName': property,
+        'editor': textFieldEditor,
         'max': 1,
         ...definition,
       },

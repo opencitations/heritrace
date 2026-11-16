@@ -36,6 +36,11 @@ EDITORS = (
     str(SHUI.TextAreaEditor),
     str(SHUI.TextFieldWithLangEditor),
     str(SHUI.TextAreaWithLangEditor),
+    str(SHUI.NumberFieldEditor),
+    str(SHUI.BooleanEditor),
+    str(SHUI.DatePickerEditor),
+    str(SHUI.EnumSelectEditor),
+    str(SHUI.IRIEditor),
     str(SHUI.AutoCompleteEditor),
     str(SHUI.DetailsEditor),
 )

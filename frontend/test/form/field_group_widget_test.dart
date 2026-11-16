@@ -16,6 +16,7 @@ import 'package:heritrace/form/widgets/field_group_widget.dart';
 import 'package:heritrace/form/widgets/item_widgets.dart';
 import 'package:heritrace/i18n/translations.g.dart';
 
+import '../helpers.dart';
 import 'fixtures.dart';
 
 Future<void> pumpGroup(WidgetTester tester, FieldGroup group) =>
@@ -160,6 +161,7 @@ void main() {
       'uri': '$sh$name',
       'displayName': label,
       'description': 'About $label',
+      'editor': textFieldEditor,
       'entityType': 'https://w3id.org/heritrace#ValueAlternative',
       'max': 1,
     };
@@ -170,7 +172,7 @@ void main() {
         FieldDef.fromJson({
           'uri': '${sh}or',
           'displayName': 'Value alternatives',
-          'detailsEditor': true,
+          'editor': shuiDetailsEditor,
           'nestedShape': [
             constraint('node', 'SHACL shape'),
             constraint('class', 'Class'),
@@ -210,13 +212,14 @@ void main() {
           FieldDef.fromJson({
             'uri': 'http://datashapes.org/dash#composite',
             'displayName': 'Part of the entity',
-            'inputType': 'checkbox',
+            'editor': shuiBooleanEditor,
             'max': 1,
             'shownWith': [node],
           }),
           FieldDef.fromJson({
             'uri': node,
             'displayName': 'Nested resource type',
+            'editor': textFieldEditor,
             'min': 1,
             'max': 1,
           }),
@@ -246,6 +249,7 @@ void main() {
           FieldDef.fromJson({
             'uri': datatype,
             'displayName': 'Datatype',
+            'editor': textFieldEditor,
             'min': 1,
             'max': 1,
             'excludedWith': [alternatives],
@@ -253,6 +257,7 @@ void main() {
           FieldDef.fromJson({
             'uri': alternatives,
             'displayName': 'Value alternatives',
+            'editor': textFieldEditor,
             'max': 1,
             'excludedWith': [datatype],
           }),
@@ -312,6 +317,7 @@ void main() {
     final item = LiteralItem(
       def: FieldDef.fromJson({
         'uri': 'http://example.org/count',
+        'editor': shuiNumberFieldEditor,
         'datatypes': ['http://www.w3.org/2001/XMLSchema#integer'],
         ...bounds,
       }),
@@ -356,23 +362,26 @@ void main() {
         FieldDef.fromJson({
           'uri': path,
           'displayName': 'Property',
+          'editor': textFieldEditor,
           'min': 1,
           'max': 1,
           'or': [
             {
               'uri': path,
               'displayName': 'Property',
-              'inputType': 'url',
+              'editor': iriEditor,
               'nodeKind': shIri,
             },
             {
               'uri': path,
               'displayName': 'Inverse path',
+              'editor': resourceDialogEditor,
               'entityType': 'https://w3id.org/heritrace#InversePath',
               'nodeShape': 'https://w3id.org/heritrace/meta/InversePathShape',
               'nestedShape': [
                 {
                   'uri': 'http://www.w3.org/ns/shacl#inversePath',
+                  'editor': textFieldEditor,
                   'entityType': 'https://w3id.org/heritrace#InversePath',
                 },
               ],

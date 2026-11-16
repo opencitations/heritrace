@@ -5,6 +5,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:heritrace/form/field_def.dart';
 
+import '../helpers.dart';
+
 void main() {
   test('a field without a name is named after its IRI, acronyms whole', () {
     const names = {
@@ -16,7 +18,10 @@ void main() {
       'http://example.org/cittàNatale': 'Città natale',
     };
     for (final MapEntry(key: uri, value: name) in names.entries) {
-      expect(FieldDef.fromJson({'uri': uri}).displayName, name);
+      expect(
+        FieldDef.fromJson({'uri': uri, 'editor': textFieldEditor}).displayName,
+        name,
+      );
     }
   });
 }

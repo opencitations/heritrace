@@ -6,9 +6,11 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from flask import Flask
-from rdflib import RDF, XSD, Graph, Literal, Namespace, URIRef
+from rdflib import RDF, XSD, BNode, Graph, Literal, Namespace, URIRef
+from rdflib.collection import Collection
 from rdflib.plugins.sparql import prepareQuery
 
+from heritrace.configuration.vocabulary import SH, SHUI
 from heritrace.field_errors import field_error
 from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.shacl_display import (
@@ -17,6 +19,7 @@ from heritrace.utils.shacl_display import (
     get_object_class,
     process_nested_shapes,
     process_query_results,
+    select_field_editors,
 )
 from heritrace.utils.shacl_presentation import read_presentation
 from heritrace.utils.shacl_utils import (
@@ -32,6 +35,8 @@ from heritrace.utils.shacl_validation import (
 from tests.test_config import BASE_DIR
 
 DATACITE = Namespace("http://purl.org/spar/datacite/")
+PROPERTY = BNode()
+OR_LIST = BNode()
 
 
 @pytest.fixture
@@ -1030,6 +1035,7 @@ def test_process_nested_shapes_edge_cases(app: Flask, shacl_graph: Graph) -> Non
             excluded_with={},
             app=app,
             processed_shapes=set(),
+            editors=select_field_editors(shacl_graph),
         )
         result = process_nested_shapes(
             ctx,
@@ -1047,6 +1053,7 @@ def test_process_nested_shapes_edge_cases(app: Flask, shacl_graph: Graph) -> Non
             excluded_with={},
             app=app,
             processed_shapes={"http://www.w3.org/ns/shacl#NodeShape"},
+            editors=select_field_editors(shacl_graph),
         )
         result = process_nested_shapes(
             ctx2,
@@ -1093,6 +1100,8 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         mock_row.conditionValue = None
         mock_row.pattern = None
         mock_row.message = None
+        mock_row.property = PROPERTY
+        mock_row.or_iri = None
 
         mock_results.__iter__.return_value = [mock_row]
 
@@ -1107,6 +1116,7 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
             excluded_with={},
             app=app,
             processed_shapes=set(),
+            editors={PROPERTY: SHUI.TextFieldEditor},
         )
         result = process_query_results(ctx, mock_results, depth=0)
         entity_key = ("http://example.org/type", "http://example.org/shape")
@@ -1125,6 +1135,7 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
             excluded_with={},
             app=app,
             processed_shapes=set(),
+            editors={PROPERTY: SHUI.TextFieldEditor},
         )
         result = process_query_results(ctx, mock_results, depth=0)
         entity_key = ("http://example.org/type", "http://example.org/shape")
@@ -1625,7 +1636,7 @@ def test_validate_new_triple_with_literal_conversion(
                     assert error is None
 
 
-def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> None:
+def test_process_query_results_with_or_nodes(app: Flask) -> None:
     """Test process_query_results with OR nodes."""
     with app.test_request_context(), app.app_context():
         # Create a simple class to represent our query results
@@ -1648,7 +1659,7 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 self.composite = None
                 self.hidden = None
                 self.unique_lang = None
-                self.property = None
+                self.property = PROPERTY
                 self.ordered_by = None
                 self.node_kind = None
                 self.limit_paths = None
@@ -1701,6 +1712,18 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
             ),
         ]
 
+        shacl_graph = Graph()
+        alternatives = [BNode(), BNode()]
+        Collection(shacl_graph, OR_LIST, alternatives)
+        shacl_graph.add((URIRef("http://example.org/shape1"), SH.property, PROPERTY))
+        shacl_graph.add((PROPERTY, SH["or"], OR_LIST))
+        for alternative, node in zip(
+            alternatives,
+            ("http://example.org/orNode1", "http://example.org/orNode2"),
+            strict=True,
+        ):
+            shacl_graph.add((alternative, SH.node, URIRef(node)))
+
         # Create the first test case with empty processed_shapes
         with (
             patch(
@@ -1729,6 +1752,7 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 excluded_with={},
                 app=app,
                 processed_shapes=processed_shapes,
+                editors=select_field_editors(shacl_graph),
             )
             fields = process_query_results(ctx, rows)
 
@@ -1773,6 +1797,7 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 excluded_with={},
                 app=app,
                 processed_shapes=processed_shapes,
+                editors=select_field_editors(shacl_graph),
             )
             fields = process_query_results(ctx, rows)
 

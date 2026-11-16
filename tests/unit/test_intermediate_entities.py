@@ -9,6 +9,7 @@ from flask import Flask
 from rdflib import Graph
 
 from heritrace.configuration.shapes import read_shapes, unsupported_parts
+from heritrace.configuration.vocabulary import SHUI
 from heritrace.extensions import identify_classes_with_multiple_shapes
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_presentation import read_presentation
@@ -67,7 +68,9 @@ def test_citation_links_only_search_existing_entities() -> None:
         if option["entityType"] == ISSUE_CLASS
     }
     assert all(option["nestedShape"] == [] for option in cited_options)
-    assert all(option["autocomplete"] for option in cited_options)
+    assert all(
+        option["editor"] == str(SHUI.AutoCompleteEditor) for option in cited_options
+    )
     assert all(
         option["objectClass"] == option["entityType"] for option in cited_options
     )
@@ -94,7 +97,7 @@ def test_details_widgets_carry_every_field_of_the_nested_shape() -> None:
         if field["nodeShape"] == "http://schema.org/AuthorShape"
     )
 
-    assert authors["detailsEditor"] is True
+    assert authors["editor"] == str(SHUI.DetailsEditor)
     assert authors["detailsViewer"] is True
     assert HELD_BY in _nested_uris(authors)
 

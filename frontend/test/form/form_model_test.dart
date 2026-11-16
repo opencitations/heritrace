@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_model.dart';
 
+import '../helpers.dart';
+
 const _sh = 'http://www.w3.org/ns/shacl#';
 const _datatype = '${_sh}datatype';
 const _node = '${_sh}node';
@@ -14,6 +16,7 @@ const _hasValue = '${_sh}hasValue';
 
 Map<String, dynamic> _constraint(String uri, List<String> excludedWith) => {
   'uri': uri,
+  'editor': textFieldEditor,
   'entityType': 'https://w3id.org/heritrace#ValueAlternative',
   'max': 1,
   'excludedWith': excludedWith,
@@ -26,6 +29,7 @@ FieldGroup _alternatives() {
     fields: [
       FieldDef.fromJson({
         'uri': '${_sh}or',
+        'editor': resourceDialogEditor,
         'nodeShape': 'https://w3id.org/heritrace/meta/ValueAlternativeShape',
         'nestedShape': [
           _constraint(_datatype, [_node, _class, _hasValue]),

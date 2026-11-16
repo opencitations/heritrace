@@ -97,7 +97,7 @@ void main() {
         'uri': 'urn:cites',
         'nodeShape': 'urn:WorkShape',
         'objectClass': 'urn:Work',
-        'autocomplete': true,
+        'editor': shuiAutoCompleteEditor,
         'nestedShape': <Object>[],
       }),
       0,

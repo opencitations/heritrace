@@ -479,7 +479,36 @@ In the [configuration editor](../editor/), you set this order by dragging the fi
 
 ### Widgets (`shui:editor`)
 
-HERITRACE does its best to pick the right input from the constraints of each property. A property with `sh:in` becomes a menu of values to choose from; with more than ten values, the menu becomes a sheet with a search field. A date datatype (`xsd:date`, `xsd:gYearMonth` or `xsd:gYear`) gets a calendar, and when the shape allows more than one of them, users also choose between a full date, a month and a year. Numbers and `xsd:anyURI` open the matching keyboard. Any other value gets a single-line text field.
+HERITRACE picks the input of each property with the scoring system of SHACL 1.2 User Interfaces. Every editor that fits the property shape earns a score from its constraints, and the highest score wins; when two editors tie, the one with the alphabetically first IRI wins. The scores are built into HERITRACE and follow the `shui:WidgetScore` and `shui:WidgetAcceptMatcher` rules published with the draft.
+
+| Constraint of the property | Editor | Score |
+| --- | --- | --- |
+| `shui:editor` | The declared editor | 40 |
+| `sh:in`, or alternatives with `sh:hasValue` | `shui:EnumSelectEditor`: a menu of values, which becomes a sheet with a search field above ten values | 30 |
+| `xsd:string` | `shui:TextFieldEditor` | 10 |
+| `rdf:langString` | `shui:TextFieldWithLangEditor` | 10 |
+| `xsd:boolean` | `shui:BooleanEditor`, a switch | 10 |
+| `xsd:date`, `xsd:gYearMonth` or `xsd:gYear` | `shui:DatePickerEditor`, a calendar; when the shape allows more than one of these datatypes, users also choose between a full date, a month and a year | 10 |
+| A numeric datatype | `shui:NumberFieldEditor` | 10 |
+| `sh:class` with `sh:nodeKind sh:IRI` | `shui:AutoCompleteEditor` | 10 |
+| `sh:nodeKind sh:IRI` without `sh:class` | `shui:IRIEditor` | 10 |
+| `sh:node` | A row that opens the fields of the resource in a separate window | 10 |
+| None of the above | `shui:TextFieldEditor` | 1 |
+
+Whatever editor wins, numbers and `xsd:anyURI` open the matching keyboard.
+
+:::caution[Rules beyond the draft]
+
+Some scores belong to HERITRACE alone, and another implementation of SHACL 1.2 User Interfaces may pick a different editor for the same property.
+
+- SHACL 1.2 User Interfaces does not support partial dates (yet). When `xsd:gYearMonth` or `xsd:gYear` is among the datatypes, also inside `sh:or`, HERITRACE gives 10 points to `shui:DatePickerEditor`, which the draft defines for `xsd:date` alone.
+- Alternatives with `sh:hasValue` earn 30 points for `shui:EnumSelectEditor`, while the draft counts only `sh:in`.
+- A property with `sh:node` points to a resource that has fields of its own. The draft gives it an editor only when the property declares `shui:DetailsEditor`, which shows those fields inside the form. Without that declaration, HERITRACE shows the resource as a row that opens its fields in a separate window, at 10 points.
+- A declared `shui:AutoCompleteEditor` earns 40 points with `sh:node` alone, where the draft also asks for `sh:class`.
+- Each alternative of `sh:or` takes the `shui:editor` of its property.
+- A property that matches no rule gets `shui:TextFieldEditor` at 1 point; the draft leaves it without an editor.
+
+:::
 
 The datatype cannot tell a short title from a long abstract, though, because both are strings. For such fields, `shui:editor` sets the input: `shui:TextAreaEditor` asks for a multi-line text area, and `shui:TextFieldEditor` for a single-line field.
 
@@ -502,7 +531,7 @@ sh:property [
 ] .
 ```
 
-A link to another entity can reuse the entities that already exist. Give the property shape `shui:AutoCompleteEditor` and declare the class of the linked entity with `sh:class`. The form shows a search field and offers to create a new entity through the `sh:node` shape. Without `sh:node`, the form shows only the search field. When the property has alternatives in `sh:or`, the user first picks the type, so each alternative declares its own `sh:class` and the editor stays on the property.
+A link to another entity can reuse the entities that already exist. Give the property shape `shui:AutoCompleteEditor` and declare the class of the linked entity with `sh:class`. The form shows a search field and offers to create a new entity through the `sh:node` shape. Without `sh:node`, the form shows only the search field. When the property has alternatives in `sh:or`, the user first picks the type, so each alternative declares its own `sh:class` and the editor stays on the property. A property with `sh:class` and `sh:nodeKind sh:IRI` gets this editor without declaring it.
 
 ```ttl
 sh:property [

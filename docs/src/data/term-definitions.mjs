@@ -179,9 +179,11 @@ export const termDefinitions = {
   'shui:WidgetAcceptMatcher': 'https://w3c.github.io/data-shapes/shacl12-ui/#scoring-algorithm-accept-function',
   'shui:WidgetScore': 'https://w3c.github.io/data-shapes/shacl12-ui/#scoring-algorithm-score-function',
   'xsd:anyURI': 'https://www.w3.org/TR/xmlschema11-2/#anyURI',
+  'xsd:boolean': 'https://www.w3.org/TR/xmlschema11-2/#boolean',
   'xsd:date': 'https://www.w3.org/TR/xmlschema11-2/#date',
   'xsd:decimal': 'https://www.w3.org/TR/xmlschema11-2/#decimal',
   'xsd:gYear': 'https://www.w3.org/TR/xmlschema11-2/#gYear',
   'xsd:gYearMonth': 'https://www.w3.org/TR/xmlschema11-2/#gYearMonth',
   'xsd:integer': 'https://www.w3.org/TR/xmlschema11-2/#integer',
+  'xsd:string': 'https://www.w3.org/TR/xmlschema11-2/#string',
 };

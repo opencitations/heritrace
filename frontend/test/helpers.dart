@@ -10,6 +10,10 @@ import 'package:heritrace/i18n/translations.g.dart';
 import 'package:heritrace/session/session_controller.dart';
 import 'package:heritrace/session/session_models.dart';
 
+const textFieldEditor = 'http://www.w3.org/ns/shacl-ui/TextFieldEditor';
+const iriEditor = 'http://www.w3.org/ns/shacl-ui/IRIEditor';
+const resourceDialogEditor = 'https://w3id.org/heritrace#ResourceDialogEditor';
+
 const testConfig = AppConfig(
   appTitle: 'HERITRACE Test',
   appSubtitle: 'Test subtitle',

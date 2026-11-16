@@ -1,0 +1,96 @@
+@prefix ht: <https://w3id.org/heritrace#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix shui: <http://www.w3.org/ns/shacl-ui/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Widgets and scores of HERITRACE that SHACL 1.2 UI does not define.
+# The rules of the draft read only a direct sh:datatype or sh:in; those below
+# also read the alternatives of sh:or, including those of a qualified value
+# shape.
+
+ht:ResourceDialogEditor
+    a shui:SingleEditor ;
+    rdfs:label "Resource Dialog Editor"@en ;
+    rdfs:comment "A link to a resource whose fields open in a dialog of their own."@en ;
+.
+
+ht:datePickerEditorScore10
+    a shui:WidgetScore ;
+    shui:widget shui:DatePickerEditor ;
+    shui:score 10 ;
+    shui:shapesGraphShape ht:allowsPartialDate ;
+.
+
+ht:enumSelectEditorScore30
+    a shui:WidgetScore ;
+    shui:widget shui:EnumSelectEditor ;
+    shui:score 30 ;
+    shui:shapesGraphShape ht:hasValueOptions ;
+.
+
+ht:resourceDialogEditorScore10
+    a shui:WidgetScore ;
+    shui:widget ht:ResourceDialogEditor ;
+    shui:score 10 ;
+    shui:shapesGraphShape ht:hasNodeConstraint ;
+.
+
+ht:autoCompleteEditorScore40
+    a shui:WidgetScore ;
+    shui:widget shui:AutoCompleteEditor ;
+    shui:score 40 ;
+    shui:shapesGraphShape shui:prefersAutoCompleteEditor, ht:hasNodeConstraint ;
+.
+
+ht:textFieldEditorScore1
+    a shui:WidgetScore ;
+    shui:widget shui:TextFieldEditor ;
+    shui:score 1 ;
+.
+
+ht:allowsPartialDate
+    a sh:NodeShape ;
+    sh:property [
+        sh:path [
+            sh:alternativePath (
+                sh:datatype
+                (
+                    [ sh:alternativePath ( sh:or ( sh:qualifiedValueShape sh:or ) ) ]
+                    [ sh:zeroOrMorePath rdf:rest ]
+                    rdf:first
+                    sh:datatype
+                )
+            ) ;
+        ] ;
+        sh:qualifiedValueShape [ sh:in ( xsd:gYearMonth xsd:gYear ) ] ;
+        sh:qualifiedMinCount 1 ;
+    ] ;
+.
+
+ht:hasValueOptions
+    a sh:NodeShape ;
+    sh:property [
+        sh:path [
+            sh:alternativePath (
+                (
+                    [ sh:alternativePath ( sh:or ( sh:qualifiedValueShape sh:or ) ) ]
+                    [ sh:zeroOrMorePath rdf:rest ]
+                    rdf:first
+                    sh:hasValue
+                )
+                ( sh:qualifiedValueShape sh:hasValue )
+            ) ;
+        ] ;
+        sh:minCount 1 ;
+    ] ;
+.
+
+ht:hasNodeConstraint
+    a sh:NodeShape ;
+    sh:property [
+        sh:path sh:node ;
+        sh:minCount 1 ;
+    ] ;
+.

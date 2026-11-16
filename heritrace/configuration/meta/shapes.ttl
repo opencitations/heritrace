@@ -506,7 +506,7 @@ meta:PropertyShapeShape
     sh:description "How this field is edited"@en,
       "Come si modifica questo campo"@it ;
     sh:order 23 ;
-    sh:in ( shui:TextFieldEditor shui:TextAreaEditor shui:TextFieldWithLangEditor shui:TextAreaWithLangEditor shui:AutoCompleteEditor shui:DetailsEditor ) ;
+    sh:in ( shui:TextFieldEditor shui:TextAreaEditor shui:TextFieldWithLangEditor shui:TextAreaWithLangEditor shui:NumberFieldEditor shui:BooleanEditor shui:DatePickerEditor shui:EnumSelectEditor shui:IRIEditor shui:AutoCompleteEditor shui:DetailsEditor ) ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
@@ -1090,6 +1090,28 @@ shui:TextAreaWithLangEditor
   rdfs:label "Text area with language"@en, "Area di testo con lingua"@it ;
   rdfs:comment "Several lines of text, with a menu for their language"@en,
     "Più righe di testo, con un menu per la lingua"@it .
+
+shui:NumberFieldEditor
+  rdfs:label "Number field"@en, "Campo numerico"@it ;
+  rdfs:comment "A number"@en, "Un numero"@it .
+
+shui:BooleanEditor
+  rdfs:label "Switch"@en, "Interruttore"@it ;
+  rdfs:comment "Yes or no"@en, "Sì o no"@it .
+
+shui:DatePickerEditor
+  rdfs:label "Calendar"@en, "Calendario"@it ;
+  rdfs:comment "A date, picked from a calendar"@en,
+    "Una data, scelta da un calendario"@it .
+
+shui:EnumSelectEditor
+  rdfs:label "Menu"@en, "Menu"@it ;
+  rdfs:comment "One of the allowed values"@en, "Uno dei valori ammessi"@it .
+
+shui:IRIEditor
+  rdfs:label "IRI field"@en, "Campo IRI"@it ;
+  rdfs:comment "The IRI of a resource, typed in full"@en,
+    "L'IRI di una risorsa, scritto per intero"@it .
 
 shui:AutoCompleteEditor
   rdfs:label "Search"@en, "Ricerca"@it ;

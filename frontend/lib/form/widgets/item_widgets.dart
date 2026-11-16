@@ -21,17 +21,13 @@ import 'option_sheet.dart';
 
 TextInputType valueKeyboardType(FieldDef def) => def.isInteger
     ? TextInputType.numberWithOptions(signed: def.acceptsNegative)
-    : def.takesIri
+    : def.takesIri || def.takesUrl
     ? TextInputType.url
-    : switch (def.inputType) {
-        'number' => const TextInputType.numberWithOptions(
-          decimal: true,
-          signed: true,
-        ),
-        'url' => TextInputType.url,
-        'textarea' => TextInputType.multiline,
-        _ => TextInputType.text,
-      };
+    : def.editor == shuiNumberFieldEditor
+    ? const TextInputType.numberWithOptions(decimal: true, signed: true)
+    : def.multiline
+    ? TextInputType.multiline
+    : TextInputType.text;
 
 List<TextInputFormatter>? valueInputFormatters(FieldDef def) => def.isInteger
     ? [
@@ -124,7 +120,7 @@ class _LiteralFieldState extends State<LiteralField> {
     final field = AppTextField(
       controller: _controller,
       focusNode: widget.item.focusNode,
-      multiline: def.inputType == 'textarea',
+      multiline: def.multiline,
       keyboardType: valueKeyboardType(def),
       inputFormatters: valueInputFormatters(def),
       placeholder: def.displayName,

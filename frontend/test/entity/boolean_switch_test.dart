@@ -13,7 +13,7 @@ const shape = 'https://example.org/shape';
 
 final field = FieldDef.fromJson({
   'uri': hidden,
-  'inputType': 'checkbox',
+  'editor': shuiBooleanEditor,
   'max': 1,
 });
 

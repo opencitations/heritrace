@@ -1,0 +1,60 @@
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX shui: <http://www.w3.org/ns/shacl-ui/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+shui:TextAreaEditor
+    a shui:SingleEditor ;
+    rdfs:label "Text Area Editor"@en ;
+    rdfs:comment "A multi-line text area for entering the lexical form of a literal."@en ;
+.
+
+shui:textAreaEditorAcceptMatcher
+    a shui:WidgetAcceptMatcher ;
+    shui:shapesGraphShape shui:noSingleLineTrue ;
+    shui:widget shui:TextAreaEditor ;
+.
+
+shui:textAreaEditorScore40
+    a shui:WidgetScore ;
+    shui:widget shui:TextAreaEditor ;
+    shui:score 40 ;
+    shui:shapesGraphShape shui:prefersTextAreaEditor ;
+.
+
+shui:textAreaEditorScore30
+    a shui:WidgetScore ;
+    shui:widget shui:TextAreaEditor ;
+    shui:score 30 ;
+    shui:dataGraphShape shui:isString ;
+    shui:shapesGraphShape shui:isSingleLineFalse ;
+.
+
+shui:textAreaEditorScore20
+    a shui:WidgetScore ;
+    shui:widget shui:TextAreaEditor ;
+    shui:score 20 ;
+    shui:dataGraphShape shui:isString ;
+.
+
+shui:textAreaEditorScore5
+    a shui:WidgetScore ;
+    shui:widget shui:TextAreaEditor ;
+    shui:score 5 ;
+    shui:shapesGraphShape shui:hasDatatypeStringConstraint ;
+.
+
+shui:textAreaEditorScore0
+    a shui:WidgetScore ;
+    shui:score 0 ;
+    shui:widget shui:TextAreaEditor ;
+    shui:shapesGraphShape shui:isSingleLineFalse ;
+.
+
+shui:prefersTextAreaEditor
+    a sh:NodeShape ;
+    sh:property [
+        sh:path shui:editor ;
+        sh:hasValue shui:TextAreaEditor ;
+    ] ;
+.

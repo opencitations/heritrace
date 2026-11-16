@@ -19,7 +19,7 @@ import 'package:heritrace/navigation/entity_store.dart';
 const name = 'http://www.w3.org/ns/shacl#name';
 const shape = 'https://example.org/shape';
 
-final fieldJson = {'uri': name, 'withLanguage': true};
+final fieldJson = {'uri': name, 'editor': shuiTextFieldWithLangEditor};
 
 const messages = ValidationMessages(
   required: 'required',

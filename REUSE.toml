@@ -96,6 +96,7 @@ path = [
     "frontend/.metadata",
     "frontend/pubspec.lock",
     "heritrace/configuration/meta/shapes.ttl",
+    "heritrace/widgets/heritrace.ttl",
 ]
 SPDX-FileCopyrightText = "2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
 SPDX-License-Identifier = "CC0-1.0"
@@ -125,3 +126,8 @@ path = [
 ]
 SPDX-FileCopyrightText = "2025 Arcangelo Massari <arcangelo.massari@unibo.it>"
 SPDX-License-Identifier = "CC-BY-4.0"
+
+[[annotations]]
+path = "heritrace/widgets/w3c/*.ttl"
+SPDX-FileCopyrightText = "2026 World Wide Web Consortium"
+SPDX-License-Identifier = "W3C-20150513"

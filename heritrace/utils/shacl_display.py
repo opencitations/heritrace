@@ -33,6 +33,7 @@ from heritrace.utils.shacl_presentation import (
     qualified_option_pattern,
 )
 from heritrace.utils.value_bounds import Bound, bound_number
+from heritrace.utils.widget_scores import select_editors
 
 
 @dataclass(slots=True)
@@ -44,11 +45,13 @@ class ShaclProcessingContext:
     excluded_with: dict[tuple[str, str], list[str]]
     app: Flask
     processed_shapes: set[str]
+    editors: dict[Node, URIRef]
     shape_rows: dict[str, list[ResultRow]] = dataclass_field(default_factory=dict)
 
 
 @dataclass(slots=True)
 class _ParsedRow:
+    property_shape: Node
     subject_shape: str
     entity_type: str
     predicate: str
@@ -69,7 +72,6 @@ class _ParsedRow:
     node_shapes: list[str]
     names: LocalizedText
     descriptions: LocalizedText
-    editor: str | None
     viewer: str | None
     composite: bool
     hidden: bool
@@ -86,18 +88,13 @@ _BOUND_VARIABLES = {
     "maxExclusive": "max_exclusive",
 }
 
-_LANGUAGE_EDITORS = (
-    str(SHUI.TextFieldWithLangEditor),
-    str(SHUI.TextAreaWithLangEditor),
-)
-
 COMMON_SPARQL_QUERY = prepareQuery(
     """
     SELECT ?shape ?type ?property ?path ?inverse ?node_shape ?link_shape ?link_class
            ?datatype
            ?max_count ?min_count ?min_inclusive ?max_inclusive ?min_exclusive
            ?max_exclusive ?has_value ?object_class
-           ?editor ?viewer ?composite ?hidden ?unique_lang ?ordered_by ?node_kind
+           ?viewer ?composite ?hidden ?unique_lang ?ordered_by ?node_kind
            (GROUP_CONCAT(?optional_value; separator=",")
             AS ?optional_values)
            (GROUP_CONCAT(?or_node; separator=",") AS ?or_nodes)
@@ -117,8 +114,7 @@ COMMON_SPARQL_QUERY = prepareQuery(
             }
         }
         OPTIONAL {
-            ?property shui:editor shui:AutoCompleteEditor ;
-                      sh:class ?link_class .
+            ?property sh:class ?link_class .
             ?link_shape sh:targetClass ?link_class .
             FILTER NOT EXISTS { ?property sh:node ?declared_node . }
         }
@@ -133,7 +129,6 @@ COMMON_SPARQL_QUERY = prepareQuery(
                 ?orList rdf:rest*/rdf:first ?or_node_shape .
                 ?or_node_shape sh:node ?or_node .
             } UNION {
-                ?property shui:editor shui:AutoCompleteEditor .
                 ?orList rdf:rest*/rdf:first ?or_link .
                 ?or_link sh:class ?or_link_class .
                 ?or_link_shape sh:targetClass ?or_link_class .
@@ -174,7 +169,6 @@ COMMON_SPARQL_QUERY = prepareQuery(
     + qualified_option_pattern("?property", "?optional_value")
     + """
         }
-        OPTIONAL { ?property shui:editor ?editor . }
         OPTIONAL { ?property shui:viewer ?viewer . }
         OPTIONAL { ?property dash:composite ?composite . }
         OPTIONAL { ?property dash:hidden ?hidden . }
@@ -196,7 +190,7 @@ COMMON_SPARQL_QUERY = prepareQuery(
              ?datatype
              ?max_count ?min_count ?min_inclusive ?max_inclusive ?min_exclusive
              ?max_exclusive ?has_value ?object_class
-             ?editor ?viewer ?composite ?hidden ?unique_lang ?ordered_by ?node_kind
+             ?viewer ?composite ?hidden ?unique_lang ?ordered_by ?node_kind
 """,
     initNs={
         "sh": "http://www.w3.org/ns/shacl#",
@@ -208,21 +202,77 @@ COMMON_SPARQL_QUERY = prepareQuery(
 )
 
 
-def _parse_row(shacl: Graph, row: ResultRow) -> _ParsedRow:
+def _or_alternatives(shacl: Graph, property_shape: Node) -> list[Node]:
+    lists = [
+        *shacl.objects(property_shape, SH["or"]),
+        *(
+            alternatives
+            for qualified in shacl.objects(property_shape, SH.qualifiedValueShape)
+            for alternatives in shacl.objects(qualified, SH["or"])
+        ),
+    ]
+    return [alternative for items in lists for alternative in Collection(shacl, items)]
+
+
+def _alternative_editor(
+    ctx: ShaclProcessingContext,
+    property_shape: Node,
+    predicate: URIRef,
+    value: Node,
+) -> URIRef:
+    return next(
+        ctx.editors[alternative]
+        for alternative in _or_alternatives(ctx.shacl, property_shape)
+        if (alternative, predicate, value) in ctx.shacl
+        and (predicate != SH["class"] or (alternative, SH.node, None) not in ctx.shacl)
+    )
+
+
+def _links_by_autocomplete(
+    ctx: ShaclProcessingContext, property_shape: Node, link_shape: str
+) -> bool:
+    target_class = cast("Node", ctx.shacl.value(URIRef(link_shape), SH.targetClass))
+    return (
+        _alternative_editor(ctx, property_shape, SH["class"], target_class)
+        == SHUI.AutoCompleteEditor
+    )
+
+
+# An alternative of sh:or takes the shui:editor of its property shape.
+def select_field_editors(shacl: Graph) -> dict[Node, URIRef]:
+    scored = Graph()
+    scored += shacl
+    nodes = set(shacl.objects(None, SH.property))
+    for property_shape in set(nodes):
+        for alternative in _or_alternatives(shacl, property_shape):
+            nodes.add(alternative)
+            for editor in shacl.objects(property_shape, SHUI.editor):
+                scored.add((alternative, SHUI.editor, editor))
+    return select_editors(scored, nodes)
+
+
+def _parse_row(ctx: ShaclProcessingContext, row: ResultRow) -> _ParsedRow:
+    shacl = ctx.shacl
     subject_shape = str(row.shape)
     entity_type = str(row.type)
     predicate = inverse_path_key(row.inverse) if row.inverse else str(row.path)
-    linked_shape = row.node_shape or row.link_shape
+    autocomplete = ctx.editors[row.property] == SHUI.AutoCompleteEditor
+    link_shape = row.link_shape if autocomplete and row.node_shape is None else None
+    linked_shape = row.node_shape or link_shape
     node_shape = str(linked_shape) if linked_shape else None
     has_value = str(row.has_value) if row.has_value else None
-    linked_class = row.object_class or row.link_class
+    linked_class = row.object_class or (row.link_class if link_shape else None)
     object_class = str(linked_class) if linked_class else None
     min_count = 0 if row.min_count is None else int(row.min_count)
     max_count = None if row.max_count is None else int(row.max_count)
     datatype = str(row.datatype) if row.datatype else None
     optional_values = [v for v in (row.optional_values or "").split(",") if v]
     or_nodes = [v for v in (row.or_nodes or "").split(",") if v]
-    or_link_shapes = [v for v in (row.or_link_shapes or "").split(",") if v]
+    or_link_shapes = [
+        v
+        for v in (row.or_link_shapes or "").split(",")
+        if v and _links_by_autocomplete(ctx, row.property, v)
+    ]
     detail_paths = sorted({v for v in (row.detail_paths or "").split(",") if v})
 
     node_shapes = []
@@ -232,6 +282,7 @@ def _parse_row(shacl: Graph, row: ResultRow) -> _ParsedRow:
     node_shapes.extend(or_link_shapes)
 
     return _ParsedRow(
+        property_shape=row.property,
         subject_shape=subject_shape,
         entity_type=entity_type,
         predicate=predicate,
@@ -250,12 +301,11 @@ def _parse_row(shacl: Graph, row: ResultRow) -> _ParsedRow:
         or_link_shapes=or_link_shapes,
         or_iri=bool(row.or_iri),
         detail_paths=detail_paths,
-        link_only=row.node_shape is None and row.link_shape is not None,
+        link_only=link_shape is not None,
         entity_key=(entity_type, subject_shape),
         node_shapes=node_shapes,
         names=localized_texts(shacl, row.property, SH.name),
         descriptions=localized_texts(shacl, row.property, SH.description),
-        editor=str(row.editor) if row.editor else None,
         viewer=str(row.viewer) if row.viewer else None,
         composite=bool(row.composite),
         hidden=bool(row.hidden),
@@ -299,6 +349,7 @@ def _or_option(
     ctx: ShaclProcessingContext,
     parsed: _ParsedRow,
     node: str,
+    editor: URIRef,
 ) -> dict[str, object]:
     target_class = get_shape_target_class(ctx.shacl, node)
     return {
@@ -312,8 +363,7 @@ def _or_option(
         "objectClass": get_object_class(ctx.shacl, node, parsed.predicate),
         "optionalValues": parsed.optional_values,
         "patterns": _field_patterns(ctx, parsed),
-        "autocomplete": parsed.editor == str(SHUI.AutoCompleteEditor),
-        "detailsEditor": parsed.editor == str(SHUI.DetailsEditor),
+        "editor": str(editor),
         "detailsViewer": parsed.viewer == str(SHUI.DetailsViewer),
         "composite": parsed.composite,
         "hidden": parsed.hidden,
@@ -331,6 +381,9 @@ def _iri_option(ctx: ShaclProcessingContext, parsed: _ParsedRow) -> dict[str, ob
         "max": parsed.max_count,
         "patterns": _field_patterns(ctx, parsed),
         "nodeKind": str(SH.IRI),
+        "editor": str(
+            _alternative_editor(ctx, parsed.property_shape, SH.nodeKind, SH.IRI)
+        ),
         "hidden": parsed.hidden,
     }
 
@@ -343,12 +396,13 @@ def _process_or_nodes(
 ) -> None:
     options = [_iri_option(ctx, parsed)] if parsed.or_iri else []
     for node in parsed.or_nodes:
-        option = _or_option(ctx, parsed, node)
+        editor = _alternative_editor(ctx, parsed.property_shape, SH.node, URIRef(node))
+        option = _or_option(ctx, parsed, node, editor)
         if node not in ctx.processed_shapes:
             option["nestedShape"] = process_nested_shapes(ctx, node, depth=depth + 1)
         options.append(option)
     for node in parsed.or_link_shapes:
-        option = _or_option(ctx, parsed, node)
+        option = _or_option(ctx, parsed, node, SHUI.AutoCompleteEditor)
         option["objectClass"] = option["entityType"]
         option["nestedShape"] = []
         options.append(option)
@@ -392,13 +446,10 @@ def _process_single_row(
         "objectClass": parsed.object_class,
         "optionalValues": parsed.optional_values,
         "patterns": _field_patterns(ctx, parsed),
-        "inputType": determine_input_type(parsed.editor, parsed.datatype),
-        "autocomplete": parsed.editor == str(SHUI.AutoCompleteEditor),
-        "detailsEditor": parsed.editor == str(SHUI.DetailsEditor),
+        "editor": str(ctx.editors[parsed.property_shape]),
         "detailsViewer": parsed.viewer == str(SHUI.DetailsViewer),
         "composite": parsed.composite,
         "hidden": parsed.hidden,
-        "withLanguage": parsed.editor in _LANGUAGE_EDITORS,
         "uniqueLang": parsed.unique_lang,
     }
     declared = {
@@ -438,7 +489,7 @@ def process_query_results(
     )
 
     for row in results:
-        parsed = _parse_row(ctx.shacl, row)
+        parsed = _parse_row(ctx, row)
         _process_single_row(ctx, parsed, form_fields, depth)
 
     return form_fields
@@ -516,31 +567,6 @@ def order_form_fields(
     )
 
 
-def determine_input_type(editor: str | None, datatype: str | None) -> str:
-    if editor in (str(SHUI.TextAreaEditor), str(SHUI.TextAreaWithLangEditor)):
-        return "textarea"
-    if (
-        editor in (str(SHUI.TextFieldEditor), str(SHUI.TextFieldWithLangEditor))
-        or not datatype
-    ):
-        return "text"
-
-    datatype_to_input = {
-        "http://www.w3.org/2001/XMLSchema#string": "text",
-        "http://www.w3.org/2001/XMLSchema#integer": "number",
-        "http://www.w3.org/2001/XMLSchema#decimal": "number",
-        "http://www.w3.org/2001/XMLSchema#float": "number",
-        "http://www.w3.org/2001/XMLSchema#double": "number",
-        "http://www.w3.org/2001/XMLSchema#boolean": "checkbox",
-        "http://www.w3.org/2001/XMLSchema#date": "date",
-        "http://www.w3.org/2001/XMLSchema#time": "time",
-        "http://www.w3.org/2001/XMLSchema#dateTime": "datetime-local",
-        "http://www.w3.org/2001/XMLSchema#anyURI": "url",
-        "http://www.w3.org/2001/XMLSchema#email": "email",
-    }
-    return datatype_to_input.get(str(datatype), "text")
-
-
 def get_shape_target_class(shacl: Graph, shape_uri: str) -> str | None:
     target_class = shacl.value(URIRef(shape_uri), SH.targetClass)
     return str(target_class) if target_class else None
@@ -603,6 +629,7 @@ def extract_shacl_form_fields(
         excluded_with=read_excluded_with(shacl),
         app=app,
         processed_shapes=set(),
+        editors=select_field_editors(shacl),
     )
     results = execute_shacl_query(shacl, COMMON_SPARQL_QUERY)
     return process_query_results(

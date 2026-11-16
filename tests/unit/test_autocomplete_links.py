@@ -8,7 +8,7 @@ from flask import Flask
 from rdflib import Graph
 
 from heritrace.configuration.shapes import read_shapes, shapes_to_graph
-from heritrace.configuration.vocabulary import SH
+from heritrace.configuration.vocabulary import SH, SHUI
 from heritrace.utils.shacl_presentation import read_presentation
 from heritrace.utils.shacl_utils import get_form_fields_from_shacl
 
@@ -35,13 +35,16 @@ def test_every_alternative_of_a_link_uses_the_autocomplete() -> None:
     alternatives = _article_field(PART_OF)["or"]
 
     assert alternatives
-    assert all(alternative["autocomplete"] for alternative in alternatives)
+    assert all(
+        alternative["editor"] == str(SHUI.AutoCompleteEditor)
+        for alternative in alternatives
+    )
 
 
 def test_a_role_shows_its_fields_in_place() -> None:
     role = _article_field(ROLE)
 
-    assert role["detailsEditor"] is True
+    assert role["editor"] == str(SHUI.DetailsEditor)
     assert role["detailsViewer"] is True
     assert HELD_BY in {nested["uri"] for nested in role["nestedShape"]}
 

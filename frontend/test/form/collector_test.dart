@@ -7,6 +7,7 @@ import 'package:heritrace/form/collector.dart';
 import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_model.dart';
 
+import '../helpers.dart';
 import 'fixtures.dart';
 
 void main() {
@@ -47,11 +48,11 @@ void main() {
       fields: [
         FieldDef.fromJson({
           'uri': composite,
-          'inputType': 'checkbox',
+          'editor': shuiBooleanEditor,
           'max': 1,
           'shownWith': [node],
         }),
-        FieldDef.fromJson({'uri': node, 'max': 1}),
+        FieldDef.fromJson({'uri': node, 'editor': textFieldEditor, 'max': 1}),
       ],
       depth: 0,
     );

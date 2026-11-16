@@ -412,6 +412,19 @@ def test_a_field_takes_a_description_and_value_bounds(
     }
 
 
+def test_a_field_declares_an_editor_that_the_scores_also_pick(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    field = _numeric_property(admin_client, config_app)
+
+    status, _ = _add(admin_client, field, {SHUI.editor: str(SHUI.NumberFieldEditor)})
+
+    assert status == 200
+    assert set(_data(config_app).objects(field, SHUI.editor)) == {
+        SHUI.NumberFieldEditor
+    }
+
+
 def test_a_minimum_value_above_the_maximum_is_not_saved(
     admin_client: FlaskClient, config_app: Flask
 ) -> None:

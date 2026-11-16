@@ -1,0 +1,40 @@
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX shui: <http://www.w3.org/ns/shacl-ui/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+shui:BooleanEditor
+    a shui:SingleEditor ;
+    rdfs:label "Boolean Editor"@en ;
+    rdfs:comment "An editor for boolean values, rendered as a checkbox, a toggle, or a select offering true and false."@en ;
+.
+
+shui:booleanEditorScore40
+    a shui:WidgetScore ;
+    shui:widget shui:BooleanEditor ;
+    shui:score 40 ;
+    shui:dataGraphShape shui:isBoolean ;
+    shui:shapesGraphShape shui:prefersBooleanEditor ;
+.
+
+shui:booleanEditorScore20
+    a shui:WidgetScore ;
+    shui:widget shui:BooleanEditor ;
+    shui:score 20 ;
+    shui:dataGraphShape shui:isBoolean ;
+.
+
+shui:booleanEditorScore10
+    a shui:WidgetScore ;
+    shui:widget shui:BooleanEditor ;
+    shui:score 10 ;
+    shui:shapesGraphShape shui:hasDatatypeBooleanConstraint ;
+.
+
+shui:prefersBooleanEditor
+    a sh:NodeShape ;
+    sh:property [
+        sh:path shui:editor ;
+        sh:hasValue shui:BooleanEditor ;
+    ] ;
+.

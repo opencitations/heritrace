@@ -7,6 +7,8 @@ import 'dart:convert';
 import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_model.dart';
 
+import '../helpers.dart';
+
 const article = 'http://purl.org/spar/fabio/JournalArticle';
 const articleShape = 'http://schema.org/JournalArticleShape';
 const title = 'http://purl.org/dc/terms/title';
@@ -46,6 +48,7 @@ const List<Object> _rawArticleFormFields = [
       {
         'uri': rdfType,
         'displayName': 'Type',
+        'editor': textFieldEditor,
         'entityType': article,
         'subjectShape': articleShape,
         'hasValue': article,
@@ -61,6 +64,7 @@ const List<Object> _rawArticleFormFields = [
       {
         'uri': title,
         'displayName': 'Title',
+        'editor': textFieldEditor,
         'description': 'The title as printed on the article.',
         'entityType': article,
         'subjectShape': articleShape,
@@ -76,6 +80,7 @@ const List<Object> _rawArticleFormFields = [
       {
         'uri': pubDate,
         'displayName': 'Publication Date',
+        'editor': shuiDatePickerEditor,
         'entityType': article,
         'subjectShape': articleShape,
         'datatypes': [xsdDate, xsdGYearMonth, xsdGYear],
@@ -90,17 +95,18 @@ const List<Object> _rawArticleFormFields = [
       {
         'uri': documentContext,
         'displayName': 'Author',
+        'editor': shuiDetailsEditor,
         'entityType': article,
         'subjectShape': articleShape,
         'nodeShape': authorShape,
         'objectClass': roleInTime,
         'min': 0,
         'orderedBy': hasNext,
-        'detailsEditor': true,
         'nestedShape': [
           {
             'uri': withRole,
             'displayName': 'Role',
+            'editor': textFieldEditor,
             'entityType': roleInTime,
             'subjectShape': authorShape,
             'hasValue': author,
@@ -110,6 +116,7 @@ const List<Object> _rawArticleFormFields = [
           {
             'uri': hasNext,
             'displayName': 'Has Next',
+            'editor': textFieldEditor,
             'entityType': roleInTime,
             'subjectShape': authorShape,
             'hidden': true,
@@ -119,17 +126,18 @@ const List<Object> _rawArticleFormFields = [
           {
             'uri': heldBy,
             'displayName': 'Held By',
+            'editor': shuiAutoCompleteEditor,
             'entityType': roleInTime,
             'subjectShape': authorShape,
             'nodeShape': agentShape,
             'objectClass': agent,
-            'autocomplete': true,
             'min': 1,
             'max': 1,
             'nestedShape': [
               {
                 'uri': name,
                 'displayName': 'Name',
+                'editor': textFieldEditor,
                 'entityType': agent,
                 'subjectShape': agentShape,
                 'datatypes': [xsdString],
@@ -139,6 +147,7 @@ const List<Object> _rawArticleFormFields = [
               {
                 'uri': identifier,
                 'displayName': 'Identifier',
+                'editor': resourceDialogEditor,
                 'entityType': agent,
                 'subjectShape': agentShape,
                 'nodeShape': identifierShape,
@@ -148,6 +157,7 @@ const List<Object> _rawArticleFormFields = [
                   {
                     'uri': literalValue,
                     'displayName': 'Value',
+                    'editor': textFieldEditor,
                     'entityType': identifierClass,
                     'subjectShape': identifierShape,
                     'datatypes': [xsdString],
@@ -168,6 +178,7 @@ const List<Object> _rawArticleFormFields = [
       {
         'uri': partOf,
         'displayName': 'Container',
+        'editor': textFieldEditor,
         'entityType': article,
         'subjectShape': articleShape,
         'min': 0,
@@ -176,6 +187,7 @@ const List<Object> _rawArticleFormFields = [
           {
             'uri': partOf,
             'displayName': 'Issue',
+            'editor': resourceDialogEditor,
             'entityType': issue,
             'subjectShape': articleShape,
             'nodeShape': issueShape,
@@ -185,6 +197,7 @@ const List<Object> _rawArticleFormFields = [
               {
                 'uri': sequenceIdentifier,
                 'displayName': 'Number',
+                'editor': textFieldEditor,
                 'entityType': issue,
                 'subjectShape': issueShape,
                 'datatypes': [xsdString],
@@ -196,6 +209,7 @@ const List<Object> _rawArticleFormFields = [
           {
             'uri': partOf,
             'displayName': 'Volume',
+            'editor': resourceDialogEditor,
             'entityType': volume,
             'subjectShape': articleShape,
             'nodeShape': volumeShape,
@@ -205,6 +219,7 @@ const List<Object> _rawArticleFormFields = [
               {
                 'uri': sequenceIdentifier,
                 'displayName': 'Number',
+                'editor': textFieldEditor,
                 'entityType': volume,
                 'subjectShape': volumeShape,
                 'datatypes': [xsdString],

@@ -7,6 +7,7 @@ import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_model.dart';
 import 'package:heritrace/form/validator.dart';
 
+import '../helpers.dart';
 import 'fixtures.dart';
 
 const messages = ValidationMessages(
@@ -66,16 +67,17 @@ void main() {
           {
             'uri': documentContext,
             'displayName': 'Volume',
+            'editor': shuiAutoCompleteEditor,
             'entityType': article,
             'subjectShape': articleShape,
             'nodeShape': volumeShape,
             'objectClass': volume,
             'min': min,
-            'autocomplete': true,
             'nestedShape': [
               {
                 'uri': sequenceIdentifier,
                 'displayName': 'Number',
+                'editor': textFieldEditor,
                 'entityType': volume,
                 'subjectShape': volumeShape,
                 'datatypes': [xsdString],
@@ -215,6 +217,7 @@ void main() {
             {
               'uri': count,
               'displayName': 'Count',
+              'editor': shuiNumberFieldEditor,
               'entityType': article,
               'subjectShape': articleShape,
               'datatypes': ['http://www.w3.org/2001/XMLSchema#integer'],
@@ -320,6 +323,7 @@ void main() {
     const field = <String, Object?>{
       'uri': code,
       'displayName': 'Code',
+      'editor': textFieldEditor,
       'entityType': article,
       'subjectShape': articleShape,
       'patterns': [
@@ -365,6 +369,7 @@ void main() {
           {
             'uri': source,
             'displayName': 'Source',
+            'editor': iriEditor,
             'entityType': article,
             'subjectShape': articleShape,
             'nodeKind': shIri,
@@ -389,6 +394,7 @@ void main() {
           {
             'uri': start,
             'displayName': 'Start',
+            'editor': textFieldEditor,
             'entityType': article,
             'subjectShape': articleShape,
             'lessThanOrEquals': [

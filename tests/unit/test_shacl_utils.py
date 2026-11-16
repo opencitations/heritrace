@@ -11,8 +11,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
-from rdflib import RDF, XSD, Graph, Literal, Namespace, URIRef
+from rdflib import RDF, XSD, BNode, Graph, Literal, Namespace, URIRef
+from rdflib.collection import Collection
 
+from heritrace.configuration.vocabulary import HT, SHUI
 from heritrace.utils.filters import Filter, field_with_labels
 from heritrace.utils.shacl_display import (
     ShaclProcessingContext,
@@ -38,6 +40,8 @@ PRISM = Namespace("http://prismstandard.org/namespaces/basic/2.0/")
 PRO = Namespace("http://purl.org/spar/pro/")
 SCHEMA = Namespace("http://schema.org/")
 SH = Namespace("http://www.w3.org/ns/shacl#")
+PROPERTY = BNode()
+ALTERNATIVE = BNode()
 
 
 class TestShaclUtils:
@@ -96,13 +100,15 @@ class TestShaclUtils:
         ]
         assert {
             predicate: [
-                (details.get("displayName"), details["inputType"])
+                (details.get("displayName"), details["editor"])
                 for details in details_list
             ]
             for predicate, details_list in fields.items()
         } == {
-            "http://example.org/abstract": [({"": "Abstract"}, "textarea")],
-            "http://example.org/pages": [(None, "number")],
+            "http://example.org/abstract": [
+                ({"": "Abstract"}, str(SHUI.TextAreaEditor))
+            ],
+            "http://example.org/pages": [(None, str(SHUI.NumberFieldEditor))],
         }
 
     def test_a_field_names_the_properties_its_values_do_not_exceed(self) -> None:
@@ -337,6 +343,7 @@ class TestShaclUtils:
             "max": 1,
             "patterns": [],
             "nodeKind": "http://www.w3.org/ns/shacl#IRI",
+            "editor": str(SHUI.IRIEditor),
             "hidden": False,
         }
         assert inverse["nodeShape"] == "http://example.org/InverseShape"
@@ -470,7 +477,6 @@ class TestShaclUtils:
             link_class: object
             detail_paths: object
             property: object = None
-            editor: object = None
             inverse: object = None
             viewer: object = None
             composite: object = None
@@ -503,11 +509,15 @@ class TestShaclUtils:
                 link_shape=None,
                 link_class=None,
                 detail_paths="",
+                property=PROPERTY,
             )
         ]
 
-        # Crea un grafo vuoto
         shacl = Graph()
+        alternatives = BNode()
+        Collection(shacl, alternatives, [ALTERNATIVE])
+        shacl.add((PROPERTY, SH["or"], alternatives))
+        shacl.add((ALTERNATIVE, SH.node, URIRef("orNode1")))
         processed_shapes = set()
         app = Flask(__name__)
         app.config["DATASET_DB_URL"] = "http://example.org/sparql"
@@ -527,6 +537,10 @@ class TestShaclUtils:
                 excluded_with={},
                 app=app,
                 processed_shapes=processed_shapes,
+                editors={
+                    PROPERTY: SHUI.TextFieldEditor,
+                    ALTERNATIVE: HT.ResourceDialogEditor,
+                },
             )
             result = process_query_results(ctx, results)
 
@@ -614,7 +628,6 @@ class TestShaclUtils:
             link_class: object
             detail_paths: object
             property: object = None
-            editor: object = None
             inverse: object = None
             viewer: object = None
             composite: object = None
@@ -648,7 +661,7 @@ class TestShaclUtils:
                 link_shape=None,
                 link_class=None,
                 detail_paths="",
-                editor=None,
+                property=PROPERTY,
             ),
             # Il secondo risultato ha lo stesso campo base ma con un datatype diverso
             QueryResult(
@@ -672,6 +685,7 @@ class TestShaclUtils:
                 link_shape=None,
                 link_class=None,
                 detail_paths="",
+                property=PROPERTY,
             ),
         ]
 
@@ -705,6 +719,7 @@ class TestShaclUtils:
                 excluded_with={},
                 app=app,
                 processed_shapes=processed_shapes,
+                editors={PROPERTY: SHUI.TextFieldEditor},
             )
             result = process_query_results(ctx, results)
 

@@ -509,7 +509,7 @@ class _TextValueFieldState extends State<_TextValueField> {
       controller: _controller,
       focusNode: _focusNode,
       errorText: _valueErrorText(context, widget.value),
-      multiline: field?.inputType == 'textarea',
+      multiline: field?.multiline ?? false,
       keyboardType: field == null ? null : valueKeyboardType(field),
       inputFormatters: field == null ? null : valueInputFormatters(field),
       onChanged: widget.value.setValue,

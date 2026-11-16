@@ -7,6 +7,18 @@ const xsdDate = 'http://www.w3.org/2001/XMLSchema#date';
 const xsdGYearMonth = 'http://www.w3.org/2001/XMLSchema#gYearMonth';
 const xsdGYear = 'http://www.w3.org/2001/XMLSchema#gYear';
 const xsdString = 'http://www.w3.org/2001/XMLSchema#string';
+const xsdAnyUri = 'http://www.w3.org/2001/XMLSchema#anyURI';
+
+const _shui = 'http://www.w3.org/ns/shacl-ui/';
+const shuiAutoCompleteEditor = '${_shui}AutoCompleteEditor';
+const shuiBooleanEditor = '${_shui}BooleanEditor';
+const shuiDatePickerEditor = '${_shui}DatePickerEditor';
+const shuiDetailsEditor = '${_shui}DetailsEditor';
+const shuiEnumSelectEditor = '${_shui}EnumSelectEditor';
+const shuiNumberFieldEditor = '${_shui}NumberFieldEditor';
+const shuiTextAreaEditor = '${_shui}TextAreaEditor';
+const shuiTextAreaWithLangEditor = '${_shui}TextAreaWithLangEditor';
+const shuiTextFieldWithLangEditor = '${_shui}TextFieldWithLangEditor';
 
 const _xsd = 'http://www.w3.org/2001/XMLSchema#';
 const shIri = 'http://www.w3.org/ns/shacl#IRI';
@@ -79,17 +91,14 @@ class FieldDef {
     required this.optionalValueLabels,
     required this.optionalValueDescriptions,
     required this.patterns,
-    required this.inputType,
+    required this.editor,
     required this.orderedBy,
-    required this.autocomplete,
-    required this.detailsEditor,
     required this.detailPaths,
     required this.nestedShape,
     required this.or,
     required this.nodeKind,
     required this.lessThanOrEquals,
     required this.hidden,
-    required this.withLanguage,
     required this.shownWith,
     required this.excludedWith,
   });
@@ -135,10 +144,8 @@ class FieldDef {
       patterns: (json['patterns'] as List<dynamic>? ?? [])
           .map((e) => ValuePattern.fromJson(e as Map<String, dynamic>))
           .toList(),
-      inputType: json['inputType'] as String? ?? 'text',
+      editor: json['editor'] as String,
       orderedBy: json['orderedBy'] as String?,
-      autocomplete: json['autocomplete'] == true,
-      detailsEditor: json['detailsEditor'] == true,
       detailPaths: (json['detailPaths'] as List<dynamic>?)?.cast<String>(),
       nestedShape: (json['nestedShape'] as List<dynamic>?)
           ?.map((e) => FieldDef.fromJson(e as Map<String, dynamic>))
@@ -155,7 +162,6 @@ class FieldDef {
           ),
       ],
       hidden: json['hidden'] == true,
-      withLanguage: json['withLanguage'] == true,
       shownWith: (json['shownWith'] as List<dynamic>? ?? []).cast<String>(),
       excludedWith: (json['excludedWith'] as List<dynamic>? ?? [])
           .cast<String>(),
@@ -184,12 +190,15 @@ class FieldDef {
   final Map<String, String> optionalValueLabels;
   final Map<String, String> optionalValueDescriptions;
   final List<ValuePattern> patterns;
-  final String inputType;
+
+  /// The IRI of the editor that the SHACL UI scores choose for the field.
+  final String editor;
   final String? orderedBy;
-  final bool autocomplete;
+
+  bool get autocomplete => editor == shuiAutoCompleteEditor;
 
   /// The only field shown for this nested entity, without a frame around it.
-  final bool detailsEditor;
+  bool get detailsEditor => editor == shuiDetailsEditor;
 
   /// The fields of the nested entity shown in place, declared with
   /// `sh:property` on the property shape; all of them when null.
@@ -209,7 +218,12 @@ class FieldDef {
   final bool hidden;
 
   /// Each value carries a language, picked next to its input.
-  final bool withLanguage;
+  bool get withLanguage =>
+      editor == shuiTextFieldWithLangEditor ||
+      editor == shuiTextAreaWithLangEditor;
+
+  bool get multiline =>
+      editor == shuiTextAreaEditor || editor == shuiTextAreaWithLangEditor;
 
   /// The properties of the same entity of which at least one must have a
   /// value for this field to apply; the field always applies when empty.
@@ -222,7 +236,9 @@ class FieldDef {
 
   bool get isRequired => min > 0 && hasValue == null;
 
-  bool get isBoolean => inputType == 'checkbox';
+  bool get isBoolean => editor == shuiBooleanEditor;
+
+  bool get takesUrl => datatypes.contains(xsdAnyUri);
 
   bool get isInteger =>
       datatypes.isNotEmpty && datatypes.every(_integerDatatypes.contains);
@@ -231,11 +247,6 @@ class FieldDef {
       !datatypes.every(_unsignedIntegerDatatypes.contains) &&
       (minInclusive == null || minInclusive! < 0) &&
       (minExclusive == null || minExclusive! < -1);
-
-  bool get isDate =>
-      datatypes.contains(xsdDate) ||
-      datatypes.contains(xsdGYearMonth) ||
-      datatypes.contains(xsdGYear);
 
   FieldKind get kind {
     if (or != null && or!.isNotEmpty) {
@@ -247,13 +258,11 @@ class FieldDef {
     if (hasValue != null) {
       return FieldKind.mandatory;
     }
-    if (optionalValues.isNotEmpty) {
-      return FieldKind.select;
-    }
-    if (isDate) {
-      return FieldKind.date;
-    }
-    return FieldKind.literal;
+    return switch (editor) {
+      shuiEnumSelectEditor => FieldKind.select,
+      shuiDatePickerEditor => FieldKind.date,
+      _ => FieldKind.literal,
+    };
   }
 
   String get childEntityType =>

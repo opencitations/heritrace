@@ -443,7 +443,7 @@ List<String> valueProblems(
 ) {
   final expected = datatypeProblem(value, datatypes);
   return [
-    if (def.inputType == 'url' && !isValidUrl(value)) messages.invalidUrl,
+    if (def.takesUrl && !isValidUrl(value)) messages.invalidUrl,
     if (def.takesIri && !isIri(value)) messages.invalidIri,
     if (expected != null)
       messages.invalidInput(expected)
