@@ -6,7 +6,12 @@ from flask import Blueprint, Response, current_app, jsonify, request
 from flask_login import login_required
 from SPARQLWrapper import JSON
 
-from heritrace.extensions import get_custom_filter, get_form_fields, get_sparql
+from heritrace.extensions import (
+    get_app_state,
+    get_custom_filter,
+    get_form_fields,
+    get_sparql,
+)
 from heritrace.sparql import get_sparql_bindings
 from heritrace.utils.search import SearchRequest, build_search_query, text_paths
 
@@ -37,7 +42,7 @@ def search_entities() -> Response | tuple[Response, int]:
     query = build_search_query(
         search_request,
         current_app.config["DATASET_DB_TRIPLESTORE"],
-        text_index_enabled=current_app.config["DATASET_DB_TEXT_INDEX_ENABLED"],
+        text_index_enabled=get_app_state().text_index_enabled,
     )
     sparql = get_sparql()
     sparql.setQuery(query)

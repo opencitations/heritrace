@@ -64,6 +64,9 @@ form:
   selectOption: Scegli un'opzione
   iriOption: IRI
   fillInDetails: Compila i dettagli
+  fieldCount(param=n):
+    one: $n campo
+    other: $n campi
   draftLabelFailed: Impossibile aggiornare l'etichetta della risorsa
   noLanguage: Senza lingua
   language: Lingua
@@ -178,6 +181,7 @@ history:
   modifications: Modifiche
   additions: Aggiunte
   deletions: Rimozioni
+  positioned: "$name, posizione $position"
   viewVersion: Vedi versione
   restore: Ripristina
   restoring: Ripristino della versione in corso. Attendi...

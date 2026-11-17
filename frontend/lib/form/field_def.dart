@@ -69,11 +69,14 @@ class ValuePattern {
 
 enum FieldKind { or, nested, mandatory, select, date, literal }
 
+typedef FieldSection = ({String iri, String name});
+
 class FieldDef {
   const FieldDef({
     required this.uri,
     required this.displayName,
     required this.description,
+    required this.section,
     required this.entityType,
     required this.subjectShape,
     required this.nodeShape,
@@ -112,6 +115,13 @@ class FieldDef {
       uri: uri,
       displayName: json['displayName'] as String? ?? _readableUri(uri),
       description: json['description'] as String?,
+      section: switch (json['section']) {
+        final String iri => (
+          iri: iri,
+          name: json['sectionName'] as String? ?? _readableUri(iri),
+        ),
+        _ => null,
+      },
       entityType: json['entityType'] as String?,
       subjectShape: json['subjectShape'] as String?,
       nodeShape: json['nodeShape'] as String?,
@@ -173,6 +183,10 @@ class FieldDef {
 
   /// The `sh:description` of the property shape, shown under the field.
   final String? description;
+
+  /// The `sh:group` of the property shape, which forms and resource pages
+  /// show as a section.
+  final FieldSection? section;
   final String? entityType;
   final String? subjectShape;
   final String? nodeShape;

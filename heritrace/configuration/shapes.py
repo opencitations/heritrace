@@ -64,6 +64,8 @@ class PropertyShape:
     names: LocalizedText = field(default_factory=dict)
     descriptions: LocalizedText = field(default_factory=dict)
     order: int | None = None
+    # The identifier of the sh:PropertyGroup of the field.
+    group: str | None = None
     min_count: int | None = None
     max_count: int | None = None
     min_inclusive: Literal | None = None
@@ -119,6 +121,15 @@ class NodeShape:
 
 
 @dataclass
+class PropertyGroup:
+    # The IRI of the group, or the identifier of its blank node.
+    identifier: str
+    names: LocalizedText = field(default_factory=dict)
+    order: int | None = None
+    node: Node | None = field(default=None, compare=False, repr=False)
+
+
+@dataclass
 class ValueTexts:
     names: LocalizedText
     descriptions: LocalizedText
@@ -131,6 +142,7 @@ class Shapes:
         default_factory=dict, compare=False, repr=False
     )
     shapes: list[NodeShape] = field(default_factory=list)
+    groups: list[PropertyGroup] = field(default_factory=list)
     # The rdfs:label and rdfs:comment that name and explain IRIs used as values.
     value_texts: dict[str, ValueTexts] = field(default_factory=dict)
 
@@ -244,6 +256,7 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
         names=localized_texts(graph, property_shape, SH.name),
         descriptions=localized_texts(graph, property_shape, SH.description),
         order=_integer(graph, property_shape, SH.order),
+        group=_group_identifier(graph.value(property_shape, SH.group)),
         editor=_iri(graph, property_shape, SHUI.editor),
         viewer=_iri(graph, property_shape, SHUI.viewer),
         composite=_boolean(graph, property_shape, DASH.composite),
@@ -288,6 +301,10 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
         if isinstance(detail_path := graph.value(detail, SH.path), URIRef)
     )
     return prop
+
+
+def _group_identifier(group: Node | None) -> str | None:
+    return None if group is None else str(group)
 
 
 def _read_pattern_rule(graph: Graph, alternative: Node) -> PatternRule | None:
@@ -346,6 +363,13 @@ def shape_subjects(graph: Graph) -> list[URIRef]:
     return sorted(subject for subject in subjects if isinstance(subject, URIRef))
 
 
+def group_subjects(graph: Graph) -> list[Node]:
+    groups = set(graph.subjects(RDF.type, SH.PropertyGroup)) | set(
+        graph.objects(None, SH.group)
+    )
+    return sorted(groups, key=str)
+
+
 def _declaration_owners(graph: Graph) -> list[Node]:
     return list(graph.subjects(RDF.type, SH.ShapesGraph))
 
@@ -394,11 +418,26 @@ def read_shapes(graph: Graph) -> Shapes:
                 duplicate_keys=read_duplicate_keys(graph, subject),
             )
         )
+    groups = [
+        PropertyGroup(
+            identifier=str(group),
+            names=localized_texts(graph, group, RDFS.label),
+            order=_integer(graph, group, SH.order),
+            node=group,
+        )
+        for group in group_subjects(graph)
+    ]
+    group_identifiers = {group.identifier for group in groups}
     return Shapes(
         prefixes=dict(sorted(prefixes.items())),
         prefix_nodes=declarations,
         shapes=shapes,
-        value_texts=read_value_texts(graph),
+        groups=groups,
+        value_texts={
+            value: texts
+            for value, texts in read_value_texts(graph).items()
+            if value not in group_identifiers
+        },
     )
 
 
@@ -467,10 +506,18 @@ def _add_widgets(graph: Graph, node: Node, prop: PropertyShape) -> None:
         graph.add((detail, SH.path, URIRef(detail_path)))
 
 
-def _add_property(graph: Graph, shape: URIRef, prop: PropertyShape) -> None:
+def _group_node(group: PropertyGroup) -> Node:
+    return URIRef(group.identifier) if group.node is None else group.node
+
+
+def _add_property(
+    graph: Graph, shape: URIRef, prop: PropertyShape, groups: dict[str, Node]
+) -> None:
     node = BNode()
     graph.add((shape, SH.property, node))
     _add_path(graph, node, prop)
+    if prop.group is not None:
+        graph.add((node, SH.group, groups[prop.group]))
     _add_widgets(graph, node, prop)
     add_localized_texts(graph, node, SH.name, prop.names)
     add_localized_texts(graph, node, SH.description, prop.descriptions)
@@ -525,6 +572,17 @@ def _add_pattern_rules(graph: Graph, shape: URIRef, rules: list[PatternRule]) ->
     graph.add((shape, SH["or"], _add_list(graph, alternatives)))
 
 
+def _add_groups(graph: Graph, groups: list[PropertyGroup]) -> dict[str, Node]:
+    nodes = {}
+    for group in groups:
+        node = nodes[group.identifier] = _group_node(group)
+        graph.add((node, RDF.type, SH.PropertyGroup))
+        add_localized_texts(graph, node, RDFS.label, group.names)
+        if group.order is not None:
+            graph.add((node, SH.order, Literal(group.order)))
+    return nodes
+
+
 def shapes_to_graph(shapes: Shapes) -> Graph:
     graph = Graph()
     if shapes.prefixes:
@@ -537,6 +595,7 @@ def shapes_to_graph(shapes: Shapes) -> Graph:
             graph.add(
                 (declaration, SH.namespace, Literal(namespace, datatype=XSD.anyURI))
             )
+    groups = _add_groups(graph, shapes.groups)
     for shape in shapes.shapes:
         subject = URIRef(shape.iri)
         graph.add((subject, RDF.type, SH.NodeShape))
@@ -549,7 +608,7 @@ def shapes_to_graph(shapes: Shapes) -> Graph:
             properties: list[Node] = [URIRef(prop) for prop in key]
             graph.add((subject, OWL.hasKey, _add_list(graph, properties)))
         for prop in shape.properties:
-            _add_property(graph, subject, prop)
+            _add_property(graph, subject, prop, groups)
         if shape.patterns:
             _add_pattern_rules(graph, subject, shape.patterns)
     for value, texts in shapes.value_texts.items():
@@ -570,6 +629,24 @@ def _cbd(graph: Graph, subject: Node) -> Graph:
     return description
 
 
+def _missing_predicates(original: Graph, regenerated: Graph) -> Counter[str]:
+    return _predicate_counts(original) - _predicate_counts(regenerated)
+
+
+def _count_details(counts: Counter[str]) -> str:
+    return ", ".join(f"{name} ({count})" for name, count in sorted(counts.items()))
+
+
+def _value_text_triples(graph: Graph, value_texts: dict[str, ValueTexts]) -> Graph:
+    triples = Graph()
+    for value in value_texts:
+        for predicate in (RDFS.label, RDFS.comment):
+            for text in graph.objects(URIRef(value), predicate):
+                if isinstance(text, Literal):
+                    triples.add((URIRef(value), predicate, text))
+    return triples
+
+
 def unsupported_parts(graph: Graph, shapes: Shapes) -> list[str]:
     graph.bind("sh", SH)
     graph.bind("shui", SHUI)
@@ -578,21 +655,20 @@ def unsupported_parts(graph: Graph, shapes: Shapes) -> list[str]:
     covered = Graph()
     for owner in _declaration_owners(graph):
         covered += _cbd(graph, owner)
-    for value in shapes.value_texts:
-        for predicate in (RDFS.label, RDFS.comment):
-            for text in graph.objects(URIRef(value), predicate):
-                if isinstance(text, Literal):
-                    covered.add((URIRef(value), predicate, text))
+    for group in shapes.groups:
+        node = _group_node(group)
+        original = _cbd(graph, node)
+        covered += original
+        if missing := _missing_predicates(original, _cbd(regenerated, node)):
+            warnings.append(f"{node}: {_count_details(missing)}")
+    covered += _value_text_triples(graph, shapes.value_texts)
     for subject in shape_subjects(graph):
         original = _cbd(graph, subject)
         covered += original
         if isomorphic(original, _cbd(regenerated, subject)):
             continue
-        missing = _predicate_counts(original) - _predicate_counts(
-            _cbd(regenerated, subject)
-        )
-        details = ", ".join(
-            f"{name} ({count})" for name, count in sorted(missing.items())
+        details = _count_details(
+            _missing_predicates(original, _cbd(regenerated, subject))
         )
         warnings.append(f"{subject}: {details}" if details else str(subject))
     outside = len(graph - covered)

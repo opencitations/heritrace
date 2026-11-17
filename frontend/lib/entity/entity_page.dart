@@ -15,6 +15,7 @@ import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../form/form_scope.dart';
 import '../form/widgets/custom_properties_form.dart';
+import '../form/widgets/field_section.dart';
 import '../form/widgets/validation_summary.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
@@ -182,6 +183,15 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
     _similar?.dispose();
     super.dispose();
   }
+
+  bool _isShown(EditableGroup group, bool editing) =>
+      group.group.isShown &&
+      _session.applies(group) &&
+      (group.group.triples.isNotEmpty ||
+          (group.group.field?.isBoolean ?? false) ||
+          (editing &&
+              widget.view.canBeAdded.contains(group.group.property) &&
+              group.formGroup != null));
 
   bool get _canEdit => !widget.view.isDeleted && widget.view.groups.isNotEmpty;
 
@@ -499,22 +509,57 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
                                 else if (view.groups.isEmpty)
                                   AppBanner(text: t.ui.entity.noInformation)
                                 else
-                                  for (final group in _session.groups)
-                                    if (group.group.isShown &&
-                                        _session.applies(group) &&
-                                        (group.group.triples.isNotEmpty ||
-                                            (group.group.field?.isBoolean ??
-                                                false) ||
-                                            (editing &&
-                                                view.canBeAdded.contains(
-                                                  group.group.property,
-                                                ) &&
-                                                group.formGroup != null)))
-                                      EditableGroupWidget(
-                                        group: group,
-                                        view: view,
-                                        editing: editing,
-                                      ),
+                                  for (final run in sectionRuns(
+                                    _session.groups.where(
+                                      (group) => _isShown(group, editing),
+                                    ),
+                                    (group) => group.group.field?.section,
+                                  ))
+                                    if (run.section case final section?)
+                                      ListenableBuilder(
+                                        key: ValueKey(section.iri),
+                                        listenable: _scope,
+                                        builder: (context, _) =>
+                                            FieldSectionView(
+                                              name: section.name,
+                                              collapsible: editing,
+                                              initiallyOpen: run.fields.any(
+                                                (group) =>
+                                                    group.hasContent ||
+                                                    (group
+                                                            .group
+                                                            .field
+                                                            ?.isRequired ??
+                                                        false),
+                                              ),
+                                              hasErrors: _scope.errors.any(
+                                                (error) =>
+                                                    run.fields.any(
+                                                      (group) =>
+                                                          group.concerns(error),
+                                                    ) &&
+                                                    _scope.showsErrorsFor(
+                                                      error.item ??
+                                                          error.value!,
+                                                    ),
+                                              ),
+                                              children: [
+                                                for (final group in run.fields)
+                                                  EditableGroupWidget(
+                                                    group: group,
+                                                    view: view,
+                                                    editing: editing,
+                                                  ),
+                                              ],
+                                            ),
+                                      )
+                                    else
+                                      for (final group in run.fields)
+                                        EditableGroupWidget(
+                                          group: group,
+                                          view: view,
+                                          editing: editing,
+                                        ),
                                 if (editing && _session.showsCustomProperties)
                                   CustomPropertiesForm(
                                     controller: _session.customProperties,

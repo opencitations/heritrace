@@ -96,11 +96,16 @@ export const specifications: Specification[] = [
       },
       {
         title: 'Values and presentation',
-        supported: ['sh:values', 'sh:name', 'sh:description', 'sh:order'],
-        unsupported: [
-          'sh:defaultValue',
+        supported: [
+          'sh:values',
+          'sh:name',
+          'sh:description',
+          'sh:order',
           'sh:group',
           'sh:PropertyGroup',
+        ],
+        unsupported: [
+          'sh:defaultValue',
           'sh:intent',
           'sh:agentInstruction',
           'sh:codeIdentifier',

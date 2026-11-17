@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:heritrace/api/api_exception.dart';
 import 'package:heritrace/i18n/translations.g.dart';
 import 'package:heritrace/session/session_controller.dart';
 import 'package:heritrace/session/session_models.dart';
@@ -61,6 +62,7 @@ Future<void> pumpApp(
   await tester.pumpWidget(
     TranslationProvider(
       child: ProviderScope(
+        retry: retryUnansweredRequests,
         overrides: [
           sessionProvider.overrideWith(() => FakeSessionController(session)),
           ...overrides,

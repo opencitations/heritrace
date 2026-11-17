@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: ISC
 
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// A rule that a save breaks. [subject] and [predicate] name the field it
 /// concerns: the subject is the IRI of a resource, the temporary id of one
@@ -79,3 +80,10 @@ Future<T> apiGuard<T>(Future<T> Function() request) async {
     );
   }
 }
+
+/// Repeats a failed request only when the server gave no answer: the same
+/// request would get the same answer.
+Duration? retryUnansweredRequests(int retryCount, Object error) =>
+    error is ApiException
+    ? null
+    : ProviderContainer.defaultRetry(retryCount, error);

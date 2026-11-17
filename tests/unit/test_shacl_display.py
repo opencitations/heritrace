@@ -2,10 +2,12 @@
 #
 # SPDX-License-Identifier: ISC
 
+from flask import Flask
 from rdflib import Graph
 
 from heritrace.utils.shacl_display import order_form_fields
 from heritrace.utils.shacl_presentation import read_presentation
+from heritrace.utils.shacl_utils import get_form_fields_from_shacl
 
 EX = "http://example.org/"
 
@@ -43,4 +45,40 @@ def test_form_fields_follow_sh_order() -> None:
         (EX + "name", [{"uri": EX + "name"}]),
         (EX + "unordered", [{"uri": EX + "unordered"}]),
         (EX + "virtual", [{"uri": "Virtual"}]),
+    ]
+
+
+def test_groups_and_fields_without_a_group_share_one_order() -> None:
+    shapes = Graph().parse(
+        data="""
+        @prefix sh: <http://www.w3.org/ns/shacl#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+        @prefix ex: <http://example.org/> .
+
+        ex:BookShape a sh:NodeShape ;
+          sh:targetClass ex:Book ;
+          sh:property [ sh:path ex:remark ] ;
+          sh:property [ sh:path ex:note ; sh:group ex:Extra ; sh:order 1 ] ;
+          sh:property [ sh:path ex:title ; sh:group ex:Main ; sh:order 2 ] ;
+          sh:property [ sh:path ex:code ; sh:order 1.5 ] .
+        ex:Main a sh:PropertyGroup ;
+          rdfs:label "Main"@en, "Principale"@it ;
+          sh:order 1 .
+        ex:Extra a sh:PropertyGroup ; sh:order 2 .
+        """,
+        format="turtle",
+    )
+
+    fields = get_form_fields_from_shacl(shapes, Flask(__name__))[
+        (EX + "Book", EX + "BookShape")
+    ]
+
+    assert [
+        (path, field.get("section"), field.get("sectionName"))
+        for path, [field] in fields.items()
+    ] == [
+        (EX + "title", EX + "Main", {"en": "Main", "it": "Principale"}),
+        (EX + "code", None, None),
+        (EX + "note", EX + "Extra", None),
+        (EX + "remark", None, None),
     ]

@@ -6,6 +6,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'api/api_exception.dart';
 import 'app.dart';
 import 'i18n/language.dart';
 import 'i18n/translations.g.dart';
@@ -19,5 +20,9 @@ void main() {
   // VoiceOver read the app right away.
   SemanticsBinding.instance.ensureSemantics();
   applyLanguage(readLanguage());
-  runApp(TranslationProvider(child: const ProviderScope(child: App())));
+  runApp(
+    TranslationProvider(
+      child: const ProviderScope(retry: retryUnansweredRequests, child: App()),
+    ),
+  );
 }

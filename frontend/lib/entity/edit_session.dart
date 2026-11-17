@@ -298,6 +298,20 @@ class EditableGroup extends ChangeNotifier {
       ) ||
       (formGroup?.hasContent ?? false);
 
+  /// Whether [error] concerns a value of this group, or a value of a resource
+  /// nested in it.
+  bool concerns(ValidationError error) => switch (error) {
+    ValidationError(:final item?) =>
+      (formGroup != null && item.isWithin(formGroup!)) ||
+          existing.any(
+            (value) => value.detailNode?.groups.any(item.isWithin) ?? false,
+          ),
+    ValidationError(:final value?) =>
+      existing.contains(value) ||
+          existing.any((saved) => saved.detailEdits.containsValue(value)),
+    _ => false,
+  };
+
   void switchTo(bool on) {
     if (existing.isEmpty) {
       formGroup!.switchTo(on);

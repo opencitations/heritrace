@@ -155,12 +155,13 @@ def _field_for_group(
     subject_shape: str | None,
     object_shape: str | None,
 ) -> dict | None:
-    for details in (
-        get_form_fields().get((entity_type, subject_shape), {}).get(predicate, [])
-    ):
-        if details.get("nodeShape") == object_shape:
-            return field_with_labels(details, get_custom_filter())
-    return None
+    fields = get_form_fields().get((entity_type, subject_shape), {}).get(predicate, [])
+    # A field that links by search to the resources of a class takes the shape
+    # of that class, which its property shape does not name.
+    matching = [field for field in fields if field.get("nodeShape") == object_shape]
+    if not matching and object_shape is None and len(fields) == 1:
+        matching = fields
+    return field_with_labels(matching[0], get_custom_filter()) if matching else None
 
 
 def _value_label(predicate: str, value: str) -> str:

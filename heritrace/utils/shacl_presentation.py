@@ -10,7 +10,7 @@ from functools import cache
 from typing import cast
 
 from pyparsing.exceptions import ParseException
-from rdflib import OWL, RDF, XSD, BNode, Graph, Literal, URIRef
+from rdflib import OWL, RDF, RDFS, XSD, BNode, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateQuery, traverse
 from rdflib.plugins.sparql.parser import parseQuery
 from rdflib.term import Node
@@ -55,11 +55,19 @@ def is_inverse_path(path: str) -> bool:
 
 
 @dataclass(frozen=True, slots=True)
+class GroupPresentation:
+    iri: str
+    names: LocalizedText
+    order: Decimal | None
+
+
+@dataclass(frozen=True, slots=True)
 class PropertyPresentation:
     path: str
     node: str | None
     names: LocalizedText
     order: Decimal | None
+    group: GroupPresentation | None
     editor: str | None
     ordered_by: str | None
     indexed: bool
@@ -193,10 +201,25 @@ def _shape_order(graph: Graph, node: Node | None) -> URIRef | None:
     return None
 
 
+def _decimal(graph: Graph, subject: Node, predicate: URIRef) -> Decimal | None:
+    value = graph.value(subject, predicate)
+    return Decimal(str(value)) if isinstance(value, Literal) else None
+
+
+def property_group(graph: Graph, property_shape: Node) -> GroupPresentation | None:
+    group = graph.value(property_shape, SH.group)
+    if group is None:
+        return None
+    return GroupPresentation(
+        iri=str(group),
+        names=localized_texts(graph, group, RDFS.label),
+        order=_decimal(graph, group, SH.order),
+    )
+
+
 def _property_presentation(
     graph: Graph, property_shape: Node, path: str
 ) -> PropertyPresentation:
-    order = graph.value(property_shape, SH.order)
     node = graph.value(property_shape, SH.node)
     editor = graph.value(property_shape, SHUI.editor)
     chained_by = graph.value(property_shape, HT.orderedBy)
@@ -205,7 +228,8 @@ def _property_presentation(
         path=path,
         node=str(node) if isinstance(node, URIRef) else None,
         names=localized_texts(graph, property_shape, SH.name),
-        order=Decimal(str(order)) if isinstance(order, Literal) else None,
+        order=_decimal(graph, property_shape, SH.order),
+        group=property_group(graph, property_shape),
         editor=str(editor) if editor else None,
         ordered_by=str(ordered_by) if ordered_by else None,
         indexed=chained_by is None and ordered_by is not None,
@@ -213,14 +237,28 @@ def _property_presentation(
     )
 
 
+def _order_key(
+    order: Decimal | None, name: str, identifier: str
+) -> tuple[bool, Decimal, str, str]:
+    return (order is None, order if order is not None else Decimal(0), name, identifier)
+
+
+# Groups and the properties without a group share one sequence, as SHACL 1.2
+# UI §9.4 requires; the properties of a group follow their own order inside it.
 def _presentation_sort_key(
     prop: PropertyPresentation, language: str
-) -> tuple[bool, Decimal, str, str]:
+) -> tuple[tuple[bool, Decimal, str, str], tuple[bool, Decimal, str, str]]:
+    group = prop.group
+    own = _order_key(
+        prop.order, pick_text(prop.names, language) or prop.path, prop.identifier
+    )
+    if group is None:
+        return own, own
     return (
-        prop.order is None,
-        prop.order if prop.order is not None else Decimal(0),
-        pick_text(prop.names, language) or prop.path,
-        prop.identifier,
+        _order_key(
+            group.order, pick_text(group.names, language) or group.iri, group.iri
+        ),
+        own,
     )
 
 

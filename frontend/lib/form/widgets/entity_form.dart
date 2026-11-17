@@ -8,8 +8,10 @@ import '../../design/app_theme.dart';
 import '../../design/controls.dart';
 import '../../design/spacing.dart';
 import '../form_model.dart';
+import '../form_scope.dart';
 import 'boolean_field.dart';
 import 'field_group_widget.dart';
+import 'field_section.dart';
 
 class EntityForm extends StatelessWidget {
   const EntityForm({required this.node, this.paths, super.key});
@@ -46,36 +48,65 @@ class EntityForm extends StatelessWidget {
           }
         }
         final styles = AppTextStyles.of(context);
+        final scope = FormScope.of(context);
+        Widget cardWidget(List<FieldGroup> card) => card.first.def.isBoolean
+            ? BooleanFieldCard(
+                label: card.first.def.displayName,
+                description: card.first.def.description,
+                value: card.first.isSwitchedOn,
+                onChanged: card.first.switchTo,
+              )
+            : AppCard(
+                footer: card.first.def.description,
+                header: PropertyHeading(
+                  label: card.first.def.displayName,
+                  style: styles.groupHeader,
+                  required: card.first.def.isRequired,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: appInputSpacing,
+                  children: [
+                    for (final group in card) FieldGroupWidget(group: group),
+                  ],
+                ),
+              );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (final card in cards)
-              Padding(
-                padding: const EdgeInsets.only(bottom: appSectionSpacing),
-                child: card.first.def.isBoolean
-                    ? BooleanFieldCard(
-                        label: card.first.def.displayName,
-                        description: card.first.def.description,
-                        value: card.first.isSwitchedOn,
-                        onChanged: card.first.switchTo,
-                      )
-                    : AppCard(
-                        footer: card.first.def.description,
-                        header: PropertyHeading(
-                          label: card.first.def.displayName,
-                          style: styles.groupHeader,
-                          required: card.first.def.isRequired,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          spacing: appInputSpacing,
-                          children: [
-                            for (final group in card)
-                              FieldGroupWidget(group: group),
-                          ],
-                        ),
+            for (final run in sectionRuns(
+              cards,
+              (card) => card.first.def.section,
+            ))
+              if (run.section case final section?)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: appSectionSpacing),
+                  child: FieldSectionView(
+                    key: ValueKey(section.iri),
+                    name: section.name,
+                    collapsible: true,
+                    initiallyOpen: run.fields.any(
+                      (card) => card.any(
+                        (group) => group.hasContent || group.def.isRequired,
                       ),
-              ),
+                    ),
+                    hasErrors: scope.errors.any(
+                      (error) =>
+                          error.item != null &&
+                          scope.showsErrorsFor(error.item!) &&
+                          run.fields.any(
+                            (card) => card.any(error.item!.isWithin),
+                          ),
+                    ),
+                    children: [for (final card in run.fields) cardWidget(card)],
+                  ),
+                )
+              else
+                for (final card in run.fields)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: appSectionSpacing),
+                    child: cardWidget(card),
+                  ),
           ],
         );
       },

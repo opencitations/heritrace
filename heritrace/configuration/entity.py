@@ -21,6 +21,7 @@ from rdflib_ocdm.storer import Storer
 
 from heritrace.configuration.labels import compact_iri
 from heritrace.configuration.shapes import (
+    group_subjects,
     read_shapes,
     shape_subjects,
     unsupported_parts,
@@ -37,13 +38,15 @@ from heritrace.utils.shacl_patterns import read_excluded_with
 
 # Admins edit the whole SHACL configuration as one HERITRACE entity: a
 # sh:ShapesGraph with a fixed IRI that holds the node shapes through
-# dcterms:hasPart. The entity engine needs an IRI for every node, so the blank
-# nodes of SHACL become skolem IRIs in the editor's copy of the shapes. A new
-# node shape gets an IRI of its own instead, because the dataset tells its
-# shapes apart by IRI.
+# dcterms:hasPart and the property groups through ht:propertyGroup. The entity
+# engine needs an IRI for every node, so the blank nodes of SHACL become skolem
+# IRIs in the editor's copy of the shapes. A new node shape gets an IRI of its
+# own instead, because the dataset tells its shapes apart by IRI, and so does a
+# new property group, which the fields of several shapes share.
 ROOT = URIRef("https://w3id.org/heritrace/configuration")
 GENID = "https://w3id.org/heritrace/genid/"
 SHAPE_NAMESPACE = "https://w3id.org/heritrace/shape/"
+GROUP_NAMESPACE = "https://w3id.org/heritrace/group/"
 SYSTEM_AGENT = URIRef("https://w3id.org/heritrace/system")
 EDITOR_FILE = "shacl-editor.ttl"
 PROVENANCE_FILE = "shacl-provenance.trig"
@@ -67,6 +70,8 @@ class SkolemURIGenerator(URIGenerator):
     ) -> str:
         if entity_type == str(SH.NodeShape):
             return f"{SHAPE_NAMESPACE}{uuid4().hex}"
+        if entity_type == str(SH.PropertyGroup):
+            return f"{GROUP_NAMESPACE}{uuid4().hex}"
         return str(skolem_iri())
 
     def initialize_counters(self, sparql: SPARQLWrapperWithRetry) -> None:
@@ -87,7 +92,9 @@ _HELPER_TYPES = (
 
 def _is_helper_triple(graph: Graph, triple: tuple[Node, Node, Node]) -> bool:
     subject, predicate, value = triple
-    if (subject == ROOT and predicate == DCTERMS.hasPart) or predicate in (
+    if (
+        subject == ROOT and predicate in (DCTERMS.hasPart, HT.propertyGroup)
+    ) or predicate in (
         HT.keyProperty,
         HT.labelQuery,
     ):
@@ -320,6 +327,9 @@ def normalize(graph: Graph) -> Graph:
         result.add((property_shape, RDF.type, SH.PropertyShape))
         _add_allowed_values(result, property_shape)
         _add_value_alternatives(result, property_shape)
+    for group in group_subjects(result):
+        result.add((ROOT, HT.propertyGroup, group))
+        result.add((group, RDF.type, SH.PropertyGroup))
     for declaration in set(result.objects(ROOT, SH.declare)):
         result.add((declaration, RDF.type, SH.PrefixDeclaration))
     _type_nested_nodes(result)

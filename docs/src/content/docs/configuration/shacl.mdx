@@ -477,6 +477,24 @@ sh:property [ sh:path prism:publicationDate ; sh:name "Publication Date" ; sh:or
 
 In the [configuration editor](../editor/), you set this order by dragging the fields of an entity type. HERITRACE then numbers every field from 1 onward, including those that had no `sh:order`.
 
+### Sections (`sh:group`)
+
+A property shape can name a `sh:PropertyGroup` with `sh:group`. Forms and resource pages show the fields of each group together, under the `rdfs:label` of the group, which follows the language of the interface like `sh:name`.
+
+```ttl
+ex:PublicationGroup a sh:PropertyGroup ;
+    rdfs:label "Publication"@en, "Pubblicazione"@it ;
+    sh:order 1 .
+
+sh:property [
+    sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:group ex:PublicationGroup ;
+] .
+```
+
+In the [configuration editor](../editor/), the **Resource types** tab lists the sections under **Sections**, and each field picks its own under **Section**.
+
 ### Widgets (`shui:editor`)
 
 HERITRACE picks the input of each property with the scoring system of SHACL 1.2 User Interfaces. Every editor that fits the property shape earns a score from its constraints, and the highest score wins; when two editors tie, the one with the alphabetically first IRI wins. The scores are built into HERITRACE and follow the `shui:WidgetScore` and `shui:WidgetAcceptMatcher` rules published with the draft.

@@ -64,6 +64,9 @@ form:
   selectOption: Select an option
   iriOption: IRI
   fillInDetails: Fill in the details
+  fieldCount(param=n):
+    one: $n field
+    other: $n fields
   draftLabelFailed: Could not update the resource label
   noLanguage: No language
   language: Language
@@ -178,6 +181,7 @@ history:
   modifications: Modifications
   additions: Additions
   deletions: Deletions
+  positioned: "$name, position $position"
   viewVersion: View version
   restore: Restore
   restoring: Restoring this version. Please wait...

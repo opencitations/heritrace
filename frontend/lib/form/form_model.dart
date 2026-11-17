@@ -240,6 +240,19 @@ sealed class FormItem extends ChangeNotifier {
 
   bool get isEmpty => (textValue ?? '').trim().isEmpty;
 
+  /// Whether this item is a value of [field], or of a resource nested in it.
+  bool isWithin(FieldGroup field) {
+    var current = group;
+    while (current != field) {
+      final parent = current.owner.parentItem;
+      if (parent == null) {
+        return false;
+      }
+      current = parent.group;
+    }
+    return true;
+  }
+
   void markTouched() {
     if (!touched) {
       touched = true;

@@ -92,6 +92,7 @@ class AppState:
     form_fields_cache: dict
     dataset_is_quadstore: bool
     is_virtuoso: bool
+    text_index_enabled: bool
     shacl_graph: Graph
     classes_with_multiple_shapes: set[str]
     labels_use_inverse_relations: bool
@@ -163,6 +164,7 @@ def init_extensions(
         form_fields_cache={},
         dataset_is_quadstore=False,
         is_virtuoso=False,
+        text_index_enabled=False,
         shacl_graph=Graph(),
         classes_with_multiple_shapes=set(),
         labels_use_inverse_relations=False,
@@ -185,6 +187,7 @@ def init_extensions(
         form_fields_cache=form_fields_cache,
         dataset_is_quadstore=dataset_is_quadstore,
         is_virtuoso=app.config["DATASET_DB_TRIPLESTORE"].lower() == "virtuoso",
+        text_index_enabled=app.config["DATASET_DB_TEXT_INDEX_ENABLED"],
         shacl_graph=shacl_graph,
         classes_with_multiple_shapes=classes_with_multiple_shapes,
         labels_use_inverse_relations=labels_use_inverse_relations(presentation),
@@ -239,6 +242,7 @@ def build_configuration_state(app: Flask) -> AppState:
         form_fields_cache={},
         dataset_is_quadstore=False,
         is_virtuoso=False,
+        text_index_enabled=False,
         shacl_graph=Graph(),
         classes_with_multiple_shapes=set(),
         labels_use_inverse_relations=False,

@@ -285,7 +285,7 @@ def format_uri_as_readable(uri: str) -> str:
 def field_with_labels(details: dict, custom_filter: Filter) -> dict:
     """Copy a form field adding the labels the client shows for fixed values."""
     field = dict(details)
-    for key in ("displayName", "description"):
+    for key in ("displayName", "description", "sectionName"):
         if key in field:
             field[key] = localize(field[key])
     if "lessThanOrEquals" in field:

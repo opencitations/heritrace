@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:heritrace/api/api_exception.dart';
 import 'package:heritrace/app.dart';
 import 'package:heritrace/design/controls.dart';
 import 'package:heritrace/entity/entity_models.dart';
@@ -169,6 +170,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(EntityPage), findsOneWidget);
     expect(find.text('Delete resource'), findsNothing);
+  });
+
+  testWidgets('a missing resource shows the answer of the server at once', (
+    tester,
+  ) async {
+    var requests = 0;
+    await pumpApp(
+      tester,
+      child: const App(),
+      overrides: [
+        entityViewProvider.overrideWith((ref, uri) async {
+          requests++;
+          throw const ApiException(
+            statusCode: 404,
+            message: 'Resource not found',
+          );
+        }),
+      ],
+    );
+    final router = ProviderScope.containerOf(tester.element(find.byType(App)))
+        .read(routerProvider);
+
+    router.go(entityPath(subject));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 10));
+    expect(find.text('Resource not found'), findsOneWidget);
+    expect(requests, 1);
   });
 
   testWidgets('a save keeps its progress until the saved entity is shown', (

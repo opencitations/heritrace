@@ -10,6 +10,7 @@ import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_model.dart';
 import 'package:heritrace/form/form_scope.dart';
 import 'package:heritrace/design/controls.dart';
+import 'package:heritrace/form/validator.dart';
 import 'package:heritrace/form/widgets/entity_autocomplete.dart';
 import 'package:heritrace/form/widgets/entity_form.dart';
 import 'package:heritrace/form/widgets/field_group_widget.dart';
@@ -408,4 +409,62 @@ void main() {
     expect(find.text('Select an option'), findsOneWidget);
     expect(find.text('Inverse path'), findsOneWidget);
   });
+
+  testWidgets(
+    'a section opens when it holds a required field, a tap or an error, and '
+    'counts its fields while closed',
+    (tester) async {
+      const book = 'http://example.org/Book';
+      Map<String, Object?> field(
+        String property, {
+        String? section,
+        int min = 0,
+      }) => {
+        'uri': 'http://example.org/$property',
+        'displayName': property,
+        'editor': textFieldEditor,
+        'entityType': book,
+        'datatypes': [xsdString],
+        'min': min,
+        if (section != null) ...{
+          'section': 'http://example.org/$section',
+          'sectionName': section,
+        },
+      };
+      final node = EntityNode(
+        entityType: book,
+        entityShape: null,
+        fields: [
+          FieldDef.fromJson(field('Code')),
+          FieldDef.fromJson(field('Title', section: 'Main', min: 1)),
+          FieldDef.fromJson(field('Pages', section: 'Extra')),
+        ],
+        depth: 0,
+      );
+      addTearDown(node.dispose);
+      Finder heading(String name) => find.widgetWithText(PropertyHeading, name);
+      await pumpInForm(tester, EntityForm(node: node));
+
+      expect(heading('Code'), findsOneWidget);
+      expect(heading('Title'), findsOneWidget);
+      expect(heading('Pages'), findsNothing);
+      expect(find.text('1 field'), findsOneWidget);
+
+      await tester.tap(find.text('Extra'));
+      await tester.pumpAndSettle();
+      expect(heading('Pages'), findsOneWidget);
+      expect(find.text('1 field'), findsNothing);
+
+      await tester.tap(find.text('Extra'));
+      await tester.pumpAndSettle();
+      expect(heading('Pages'), findsNothing);
+
+      final pages = node.groups.last.addItem();
+      FormScope.of(tester.element(find.byType(EntityForm))).setErrors([
+        ValidationError(message: 'Too long', path: const [], item: pages),
+      ]);
+      await tester.pumpAndSettle();
+      expect(heading('Pages'), findsOneWidget);
+    },
+  );
 }

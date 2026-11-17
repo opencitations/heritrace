@@ -105,6 +105,7 @@ class _ModificationList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = Translations.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: appInputSpacing / 2),
       child: Column(
@@ -125,12 +126,13 @@ class _ModificationList extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    entry.position == null
-                        ? entry.predicateLabel
-                        : '${entry.predicateLabel} #${entry.position}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  Text(switch (entry.position) {
+                    null => entry.predicateLabel,
+                    final position => t.ui.history.positioned(
+                      name: entry.predicateLabel,
+                      position: position,
+                    ),
+                  }, style: const TextStyle(fontWeight: FontWeight.bold)),
                   Text(entry.objectLabel),
                 ],
               ),

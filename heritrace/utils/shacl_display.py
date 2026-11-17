@@ -30,6 +30,7 @@ from heritrace.utils.shacl_presentation import (
     fixed_value_pattern,
     inverse_path_key,
     inverse_predicate,
+    property_group,
     qualified_option_pattern,
 )
 from heritrace.utils.value_bounds import Bound, bound_number
@@ -452,8 +453,11 @@ def _process_single_row(
         "hidden": parsed.hidden,
         "uniqueLang": parsed.unique_lang,
     }
+    group = property_group(ctx.shacl, parsed.property_shape)
     declared = {
         "displayName": parsed.names,
+        "section": group.iri if group else None,
+        "sectionName": group.names if group else None,
         "description": parsed.descriptions,
         "detailPaths": parsed.detail_paths or None,
         "orderedBy": parsed.ordered_by,

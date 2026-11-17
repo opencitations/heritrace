@@ -37,6 +37,7 @@ from heritrace import create_app, extensions
 from heritrace.configuration.entity import (
     EDITOR_FILE,
     GENID,
+    GROUP_NAMESPACE,
     PROVENANCE_FILE,
     ROOT,
     SHAPE_NAMESPACE,
@@ -47,6 +48,7 @@ from heritrace.configuration.entity import (
     read_shacl,
 )
 from heritrace.configuration.shapes import (
+    PropertyGroup,
     read_duplicate_keys,
     read_shapes,
     shapes_to_graph,
@@ -584,6 +586,55 @@ def test_a_new_prefix_is_declared(admin_client: FlaskClient, config_app: Flask) 
     assert status == 200
     shapes = read_shapes(read_shacl(config_app.config["CONFIG_DIR"]))
     assert shapes.prefixes["ex"] == "http://example.org/"
+
+
+def test_a_new_section_groups_the_fields_that_name_it(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    status, _ = _add(
+        admin_client,
+        ROOT,
+        {
+            HT.propertyGroup: {
+                "entity_type": str(SH.PropertyGroup),
+                "entity_shape": str(META.PropertyGroupShape),
+                "properties": {str(RDFS.label): [{"value": "Main", "language": "en"}]},
+            }
+        },
+    )
+    assert status == 200
+    group = _data(config_app).value(predicate=RDF.type, object=SH.PropertyGroup)
+    field = _literal_property(_data(config_app))
+    search = admin_client.post(
+        "/api/configuration/search",
+        json={
+            "term": "Mai",
+            "entity_class": str(SH.PropertyGroup),
+            "shape": str(META.PropertyGroupShape),
+            "offset": 0,
+            "limit": 10,
+        },
+    )
+    assert search.get_json()["results"] == [{"uri": str(group), "label": "Main"}]
+    page = admin_client.get(
+        f"/api/configuration/entity/{quote(str(field), safe='')}"
+    ).get_json()
+    assert [
+        entry["field"]["uri"]
+        for entry in page["groups"]
+        if entry["property"] == str(SH.group)
+    ] == [str(SH.group)]
+
+    assert _add(admin_client, field, {SH.group: str(group)})[0] == 200
+    shapes = read_shapes(read_shacl(config_app.config["CONFIG_DIR"]))
+    assert str(group).startswith(GROUP_NAMESPACE)
+    assert shapes.groups == [PropertyGroup(identifier=str(group), names={"en": "Main"})]
+    assert [
+        (prop.path, prop.group)
+        for shape in shapes.shapes
+        for prop in shape.properties
+        if prop.group is not None
+    ] == [(str(LITERAL_VALUE), str(group))]
 
 
 def test_a_prefix_that_starts_with_a_digit_is_not_declared(
@@ -2068,6 +2119,7 @@ def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -
         "Inverse path",
         "Label query",
         "Prefix",
+        "Section",
         "Value alternative",
         "Values to count",
         "Resource type",
@@ -2081,6 +2133,7 @@ def test_names_follow_the_language_of_the_interface(admin_client: FlaskClient) -
         "Percorso inverso",
         "Prefisso",
         "Query dell'etichetta",
+        "Sezione",
         "Tipi di risorsa",
         "Valori da contare",
         "Tipo di risorsa",
@@ -2211,6 +2264,49 @@ def test_shapes_written_by_hand_have_one_name_for_each_language(
     )
 
     assert unsupported_parts(graph, read_shapes(graph)) == unsupported
+
+
+def test_fields_share_a_property_group_without_an_iri() -> None:
+    graph = Graph().parse(
+        data="""
+        @prefix sh: <http://www.w3.org/ns/shacl#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+        @prefix ex: <http://example.org/> .
+
+        ex:BookShape a sh:NodeShape ;
+          sh:targetClass ex:Book ;
+          sh:property [ sh:path ex:title ; sh:group _:main ] ,
+            [ sh:path ex:subtitle ; sh:group _:main ] .
+        _:main a sh:PropertyGroup ; rdfs:label "Main"@en ; sh:order 2 .
+        """,
+        format="turtle",
+    )
+    shapes = read_shapes(graph)
+
+    assert unsupported_parts(graph, shapes) == []
+    assert isomorphic(shapes_to_graph(shapes), graph)
+
+
+def test_a_property_group_keeps_only_its_label_and_order() -> None:
+    graph = Graph().parse(
+        data="""
+        @prefix sh: <http://www.w3.org/ns/shacl#> .
+        @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+        @prefix ex: <http://example.org/> .
+
+        ex:BookShape a sh:NodeShape ;
+          sh:targetClass ex:Book ;
+          sh:property [ sh:path ex:title ; sh:group ex:Main ] .
+        ex:Main a sh:PropertyGroup ;
+          rdfs:label "Main"@en ;
+          rdfs:comment "The data every book has"@en .
+        """,
+        format="turtle",
+    )
+
+    assert unsupported_parts(graph, read_shapes(graph)) == [
+        "http://example.org/Main: rdfs:comment (1)"
+    ]
 
 
 def test_named_values_keep_their_names_and_descriptions() -> None:
