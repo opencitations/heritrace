@@ -28,17 +28,47 @@ keywords:
   - SHACL
   - cultural heritage
 preferred-citation:
-  type: article
-  title: 'HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions'
+  type: conference-paper
+  title: 'HERITRACE: A Domain-Agnostic Framework for SHACL-Driven RDF Curation with Provenance and Change Tracking'
   authors:
     - family-names: Massari
       given-names: Arcangelo
     - family-names: Peroni
       given-names: Silvio
-  journal: Umanistica Digitale
-  volume: 9
-  issue: 20
-  start: 317
-  end: 340
-  year: 2025
-  doi: 10.6092/ISSN.2532-8816/21218
+  editors:
+    - family-names: Koubarakis
+      given-names: Manolis
+    - family-names: Vidal
+      given-names: Maria-Esther
+    - family-names: Polleres
+      given-names: Axel
+    - family-names: van Erp
+      given-names: Marieke
+    - family-names: Jiménez-Ruiz
+      given-names: Ernesto
+    - family-names: Seneviratne
+      given-names: Oshani
+    - family-names: Aroyo
+      given-names: Lora
+    - family-names: Demartini
+      given-names: Gianluca
+    - family-names: Alharbi
+      given-names: Reham
+    - family-names: Barile
+      given-names: Roberto
+    - family-names: d'Amato
+      given-names: Claudia
+    - family-names: Tamma
+      given-names: Valentina
+  collection-title: The Semantic Web – ISWC 2026
+  collection-type: proceedings
+  conference:
+    name: ISWC 2026
+  volume: 17127
+  start: 623
+  end: 642
+  publisher:
+    name: Springer
+    city: Cham
+  year: 2027
+  doi: 10.1007/978-3-032-42026-8_30

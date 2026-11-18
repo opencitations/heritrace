@@ -45,16 +45,6 @@ SHACL 1.2 UI picks the editor and the viewer of each value by score. Every widge
 
 With `shui:DetailsViewer` or `shui:DetailsEditor`, the values of a field share one box, so the fields of different nested entities run together. Decide whether each nested entity gets a box of its own, on entity pages and in forms.
 
-## Reorder a new value together with the saved ones
-
-In an ordered field, the saved values and the values added in the current edit form two separate lists. A new value therefore stays after the saved ones until the first save, and placing it elsewhere takes a second edit. The case appeared in the configuration editor: a new field of a resource type could not be dragged below "Title" before saving. Let users drag new and saved values in one list.
-
-Observed once, in a browser driven by a script and not yet by hand: while a new field is dragged, its row is drawn as a grey block much taller than the row, and the drop leaves it at the end. Reproduce it by hand before treating it as a bug.
-
-## Record a new order in the history of the resource
-
-Dragging the fields of a resource type changes the `sh:order` of each field and creates no version of the resource type. Its time machine keeps showing the position that a field had when it was added, such as "Fields, position 11" for a field later moved to the fifth place. Decide whether a new order creates a version of the resource that holds the values, and how the time machine shows it. The same question applies to ordered values in the data, such as the authors of an article.
-
 ## Edit the database endpoints from the system settings
 
 The addresses of the dataset and provenance endpoints are environment variables (`DATASET_DB_URL`, `PROVENANCE_DB_URL`), while the title, the provenance defaults and the deletion rules are edited in the app. Move the endpoint addresses to the system settings, so that an administrator sets them in the app as well.

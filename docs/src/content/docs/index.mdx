@@ -39,14 +39,14 @@ The compose file includes two Virtuoso databases and the web application. On the
 
 HERITRACE runs in demo mode by default (`FLASK_ENV=demo`) for immediate testing without authentication setup.
 
-To use your own databases instead, edit `docker-compose.yml`: remove the `dataset-db`, `provenance-db`, and `networks` blocks, remove `depends_on` and `networks` from the `web` service, then set `DATASET_DB_URL` and `PROVENANCE_DB_URL` to your database endpoints.
+To use your own databases instead, edit `docker-compose.yml`: remove the `dataset-db`, `provenance-db`, `config-seed`, and `networks` blocks, remove `depends_on` and `networks` from the `web` service, then set `DATASET_DB_URL` and `PROVENANCE_DB_URL` to your database endpoints. On the first start, HERITRACE runs in [setup mode](/heritrace/configuration/editor/#setup-mode): an administrator enters the settings, then defines the resource types in the configuration editor.
 
 ## Access the application
 
 Open your browser and navigate to:
 
 ```
-http://127.0.0.1:5000
+http://127.0.0.1:8000
 ```
 
 :::note[Demo vs Production Mode]
@@ -83,28 +83,30 @@ docker compose down
 
 ### Port already in use
 
-If you get a port conflict on 5000, check what is using it:
+If another program uses port 8000, check which one:
 
 <Tabs>
   <TabItem label="Linux">
 
     ```bash
-    ss -tulpn | grep ':5000\s'
+    ss -tulpn | grep ':8000\s'
     ```
   </TabItem>
   <TabItem label="macOS">
 
     ```bash
-    netstat -an | grep ':5000\s'
+    lsof -nP -iTCP:8000 -sTCP:LISTEN
     ```
   </TabItem>
   <TabItem label="Windows">
 
     ```powershell
-    Get-NetTCPConnection | Where-Object {$_.LocalPort -eq 5000}
+    Get-NetTCPConnection | Where-Object {$_.LocalPort -eq 8000}
     ```
   </TabItem>
 </Tabs>
+
+To use another port, change the number before the colon in the `ports` entry of `docker-compose.yml`, for example `"8080:5000"`, then open `http://127.0.0.1:8080`.
 
 ### Need help?
 

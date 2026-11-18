@@ -31,13 +31,14 @@ curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/herit
 docker compose up
 ```
 
-The compose file includes two Virtuoso databases and the web application. Once the databases pass their health checks, the application starts at `http://localhost:5000`.
+The compose file starts the web application and two Virtuoso databases filled with sample data from OpenCitations Meta, ready for experimenting. On the first start, it copies an example configuration that describes this data into the `config` folder. Once the databases pass their health checks, the application starts at `http://localhost:8000`.
 
-By default HERITRACE runs in demo mode (`FLASK_ENV=demo`), so you can try it without setting up ORCID authentication.
+By default HERITRACE runs in demo mode (`FLASK_ENV=demo`), so you can try it without setting up ORCID authentication: every visitor is signed in as a demo user with administrator rights.
 
 ### With your own databases
 
-Edit `docker-compose.yml`: remove the `dataset-db`, `provenance-db`, and `networks` blocks, remove `depends_on` and `networks` from the `web` service, then set `DATASET_DB_URL` and `PROVENANCE_DB_URL` to your database endpoints.
+Edit `docker-compose.yml`: remove the `dataset-db`, `provenance-db`, `config-seed`, and `networks` blocks, remove `depends_on` and `networks` from the `web` service, then set `DATASET_DB_URL` and `PROVENANCE_DB_URL` to your database endpoints. On the first start, HERITRACE runs in setup mode: an administrator enters the settings, then defines the resource types in the configuration editor.
+
 ```bash
 docker compose up
 ```
@@ -53,8 +54,10 @@ For production setup with ORCID authentication, see [Application settings](https
 ## Features
 
 - **Provenance and change tracking** -- every edit records who changed what and when, with full version history
-- **Time machine** -- browse and restore previous versions of any entity
+- **Time machine** -- browse and restore previous versions of any resource
 - **SHACL validation** -- forms and constraints are generated from SHACL shapes, with real-time validation and disambiguation
+- **Configuration editor** -- administrators edit the SHACL shapes and the settings in the app, and HERITRACE checks them before saving
+- **Merging and recycle bin** -- merge duplicate resources and recover deleted ones
 - **ORCID authentication** -- restricts editing to authorized users
 - **Works with any RDF dataset** -- connects to any SPARQL-compatible triplestore, no data migration needed
 
@@ -65,13 +68,12 @@ See the [user guide](https://opencitations.github.io/heritrace/user-guide/browsi
 HERITRACE is data model agnostic. You define your domain through SHACL shapes, which drive forms, validation and presentation:
 
 - [Application settings](https://opencitations.github.io/heritrace/configuration/app-settings/)
+- [Configuration editor](https://opencitations.github.io/heritrace/configuration/editor/)
 - [SHACL schema](https://opencitations.github.io/heritrace/configuration/shacl/)
 
-## Development
+## Papers
 
-- [CI/CD pipeline](https://opencitations.github.io/heritrace/testing/cicd/)
-
-## Paper
+Massari, A., Peroni, S. (2027). HERITRACE: A Domain-Agnostic Framework for SHACL-Driven RDF Curation with Provenance and Change Tracking. In: Koubarakis, M., et al. *The Semantic Web – ISWC 2026*. ISWC 2026. Lecture Notes in Computer Science, vol 17127. Springer, Cham. https://doi.org/10.1007/978-3-032-42026-8_30
 
 Massari, A., & Peroni, S. (2025). HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions. *Umanistica Digitale*, 9(20), 317--340. https://doi.org/10.6092/issn.2532-8816/21218
 

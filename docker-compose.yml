@@ -50,7 +50,7 @@ services:
   web:
     image: arcangelo7/heritrace:3.2.0
     ports:
-      - "5000:5000"
+      - "8000:5000"
     depends_on:
       dataset-db:
         condition: service_healthy
