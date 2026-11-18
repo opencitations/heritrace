@@ -6,13 +6,13 @@ cff-version: 1.2.0
 message: If you use this software, please cite it as below.
 type: software
 title: HERITRACE
-version: 3.2.0
-date-released: '2026-07-25'
+version: 4.0.0
+date-released: '2026-11-18'
 identifiers:
   - type: swh
-    value: "swh:1:rev:b0c1a25b831be8764a591ddfae3a77159d3b2e4d"
+    value: "swh:1:rev:b617ba1bef8278c27696c8212b3456dce50fda7d"
 license: ISC
-url: "https://archive.softwareheritage.org/swh:1:rev:b0c1a25b831be8764a591ddfae3a77159d3b2e4d"
+url: "https://archive.softwareheritage.org/swh:1:rev:b617ba1bef8278c27696c8212b3456dce50fda7d"
 repository-code: https://github.com/opencitations/heritrace
 authors:
   - family-names: Massari

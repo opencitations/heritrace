@@ -78,14 +78,14 @@ Massari, A., Peroni, S. (2027). HERITRACE: A Domain-Agnostic Framework for SHACL
 Massari, A., & Peroni, S. (2025). HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions. *Umanistica Digitale*, 9(20), 317--340. https://doi.org/10.6092/issn.2532-8816/21218
 
 <!-- software-citation-action:start -->
-To cite the latest version of this software (3.2.0), use this BibTeX entry:
+To cite the latest version of this software (4.0.0), use this BibTeX entry:
 
 ```bibtex
-@software{HERITRACE-3.2.0,
+@software{HERITRACE-4.0.0,
 author = {Massari, Arcangelo},
 title = {HERITRACE},
-url = {https://archive.softwareheritage.org/swh:1:rev:b0c1a25b831be8764a591ddfae3a77159d3b2e4d},
-version = {3.2.0},
+url = {https://archive.softwareheritage.org/swh:1:rev:b617ba1bef8278c27696c8212b3456dce50fda7d},
+version = {4.0.0},
 year = {2026}
 }
 ```
