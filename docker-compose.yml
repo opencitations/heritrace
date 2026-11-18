@@ -39,7 +39,7 @@ services:
       - heritrace-network
 
   config-seed:
-    image: arcangelo7/heritrace:3.2.0
+    image: arcangelo7/heritrace:4.0.0
     # Copies the example configuration into ./config on the first start. Files
     # already in the folder stay as they are, so edits made in the app survive.
     entrypoint: [/app/.venv/bin/python, -m, heritrace.scripts.seed_config]
@@ -48,7 +48,7 @@ services:
       - ./config:/app/config
 
   web:
-    image: arcangelo7/heritrace:3.2.0
+    image: arcangelo7/heritrace:4.0.0
     ports:
       - "8000:5000"
     depends_on:
