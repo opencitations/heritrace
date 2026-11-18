@@ -1,3 +1,88 @@
+# [4.0.0](https://github.com/opencitations/heritrace/compare/v3.2.0...v4.0.0) (2026-11-18)
+
+
+* feat!: replace the Jinja interface with a Flutter web client ([0fcf703](https://github.com/opencitations/heritrace/commit/0fcf703096c2b68fe4aa6da7746a4903f1a18a84))
+* feat(config)!: declare value order with ht:orderedBy in SHACL shapes ([d49119e](https://github.com/opencitations/heritrace/commit/d49119ed92af1031c9836fe12f4231d735c688d9))
+* feat(config)!: detect duplicates with owl:hasKey and hide entity types ([9f059a1](https://github.com/opencitations/heritrace/commit/9f059a1b3d7cff87dd9fa97b0e878151b9255a38))
+* feat(config)!: drop display_rules.yaml and catalogue sorting ([2ce3b4d](https://github.com/opencitations/heritrace/commit/2ce3b4d7370ea0a24c4d090ea1ed0e1cd3ab4f66))
+* feat(config)!: edit the configuration in the app ([996aa24](https://github.com/opencitations/heritrace/commit/996aa24b3c4c761c212e61975757dbb3b917a123))
+* feat(config)!: move virtual properties and proxies into SHACL shapes ([c923bc4](https://github.com/opencitations/heritrace/commit/c923bc4166cada3c2829cc7fc3e8c22a8576d3a1))
+* feat(config)!: read presentation settings from SHACL shapes ([a896fc7](https://github.com/opencitations/heritrace/commit/a896fc74e5c0295455fcbe52c523ba627b607bbe))
+* feat(form)!: search existing entities with shui:AutoCompleteEditor ([375f7e8](https://github.com/opencitations/heritrace/commit/375f7e81dc2681218feeeb6fb26d03fd6e44285b))
+
+
+### Bug Fixes
+
+* adapt the web client to phone screens and refresh class counts after edits ([403d90b](https://github.com/opencitations/heritrace/commit/403d90b89bab7fcc07c2bea5c050e69fade808b1))
+* **demo:** point the curation walkthrough at heritrace 3.2.0 ([b308a87](https://github.com/opencitations/heritrace/commit/b308a87a094b4f489688157e2add7aa7d6f7410a))
+* **editor:** skip virtual properties when resolving draft relation labels ([c4ece29](https://github.com/opencitations/heritrace/commit/c4ece29cbce3a3a166f5c07227c98a7424b44552))
+* **form:** edit xsd:boolean properties with a switch ([a6823cb](https://github.com/opencitations/heritrace/commit/a6823cb487204f510c2fb5cb69514612277d35f1))
+* **forms:** align property labels and actions in shared headings ([4f70aa8](https://github.com/opencitations/heritrace/commit/4f70aa82872e2584b5c6e667e09a0b08db60e439))
+* **frontend:** add cancel to the orphan dialog and a merge button to similar resources ([2771702](https://github.com/opencitations/heritrace/commit/2771702e61c678b8e9a19bd1056ebaa846341e9d))
+* **frontend:** align icons with text and even out list spacing ([177e1aa](https://github.com/opencitations/heritrace/commit/177e1aabfb4cd2ff06d78cbff66906ab7eda0d3f))
+* **frontend:** check the active language in the account menu and give list rows more room ([ea456a3](https://github.com/opencitations/heritrace/commit/ea456a3d68df4d7aba0ef36273d42026d3d43c2c))
+* **frontend:** highlight the catalogue tab on entity pages ([ecb3557](https://github.com/opencitations/heritrace/commit/ecb3557a3291c7c7633d7ed94c115bb5b545686f))
+* **frontend:** make page text selectable and keep controls out of the selection ([dec8812](https://github.com/opencitations/heritrace/commit/dec88126377fb1613c30f93792e3cd0cf1db623f))
+* **frontend:** stretch cards and time vault tiles to the full section width ([d0cfa7f](https://github.com/opencitations/heritrace/commit/d0cfa7f90e2720104596d907d0fb2d3384c468d2))
+* **frontend:** treat a chosen sh:or shape as a single value ([8e9865f](https://github.com/opencitations/heritrace/commit/8e9865f5e62cafa646522ee315d132e7627104fd))
+* **frontend:** unify page margins, dialogs, breadcrumbs and property headings ([a7a258d](https://github.com/opencitations/heritrace/commit/a7a258d1ba52a622d9cfab4fb5c8ad5c6bed06a8))
+* **history:** query historical reverse relations only when display rules need them ([0f34ea0](https://github.com/opencitations/heritrace/commit/0f34ea00ccb51c1b8c338cdf74d688691e386839))
+* improve nested entity selection and agent labels ([2e760d0](https://github.com/opencitations/heritrace/commit/2e760d0857926456d721e6f4b6073731f17481c9))
+* label orphans and history versions from their own data ([c170e6d](https://github.com/opencitations/heritrace/commit/c170e6dedf0715a4986a8743b8da240022801308))
+* load development configuration ([4ba4be3](https://github.com/opencitations/heritrace/commit/4ba4be3064f6ee5342499b1279db20b24b4c9d62))
+* open linked entities from their rows and label merge values like the entity page ([13597fa](https://github.com/opencitations/heritrace/commit/13597faf3f2ca5915fcb3b264e6eda3a976cbea8))
+* serve the demo on port 8000 [release] ([abc19aa](https://github.com/opencitations/heritrace/commit/abc19aa28165e1ec74066ac91e302370d2429218))
+* **sparql:** bind orphan candidates before the not-exists checks on non-virtuoso backends ([ee4cabb](https://github.com/opencitations/heritrace/commit/ee4cabb29bee92c559018ac9a0818e4fef339383))
+* **sparql:** build backend-specific linked resource and similarity queries ([601f286](https://github.com/opencitations/heritrace/commit/601f2868bb1302a7ebf42aacaabd7d27a75c1f6f))
+* **ui:** align entity row hover styles and mandatory value spacing ([26ea4b0](https://github.com/opencitations/heritrace/commit/26ea4b0b2f5d00b1e75987188356e31ca1760388))
+* **ui:** lay out property values and their action buttons on a shared grid ([32773e2](https://github.com/opencitations/heritrace/commit/32773e24424f5edcc9d7d29ba996d4c2d7a47fc9))
+
+
+### Features
+
+* add an Italian interface with a language picker and rename the time vault to recycle bin ([b25a8d4](https://github.com/opencitations/heritrace/commit/b25a8d4bf18adea7cfd8ab8d9bb88cae5086e64e))
+* **config:** catch configuration mistakes in the form before saving ([9ddf460](https://github.com/opencitations/heritrace/commit/9ddf46054af1789294d4da0299e3eae95818ebac))
+* **config:** count several values in one qualified condition ([72ce25e](https://github.com/opencitations/heritrace/commit/72ce25e863907df03f73f448e8e5a893f2eb21dc))
+* **config:** edit allowed values in the configuration editor ([8130410](https://github.com/opencitations/heritrace/commit/81304102f699ea429e5882ac08edc2d7b1ec5d9c))
+* **config:** edit duplicate criteria in the configuration editor ([e25543e](https://github.com/opencitations/heritrace/commit/e25543ef5645452d347100b560cbe988fc9c892e))
+* **config:** edit fixed values and qualified counts in the configuration editor ([4599eea](https://github.com/opencitations/heritrace/commit/4599eeaf183d226285589897b04f8146a16e5f7b))
+* **config:** edit format rules ([cae23ca](https://github.com/opencitations/heritrace/commit/cae23ca89a98ef383f74813689c20487560ccedb))
+* **config:** edit inverse paths and check value counts on the saved state ([5c03e6e](https://github.com/opencitations/heritrace/commit/5c03e6edbab34ec6f983f8552acfbb1c99d5916d))
+* **config:** edit label queries and nested values in place ([c793959](https://github.com/opencitations/heritrace/commit/c793959889d26be049b733859237cfe3bbdbc62c))
+* **config:** edit value alternatives in the configuration editor ([3d46576](https://github.com/opencitations/heritrace/commit/3d46576b9373fd29f2f5df78e1cb647b0026b861))
+* **config:** keep the editor's copy of the shapes apart from shacl.ttl ([76a1240](https://github.com/opencitations/heritrace/commit/76a1240edd927bd43a0f67286fdf19bab978f021))
+* **config:** order values by sh:order when their shape declares it ([df6a3f0](https://github.com/opencitations/heritrace/commit/df6a3f0bed12668ed64449b0fdde9e3845408e09))
+* **config:** show sh:description under fields and limit dash:composite to links ([7dac8d7](https://github.com/opencitations/heritrace/commit/7dac8d7fcd3eff9e5d2dbdbad5da11b69645bdc9))
+* **editor:** open nested entities as separate panels with live labels ([8182e50](https://github.com/opencitations/heritrace/commit/8182e508d18679bba1ed3e356d6cf5859549f20d))
+* **editor:** show rejected saves beside the field they concern ([6f380f8](https://github.com/opencitations/heritrace/commit/6f380f8222f70bba9571012c4fa21ea4e794c1e0))
+* follow the interface language in shape texts and tag values with a language ([8c6b11c](https://github.com/opencitations/heritrace/commit/8c6b11cd686e814ee599333e498cf17e5acd73d7))
+* **form:** pick each editor with the SHACL 1.2 UI scores ([6f244c9](https://github.com/opencitations/heritrace/commit/6f244c949a6cace92b7149b5c8e3b3c735f67133))
+* **forms:** edit nested entities in modal dialogs ([eabc923](https://github.com/opencitations/heritrace/commit/eabc923602f96aa0d89e0d20ed19dc699bb36cdb))
+* **form:** show fields in sections declared with sh:group ([ee89cfb](https://github.com/opencitations/heritrace/commit/ee89cfb89105852de621e532c13982b7c405f3c5))
+* **form:** support sh:minInclusive, sh:maxInclusive, sh:minExclusive and sh:maxExclusive ([716329e](https://github.com/opencitations/heritrace/commit/716329e62eac9cfa1f1e67e116d4838d9cc35ede))
+* **frontend:** scroll-loaded catalogue, dark mode and iOS-style editing ([170a4a3](https://github.com/opencitations/heritrace/commit/170a4a36db5c52abbbeb5d59eb1da45ecf463919))
+* introduce a new logo and drop the title text from the navigation bar ([56e81c1](https://github.com/opencitations/heritrace/commit/56e81c1b86fe08bdca9739903f0aefa94b59536f))
+* resolve value labels as SHACL UI does and explain options with rdfs:comment ([47e2052](https://github.com/opencitations/heritrace/commit/47e20525cb1e9b9a157eb51735eb7f9379bfe485))
+* **ui:** add a sticky save bar showing unsaved changes while editing an entity ([1be6844](https://github.com/opencitations/heritrace/commit/1be6844197a44ceee0058599794c35a24e5c1df6))
+* **ui:** replace the validation popup with an inline error summary ([5812f81](https://github.com/opencitations/heritrace/commit/5812f8136cc51ead9ad086d94fbfdbe1ddf21a30))
+
+
+### Performance Improvements
+
+* **time-vault:** list deletions without replaying entity history and warm-up ([09a8b47](https://github.com/opencitations/heritrace/commit/09a8b474a918ecd9318d7463b325d566fa2364f1))
+
+
+### BREAKING CHANGES
+
+* HERITRACE no longer reads display_rules.yaml and the DISPLAY_RULES_PATH setting is removed.
+* orderedBy in display_rules.yaml is ignored; move each entry to an ht:orderedBy triple on the matching property shape.
+* similarity_properties in display_rules.yaml is no longer read. Express each rule as an owl:hasKey list on the node shape.
+* display rules no longer read isVirtual, implementedVia, intermediateRelation or shouldBeDisplayed.
+* display rules no longer read supportsSearch, minCharsForSearch, searchTarget and priority.
+* CONFIG_DIR and ADMIN_ORCIDS are required. APP_TITLE, APP_SUBTITLE, CACHE_VALIDITY_DAYS, COUNT_LIMIT, CATALOGUE_DEFAULT_PER_PAGE, DATASET_GENERATION_TIME, PRIMARY_SOURCE, ORCID_SAFELIST, ORPHAN_HANDLING_STRATEGY, PROXY_HANDLING_STRATEGY, SHACL_PATH, DISPLAY_RULES_PATH, MAX_WORKERS and BAKE are no longer read: set these values in the configuration page, and put shacl.ttl and display_rules.yaml in CONFIG_DIR.
+* display rules no longer accept fetchUriDisplay, fetchValueFromQuery, displayRules, or per-property displayName and inputType. Move these settings into the SHACL shapes.
+* HTML routes are removed and the API is reorganised: entity view, creation, history, versions and restore live under /api (POST /api/entity, /api/entity-restore/...), merge endpoints move to /api/merge (POST /api/merge, /api/merge/compare, /api/merge/similar), search is POST /api/search, the /dataset-endpoint SPARQL proxy is removed, logout requires POST and responses carry AgentRef/SourceRef objects instead of HTML.
+
 # [3.2.0](https://github.com/opencitations/heritrace/compare/v3.1.3...v3.2.0) (2026-07-25)
 
 
